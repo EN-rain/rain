@@ -1,12 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import heroImage from '../../assets/images/hero1.2.png';
 import { useMobileReveal } from '../../hooks/useMobileReveal';
-import { CosmicInkSvg } from '../CosmicInkSvg';
+import { WebGLCanvas } from '../WebGLCanvas';
+import { EnsoSceneConfig } from '../../types';
 import {
   FALLBACK_GITHUB_CONTRIBUTIONS,
   type ContributionDay,
   type GithubContributionsResponse,
 } from '../../data/githubContributionsFallback';
+
+const ABOUT_WEBGL_CONFIG: EnsoSceneConfig = {
+  viewMode: 'study',
+  palette: 'ultramarine',
+  flowSpeed: 0.75,
+  bristleDetail: 0.68,
+  inkDensity: 0.72,
+  emberIntensity: 0.9,
+  horizonRadius: 1.0,
+  compareSplit: 0.0,
+  showEditorial: false,
+  dockCollapsed: true,
+  audioEnabled: false,
+};
 
 const GITHUB_USERNAME = 'EN-rain';
 const GITHUB_API_URL = `https://github-contributions-api.jogruber.de/v4/${GITHUB_USERNAME}?y=last`;
@@ -138,12 +153,12 @@ export const AboutSection = () => {
     <section ref={revealRef} id="about" className="stack-section mask-shaped-section mask-theme-purple" style={{ zIndex: 20 }}>
       <div className="clip-gap-outer parallax-content">
         <div className="clip-gap-inner">
-          {/* ── Pure SVG Cosmic Ink Background ──
+          {/* ── WebGL Cosmic Ink Background ──
                Wrapper: bg-image → gets scroll counter-transform (stays screen-fixed)
-               so the SVG canvas remains aligned during section scroll transitions ── */}
+               so the WebGL canvas remains aligned during section scroll transitions ── */}
           <div className="about-bg-parallax" aria-hidden="true">
             <div className="about-bg-wrap bg-image">
-              <CosmicInkSvg />
+              <WebGLCanvas config={ABOUT_WEBGL_CONFIG} />
             </div>
           </div>
 
@@ -153,45 +168,45 @@ export const AboutSection = () => {
                 <img src={heroImage} alt="Profile" className="about-image" decoding="async" fetchPriority="high" />
               </div>
 
-              {/* Desktop GitHub Contributions Tracker (replaces tech stack below profile) */}
+              {/* Desktop GitHub Contributions Tracker (placed on the left side below profile) */}
               <div
                 data-about-fade
                 data-about-fade-order="10"
                 data-about-fade-dir="bottom"
                 className="about-skills-box about-skills-box--desktop about-scroll-fade"
               >
-                {/* Left Column (Over the Dark Cosmic Sphere): Live Total & Streak Readout */}
-                <div className="about-gh-summary">
-                  <div className="about-gh-header">
-                    <a
-                      href={`https://github.com/${GITHUB_USERNAME}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="about-gh-handle"
-                    >
-                      github.com/{GITHUB_USERNAME}
-                    </a>
-                    <span className="about-gh-sep" aria-hidden="true">·</span>
-                    <span className="about-gh-sub">LIVE COMMITS</span>
+                <div className="about-gh-left-card">
+                  {/* Single-row header on the left side */}
+                  <div className="about-gh-single-row">
+                    <div className="about-gh-single-main">
+                      <span className="about-gh-total-num">{stats.total.toLocaleString()}</span>
+                      <span className="about-gh-total-label">contributions</span>
+                      <span className="about-gh-sep" aria-hidden="true">·</span>
+                      <a
+                        href={`https://github.com/${GITHUB_USERNAME}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="about-gh-handle"
+                      >
+                        @{GITHUB_USERNAME}
+                      </a>
+                    </div>
+
+                    <div className="about-gh-inspect">
+                      {hoveredDay ? (
+                        <>
+                          <strong>{hoveredDay.count}</strong> on {formatDateLabel(hoveredDay.date)}
+                        </>
+                      ) : (
+                        <span>
+                          {stats.activeDays}d active · {stats.longestStreak}d streak · {stats.maxCount} peak
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="about-gh-total-row">
-                    <span className="about-gh-total-num">{stats.total.toLocaleString()}</span>
-                    <span className="about-gh-total-label">contributions in the last year</span>
-                  </div>
-
-                  <div className="about-gh-metrics">
-                    <span>{stats.activeDays} active days</span>
-                    <span aria-hidden="true">·</span>
-                    <span>{stats.longestStreak}d best streak</span>
-                    <span aria-hidden="true">·</span>
-                    <span>{stats.maxCount} peak day</span>
-                  </div>
-                </div>
-
-                {/* Right Column (Over the Stark White Canvas): 52-Week Contribution Heatmap */}
-                <div className="about-gh-heatmap-panel">
-                  <div className="about-gh-heatmap-top">
+                  {/* Compact 53-week heatmap on the left side over the dark cosmic sphere */}
+                  <div className="about-gh-heatmap-panel">
                     <div className="about-gh-months">
                       {monthLabels.map((m) => (
                         <span
@@ -203,47 +218,26 @@ export const AboutSection = () => {
                         </span>
                       ))}
                     </div>
-                    <div className="about-gh-inspect">
-                      {hoveredDay ? (
-                        <>
-                          <strong>{hoveredDay.count}</strong>{' '}
-                          {hoveredDay.count === 1 ? 'contribution' : 'contributions'} on{' '}
-                          {formatDateLabel(hoveredDay.date)}
-                        </>
-                      ) : (
-                        <span>Past 12 months · Daily contribution density</span>
-                      )}
+
+                    <div
+                      className="about-gh-grid"
+                      onMouseLeave={() => setHoveredDay(null)}
+                      role="img"
+                      aria-label={`GitHub contribution graph for ${GITHUB_USERNAME}: ${stats.total} contributions in the last year`}
+                    >
+                      {weeks.map((week, wIdx) => (
+                        <div key={wIdx} className="about-gh-week">
+                          {week.map((day) => (
+                            <div
+                              key={day.date}
+                              onMouseEnter={() => setHoveredDay(day)}
+                              className={`about-gh-cell about-gh-cell--lvl-${day.level}`}
+                              title={`${day.count} contributions on ${day.date}`}
+                            />
+                          ))}
+                        </div>
+                      ))}
                     </div>
-                  </div>
-
-                  <div
-                    className="about-gh-grid"
-                    onMouseLeave={() => setHoveredDay(null)}
-                    role="img"
-                    aria-label={`GitHub contribution graph for ${GITHUB_USERNAME}: ${stats.total} contributions in the last year`}
-                  >
-                    {weeks.map((week, wIdx) => (
-                      <div key={wIdx} className="about-gh-week">
-                        {week.map((day) => (
-                          <div
-                            key={day.date}
-                            onMouseEnter={() => setHoveredDay(day)}
-                            className={`about-gh-cell about-gh-cell--lvl-${day.level}`}
-                            title={`${day.count} contributions on ${day.date}`}
-                          />
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="about-gh-legend">
-                    <span>Less</span>
-                    <span className="about-gh-cell about-gh-cell--lvl-0" />
-                    <span className="about-gh-cell about-gh-cell--lvl-1" />
-                    <span className="about-gh-cell about-gh-cell--lvl-2" />
-                    <span className="about-gh-cell about-gh-cell--lvl-3" />
-                    <span className="about-gh-cell about-gh-cell--lvl-4" />
-                    <span>More</span>
                   </div>
                 </div>
               </div>
@@ -500,14 +494,12 @@ export const AboutSection = () => {
         }
 
         .about-skills-box.about-skills-box--desktop {
-          grid-area: skills;
-          display: grid;
-          grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
-          column-gap: clamp(2.5rem, 5vw, 6rem);
-          align-items: center;
-          width: 100%;
-          padding: 0.95rem 0 0;
-          border-top: 1px solid rgba(120, 140, 180, 0.26);
+          grid-column: 1 / 2;
+          grid-row: 2;
+          justify-self: center;
+          width: min(440px, 100%);
+          padding: 0.7rem 0 0;
+          border-top: 1px solid rgba(124, 58, 237, 0.28);
           box-sizing: border-box;
         }
 
@@ -515,27 +507,56 @@ export const AboutSection = () => {
           display: none;
         }
 
-        /* Left summary column (sits over the dark cosmic void sphere) */
-        .about-gh-summary {
+        /* Compact left-column container (sits 100% over the dark cosmic void sphere) */
+        .about-gh-left-card {
           display: flex;
           flex-direction: column;
-          gap: 0.35rem;
+          gap: 0.42rem;
+          width: 100%;
           min-width: 0;
-          justify-self: center;
-          width: min(430px, 100%);
         }
 
-        .about-gh-header {
+        .about-gh-single-row {
           display: flex;
-          align-items: center;
+          align-items: baseline;
+          justify-content: space-between;
           gap: 0.5rem;
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 0.68rem;
-          letter-spacing: 0.04em;
+          flex-wrap: nowrap;
+          min-width: 0;
+        }
+
+        .about-gh-single-main {
+          display: flex;
+          align-items: baseline;
+          gap: 0.38rem;
+          min-width: 0;
+          white-space: nowrap;
+        }
+
+        .about-gh-total-num {
+          font-family: 'Sora', sans-serif;
+          font-size: clamp(1rem, 1.25vw, 1.2rem);
+          font-weight: 700;
+          line-height: 1;
+          color: #ffffff;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .about-gh-total-label {
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 0.72rem;
+          color: rgba(237, 233, 254, 0.82);
+        }
+
+        .about-gh-sep {
+          color: rgba(167, 139, 250, 0.48);
+          font-size: 0.7rem;
         }
 
         .about-gh-handle {
-          color: #93c5fd;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.66rem;
+          color: #a78bfa;
           text-decoration: none;
           font-weight: 500;
           transition: color 150ms ease;
@@ -546,75 +567,39 @@ export const AboutSection = () => {
           text-decoration: underline;
         }
 
-        .about-gh-sep {
-          color: rgba(148, 163, 184, 0.5);
-        }
-
-        .about-gh-sub {
-          color: rgba(226, 232, 240, 0.65);
-          font-size: 0.62rem;
-        }
-
-        .about-gh-total-row {
-          display: flex;
-          align-items: baseline;
-          gap: 0.6rem;
-        }
-
-        .about-gh-total-num {
-          font-family: 'Sora', sans-serif;
-          font-size: clamp(1.5rem, 2.2vw, 2.1rem);
-          font-weight: 700;
-          line-height: 1.05;
-          color: #ffffff;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .about-gh-total-label {
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 0.78rem;
-          color: rgba(226, 232, 240, 0.8);
-          white-space: nowrap;
-        }
-
-        .about-gh-metrics {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 0.45rem;
+        .about-gh-inspect {
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 0.64rem;
-          color: rgba(147, 197, 253, 0.88);
+          font-size: 0.58rem;
+          color: rgba(196, 181, 253, 0.82);
+          white-space: nowrap;
           font-variant-numeric: tabular-nums;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
-        /* Right heatmap column (sits over the stark white canvas) */
+        .about-gh-inspect strong {
+          color: #ffffff;
+          font-weight: 600;
+        }
+
+        /* Heatmap panel on the left side over the dark cosmic sphere */
         .about-gh-heatmap-panel {
           display: flex;
           flex-direction: column;
-          gap: 0.42rem;
-          max-width: 700px;
+          gap: 0.28rem;
           width: 100%;
           min-width: 0;
         }
 
-        .about-gh-heatmap-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          min-height: 16px;
-        }
-
         .about-gh-months {
           position: relative;
-          flex: 1;
-          height: 14px;
+          width: 100%;
+          height: 11px;
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 0.6rem;
-          color: #64748b;
+          font-size: 0.52rem;
+          color: rgba(221, 214, 254, 0.68);
           text-transform: uppercase;
-          letter-spacing: 0.03em;
+          letter-spacing: 0.02em;
         }
 
         .about-gh-month-label {
@@ -623,76 +608,46 @@ export const AboutSection = () => {
           white-space: nowrap;
         }
 
-        .about-gh-inspect {
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 0.64rem;
-          color: #334155;
-          white-space: nowrap;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .about-gh-inspect strong {
-          color: #0f172a;
-          font-weight: 600;
-        }
-
         .about-gh-grid {
           display: grid;
           grid-template-columns: repeat(53, minmax(0, 1fr));
-          gap: 3px;
+          gap: 2px;
           width: 100%;
         }
 
         .about-gh-week {
           display: grid;
           grid-template-rows: repeat(7, minmax(0, 1fr));
-          gap: 3px;
+          gap: 2px;
         }
 
         .about-gh-cell {
           width: 100%;
           aspect-ratio: 1 / 1;
-          border-radius: 2px;
+          border-radius: 1.5px;
           transition: transform 120ms ease;
         }
 
         .about-gh-grid .about-gh-cell:hover {
-          transform: scale(1.35);
+          transform: scale(1.45);
           z-index: 2;
         }
 
-        /* Cobalt & Sumi Ink Contribution Levels */
+        /* Experience-matched Purple (#7c3aed / #a78bfa) Contribution Levels */
         .about-gh-cell--lvl-0 {
-          background-color: rgba(15, 23, 42, 0.07);
+          background-color: rgba(255, 255, 255, 0.1);
         }
         .about-gh-cell--lvl-1 {
-          background-color: #93c5fd;
+          background-color: #3b1774;
         }
         .about-gh-cell--lvl-2 {
-          background-color: #3b82f6;
+          background-color: #6c2bd9;
         }
         .about-gh-cell--lvl-3 {
-          background-color: #1d4ed8;
+          background-color: #7c3aed;
         }
         .about-gh-cell--lvl-4 {
-          background-color: #0f172a;
-        }
-
-        .about-gh-legend {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 4px;
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 0.58rem;
-          color: #64748b;
-          margin-top: 2px;
-        }
-
-        .about-gh-legend .about-gh-cell {
-          width: 8px;
-          height: 8px;
-          aspect-ratio: auto;
+          background-color: #c4b5fd;
         }
 
         @media (max-width: 768px), (hover: none) and (pointer: coarse) {
@@ -776,8 +731,8 @@ export const AboutSection = () => {
           }
 
           .about-gh-mobile-card {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(15, 23, 42, 0.1);
+            background: rgba(12, 8, 26, 0.88);
+            border: 1px solid rgba(124, 58, 237, 0.28);
             border-radius: 12px;
             padding: 14px 16px;
             display: flex;
@@ -794,13 +749,13 @@ export const AboutSection = () => {
           }
 
           .about-gh-mobile-handle {
-            color: #1d4ed8;
+            color: #a78bfa;
             font-weight: 600;
             text-decoration: none;
           }
 
           .about-gh-mobile-total {
-            color: #0f172a;
+            color: #ffffff;
             font-weight: 600;
             font-variant-numeric: tabular-nums;
           }
@@ -817,7 +772,7 @@ export const AboutSection = () => {
             gap: 8px;
             font-family: 'IBM Plex Mono', monospace;
             font-size: 0.65rem;
-            color: #475569;
+            color: rgba(196, 181, 253, 0.82);
             font-variant-numeric: tabular-nums;
           }
         }

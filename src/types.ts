@@ -31,14 +31,14 @@ export interface EnsoSceneConfig {
 export const PALETTE_PRESETS: Record<PaletteId, PalettePreset> = {
   ultramarine: {
     id: 'ultramarine',
-    name: 'Ultramarine Study',
-    subtitle: 'Original Cobalt & Sumi Ink',
-    deepInk: [0.035, 0.085, 0.28],
-    coreBlue: [0.14, 0.31, 0.76],
-    brightEdge: [0.46, 0.65, 0.98],
+    name: 'Amethyst Study',
+    subtitle: 'Experience Violet & Sumi Ink',
+    deepInk: [0.145, 0.042, 0.34],
+    coreBlue: [0.486, 0.227, 0.929],
+    brightEdge: [0.685, 0.565, 0.985],
     emberPrimary: [0.95, 0.45, 0.21],
     emberSecondary: [1.0, 0.68, 0.36],
-    swatchHex: '#244fc2',
+    swatchHex: '#7c3aed',
   },
   crimson: {
     id: 'crimson',
