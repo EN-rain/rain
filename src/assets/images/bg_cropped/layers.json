@@ -1,0 +1,255 @@
+[
+  {
+    "file": "layer_01_Freeform_2.webp",
+    "importName": "bgL01",
+    "idx": "01",
+    "css": {
+      "left": "0.0521%",
+      "top": "0.0000%",
+      "width": "55.9375%",
+      "height": "45.9259%"
+    }
+  },
+  {
+    "file": "layer_02_Freeform_3.webp",
+    "importName": "bgL02",
+    "idx": "02",
+    "css": {
+      "left": "0.0521%",
+      "top": "0.0000%",
+      "width": "27.3958%",
+      "height": "43.7963%"
+    }
+  },
+  {
+    "file": "layer_03_Freeform_4.webp",
+    "importName": "bgL03",
+    "idx": "03",
+    "css": {
+      "left": "0.0521%",
+      "top": "54.0741%",
+      "width": "17.8646%",
+      "height": "45.9259%"
+    }
+  },
+  {
+    "file": "layer_04_Freeform_5.webp",
+    "importName": "bgL04",
+    "idx": "04",
+    "css": {
+      "left": "0.0521%",
+      "top": "54.0741%",
+      "width": "40.4688%",
+      "height": "45.9259%"
+    }
+  },
+  {
+    "file": "layer_05_Freeform_6.webp",
+    "importName": "bgL05",
+    "idx": "05",
+    "css": {
+      "left": "28.5417%",
+      "top": "70.7407%",
+      "width": "15.5208%",
+      "height": "29.2593%"
+    }
+  },
+  {
+    "file": "layer_06_Freeform_7.webp",
+    "importName": "bgL06",
+    "idx": "06",
+    "css": {
+      "left": "44.0104%",
+      "top": "70.7407%",
+      "width": "20.2604%",
+      "height": "29.2593%"
+    }
+  },
+  {
+    "file": "layer_07_Freeform_8.webp",
+    "importName": "bgL07",
+    "idx": "07",
+    "css": {
+      "left": "67.8125%",
+      "top": "0.0000%",
+      "width": "32.1354%",
+      "height": "22.9630%"
+    }
+  },
+  {
+    "file": "layer_08_Freeform_9.webp",
+    "importName": "bgL08",
+    "idx": "08",
+    "css": {
+      "left": "67.8125%",
+      "top": "45.8333%",
+      "width": "32.1354%",
+      "height": "54.1667%"
+    }
+  },
+  {
+    "file": "layer_09_Freeform_10.webp",
+    "importName": "bgL09",
+    "idx": "09",
+    "css": {
+      "left": "13.0729%",
+      "top": "33.2407%",
+      "width": "86.9271%",
+      "height": "66.7593%"
+    }
+  },
+  {
+    "file": "layer_10_Freeform_11.webp",
+    "importName": "bgL10",
+    "idx": "10",
+    "css": {
+      "left": "1.1458%",
+      "top": "37.4074%",
+      "width": "7.2396%",
+      "height": "6.3889%"
+    }
+  },
+  {
+    "file": "layer_11_Freeform_12.webp",
+    "importName": "bgL11",
+    "idx": "11",
+    "css": {
+      "left": "2.3438%",
+      "top": "45.8333%",
+      "width": "2.4479%",
+      "height": "4.2593%"
+    }
+  },
+  {
+    "file": "layer_12_Freeform_13.webp",
+    "importName": "bgL12",
+    "idx": "12",
+    "css": {
+      "left": "7.1354%",
+      "top": "47.7778%",
+      "width": "2.4479%",
+      "height": "4.3519%"
+    }
+  },
+  {
+    "file": "layer_13_Freeform_14.webp",
+    "importName": "bgL13",
+    "idx": "13",
+    "css": {
+      "left": "17.8646%",
+      "top": "22.8704%",
+      "width": "2.4479%",
+      "height": "2.2222%"
+    }
+  },
+  {
+    "file": "layer_14_Freeform_15.webp",
+    "importName": "bgL14",
+    "idx": "14",
+    "css": {
+      "left": "21.4063%",
+      "top": "60.3704%",
+      "width": "2.4479%",
+      "height": "4.2593%"
+    }
+  },
+  {
+    "file": "layer_15_Freeform_16.webp",
+    "importName": "bgL15",
+    "idx": "15",
+    "css": {
+      "left": "23.8021%",
+      "top": "79.0741%",
+      "width": "1.1979%",
+      "height": "2.2222%"
+    }
+  },
+  {
+    "file": "layer_16_Freeform_17.webp",
+    "importName": "bgL16",
+    "idx": "16",
+    "css": {
+      "left": "33.3333%",
+      "top": "85.3704%",
+      "width": "8.3854%",
+      "height": "6.3889%"
+    }
+  },
+  {
+    "file": "layer_17_Freeform_18.webp",
+    "importName": "bgL17",
+    "idx": "17",
+    "css": {
+      "left": "48.8021%",
+      "top": "62.5000%",
+      "width": "2.3958%",
+      "height": "4.2593%"
+    }
+  },
+  {
+    "file": "layer_18_Freeform_19.webp",
+    "importName": "bgL18",
+    "idx": "18",
+    "css": {
+      "left": "82.0833%",
+      "top": "16.5741%",
+      "width": "3.6458%",
+      "height": "8.5185%"
+    }
+  },
+  {
+    "file": "layer_19_Freeform_20.webp",
+    "importName": "bgL19",
+    "idx": "19",
+    "css": {
+      "left": "89.2188%",
+      "top": "10.3704%",
+      "width": "9.6354%",
+      "height": "8.4259%"
+    }
+  },
+  {
+    "file": "layer_20_Freeform_21.webp",
+    "importName": "bgL20",
+    "idx": "20",
+    "css": {
+      "left": "86.8750%",
+      "top": "64.5370%",
+      "width": "2.3958%",
+      "height": "4.2593%"
+    }
+  },
+  {
+    "file": "layer_21_Freeform_22.webp",
+    "importName": "bgL21",
+    "idx": "21",
+    "css": {
+      "left": "86.8750%",
+      "top": "43.7037%",
+      "width": "2.3958%",
+      "height": "4.2593%"
+    }
+  },
+  {
+    "file": "layer_22_Freeform_23.webp",
+    "importName": "bgL22",
+    "idx": "22",
+    "css": {
+      "left": "90.4167%",
+      "top": "37.4074%",
+      "width": "2.4479%",
+      "height": "4.3519%"
+    }
+  },
+  {
+    "file": "layer_23_Freeform_24.webp",
+    "importName": "bgL23",
+    "idx": "23",
+    "css": {
+      "left": "90.4167%",
+      "top": "70.7407%",
+      "width": "8.4375%",
+      "height": "8.4259%"
+    }
+  }
+]
