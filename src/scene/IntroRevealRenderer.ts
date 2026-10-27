@@ -1,6 +1,5 @@
 import mudNormalUrl from '../assets/images/mud_normal.jpg';
 import texNoiseUrl from '../assets/images/tex_noise.jpg';
-import heroImageUrl from '../assets/images/hero.png';
 
 const VERTEX_SHADER = `#version 300 es
 in vec2 aPosition;
@@ -228,7 +227,6 @@ function loadImage(source: string): Promise<HTMLImageElement> {
  * etching along the expanding circular mud_normal boundary.
  */
 function createLuminanceCanvas(
-  heroImage: HTMLImageElement,
   isWhiteBg: boolean
 ): HTMLCanvasElement {
   const width = 1600;
@@ -239,60 +237,25 @@ function createLuminanceCanvas(
   const ctx = offscreen.getContext('2d');
   if (!ctx) return offscreen;
 
-  ctx.fillStyle = isWhiteBg ? '#ffffff' : '#020202';
-  ctx.fillRect(0, 0, width, height);
-
-  // Concentric architectural rings & grid lines for rich fwidth() contour detail
-  ctx.strokeStyle = isWhiteBg
-    ? 'rgba(0, 0, 0, 0.35)'
-    : 'rgba(255, 255, 255, 0.32)';
-  ctx.lineWidth = 2;
-
-  const radii = [0.22, 0.34, 0.44, 0.56];
-  for (const r of radii) {
-    ctx.beginPath();
-    ctx.arc(
-      width * 0.5,
-      height * 0.5,
-      Math.min(width, height) * r,
-      0,
-      Math.PI * 2
-    );
-    ctx.stroke();
-  }
-
-  ctx.beginPath();
-  ctx.moveTo(width * 0.5 - 180, 0);
-  ctx.lineTo(width * 0.5 - 180, height);
-  ctx.moveTo(width * 0.5 + 180, 0);
-  ctx.lineTo(width * 0.5 + 180, height);
-  ctx.moveTo(0, height * 0.5);
-  ctx.lineTo(width, height * 0.5);
-  ctx.stroke();
-
-  // Large "E N" hero typography
-  ctx.save();
-  ctx.font = '700 440px Sora, Outfit, sans-serif';
-  ctx.fillStyle = isWhiteBg ? '#111111' : '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('E   N', width * 0.52, height * 0.42);
-  ctx.restore();
-
-  // Hero portrait
-  const imgRatio =
-    heroImage.naturalWidth / Math.max(heroImage.naturalHeight, 1);
-  const canvasRatio = width / height;
-  let drawW = width;
-  let drawH = height;
-  if (canvasRatio > imgRatio) {
-    drawH = width / imgRatio;
+  if (isWhiteBg) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
   } else {
-    drawW = height * imgRatio;
+    // Deep obsidian black gradient matching HomeSection #020202
+    const bgGrad = ctx.createRadialGradient(
+      width * 0.5,
+      height * 0.48,
+      80,
+      width * 0.5,
+      height * 0.48,
+      width * 0.65
+    );
+    bgGrad.addColorStop(0, '#0a0a0a');
+    bgGrad.addColorStop(0.45, '#040404');
+    bgGrad.addColorStop(1, '#020202');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
   }
-  const drawX = (width - drawW) * 0.5;
-  const drawY = (height - drawH) * 0.5;
-  ctx.drawImage(heroImage, drawX, drawY, drawW, drawH);
 
   return offscreen;
 }
@@ -328,14 +291,13 @@ export async function createIntroRevealRenderer(
   });
   if (!gl) throw new Error('WebGL 2 is unavailable.');
 
-  const [heroImage, mudImage, noiseImage] = await Promise.all([
-    loadImage(heroImageUrl),
+  const [mudImage, noiseImage] = await Promise.all([
     loadImage(mudNormalUrl),
     loadImage(texNoiseUrl),
   ]);
 
-  const currentCanvas = createLuminanceCanvas(heroImage, true);
-  const nextCanvas = createLuminanceCanvas(heroImage, false);
+  const currentCanvas = createLuminanceCanvas(true);
+  const nextCanvas = createLuminanceCanvas(false);
 
   const vertexShader = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
   const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
