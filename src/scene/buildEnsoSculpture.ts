@@ -87,6 +87,7 @@ export function buildEnsoSculpture(
   embersMesh.instanceMatrix.needsUpdate = true;
   if (embersMesh.instanceColor) embersMesh.instanceColor.needsUpdate = true;
   embersMesh.computeBoundingSphere();
+  embersMesh.visible = false;
   rootGroup.add(embersMesh);
 
   // ---------------------------------------------------------------------------
@@ -121,49 +122,8 @@ export function buildEnsoSculpture(
   starsMesh.computeBoundingSphere();
   rootGroup.add(starsMesh);
 
-  // ---------------------------------------------------------------------------
-  // Per-frame Update: Spherical Orbit of Embers
-  // ---------------------------------------------------------------------------
-  const sphereCenterX = -0.72;
-  const sphereCenterY = 0.06;
-  const tilt = -0.32;
-  const cosTilt = Math.cos(tilt);
-  const sinTilt = Math.sin(tilt);
-
-  const update: EnsoSculptureRig['update'] = (
-    elapsed,
-    _delta,
-    flowSpeed,
-    _spatialBlend,
-    paletteColors
-  ) => {
-    const activeSpeed = Math.max(flowSpeed, 0.35);
-
-    emberMat.color.setRGB(...paletteColors.emberPrimary);
-    for (let i = 0; i < emberCount; i++) {
-      const d = emberData[i];
-      const rawLon = d.lon + elapsed * activeSpeed * d.speed;
-      const wrappedLon = ((((rawLon + 1.35) % 2.7) + 2.7) % 2.7) - 1.35;
-
-      const cosLat = Math.cos(d.lat);
-      const sx = Math.sin(wrappedLon) * cosLat * d.radius;
-      const sy = Math.sin(d.lat) * d.radius;
-      const sz = Math.cos(wrappedLon) * cosLat * 0.35;
-
-      const tx = sx * cosTilt - sy * sinTilt;
-      const ty = sx * sinTilt + sy * cosTilt;
-
-      _pos.set(sphereCenterX + tx, sphereCenterY + ty, 0.05 + sz);
-      _euler.set(elapsed * 0.6 + d.phase, elapsed * 0.8, d.phase);
-      _quat.setFromEuler(_euler);
-
-      const limbFade = Math.max(0.0, Math.cos(wrappedLon * 1.1));
-      _scale.copy(d.baseScale).multiplyScalar(limbFade);
-
-      _mat4.compose(_pos, _quat, _scale);
-      embersMesh.setMatrixAt(i, _mat4);
-    }
-    embersMesh.instanceMatrix.needsUpdate = true;
+  const update: EnsoSculptureRig['update'] = () => {
+    // Yellow/orange embers disabled
   };
 
   const dispose = () => {

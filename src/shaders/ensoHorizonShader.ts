@@ -133,34 +133,6 @@ export const ENSO_FRAGMENT_SHADER = /* glsl */ `
       }
     }
 
-    // Tier 2: Very sparse warm orange/amber embers rotating across the lower sphere
-    {
-      float lonInner = atan(pTilted.x, pTilted.z) - rotAngle * 1.18;
-      vec2 innerUv = vec2(lonInner / 3.14159265, lat / 1.5707963);
-
-      vec2 grid = innerUv * vec2(36.0, 18.0) + vec2(4.2, 9.7);
-      vec2 id = floor(grid);
-      vec2 gv = fract(grid) - 0.5;
-      vec2 rnd = hash22(id + 109.5);
-      float prob = hash12(id + 211.3);
-
-      float latMask = smoothstep(0.15, -0.35, lat) * smoothstep(-0.85, -0.25, lat);
-      if (prob > (0.968 - latMask * 0.032)) {
-        vec2 offset = (rnd - 0.5) * 0.65;
-        vec2 delta = gv - offset;
-        float angle = prob * 6.2831;
-        mat2 rMat = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-        delta = rMat * delta * vec2(1.0, 1.3);
-        float d = length(delta);
-
-        float pulse = 0.88 + 0.12 * sin(time * 2.0 + prob * 50.0);
-        float core = smoothstep(0.11, 0.015, d);
-        float glow = smoothstep(0.24, 0.0, d) * 0.28;
-        vec3 emberCol = mix(uEmberPrimary, uEmberSecondary, fract(prob * 23.1));
-        col += emberCol * (core + glow) * pulse * limb * uEmberIntensity;
-      }
-    }
-
     return col * voidMask;
   }
 
@@ -168,8 +140,8 @@ export const ENSO_FRAGMENT_SHADER = /* glsl */ `
     vec2 refUv = vec2((vUv.x - 0.5) * (uAspect / 1.77778) + 0.5, vUv.y);
     vec2 pos = vec2(refUv.x * 1.77778, refUv.y);
 
-    // Fixed sphere center and radius calibrated to the reference composition
-    vec2 center = vec2(0.2725, 0.5345);
+    // Fixed sphere center and radius calibrated so the rim sits between left & right columns
+    vec2 center = vec2(0.205, 0.52);
     float baseRadius = 0.5987 * uHorizonRadius;
 
     vec2 rel = pos - center;

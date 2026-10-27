@@ -21,11 +21,17 @@ const assetModules = import.meta.glob('./assets/**/*.{png,jpg,jpeg,webp,gif,svg,
 // Filter out legacy unused Canva background layers (bg_cropped/* and about_bg.png)
 // so the preloader only caches and decodes active portfolio assets.
 const preloadUrls = Array.from(
-  new Set(
-    Object.entries(assetModules)
-      .filter(([path]) => !path.includes('/bg_cropped/') && !path.endsWith('/about_bg.png'))
-      .map(([, url]) => url)
-  )
+  new Set([
+    '/assets/aistudio/image_fbee149c.png',
+    ...Object.entries(assetModules)
+      .filter(
+        ([path]) =>
+          !path.includes('/bg_cropped/') &&
+          !path.endsWith('/about_bg.png') &&
+          !path.endsWith('/hero1.2.png')
+      )
+      .map(([, url]) => url),
+  ])
 );
 
 const mediaExtensions = /\.(mp4|webm|ogg|mp3|wav)(\?.*)?$/i;

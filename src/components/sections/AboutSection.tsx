@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import heroImage from '../../assets/images/hero1.2.png';
 import { useMobileReveal } from '../../hooks/useMobileReveal';
 import { WebGLCanvas } from '../WebGLCanvas';
 import { EnsoSceneConfig } from '../../types';
@@ -9,13 +8,15 @@ import {
   type GithubContributionsResponse,
 } from '../../data/githubContributionsFallback';
 
+const ABOUT_PORTRAIT_SRC = '/assets/aistudio/image_fbee149c.png';
+
 const ABOUT_WEBGL_CONFIG: EnsoSceneConfig = {
   viewMode: 'study',
   palette: 'ultramarine',
   flowSpeed: 0.75,
   bristleDetail: 0.68,
   inkDensity: 0.72,
-  emberIntensity: 0.9,
+  emberIntensity: 0.0,
   horizonRadius: 1.0,
   compareSplit: 0.0,
   showEditorial: false,
@@ -28,6 +29,24 @@ const GITHUB_API_URL = `https://github-contributions-api.jogruber.de/v4/${GITHUB
 const CACHE_KEY = `gh_contrib_${GITHUB_USERNAME}_v1`;
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const FOCUS_PILLARS = [
+  {
+    index: '01.',
+    title: 'Web & APIs',
+    items: 'React · TypeScript · Laravel · Node.js',
+  },
+  {
+    index: '02.',
+    title: 'Systems & Data',
+    items: 'PostgreSQL · Prisma · Supabase · Docker',
+  },
+  {
+    index: '03.',
+    title: 'Mobile & Live',
+    items: 'Flutter · Android · Socket.IO · REST',
+  },
+] as const;
 
 function formatDateLabel(dateStr: string): string {
   const parts = dateStr.split('-');
@@ -42,6 +61,7 @@ export const AboutSection = () => {
   const revealRef = useMobileReveal<HTMLElement>();
   const [contribData, setContribData] = useState<GithubContributionsResponse>(FALLBACK_GITHUB_CONTRIBUTIONS);
   const [hoveredDay, setHoveredDay] = useState<ContributionDay | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +121,6 @@ export const AboutSection = () => {
       }
     }
 
-    // Calculate current streak from most recent active day
     for (let i = days.length - 1; i >= 0; i--) {
       if (days[i].count > 0) {
         currentStreak++;
@@ -110,13 +129,11 @@ export const AboutSection = () => {
       }
     }
 
-    // Group into 7-day week columns
     const weekCols: ContributionDay[][] = [];
     for (let i = 0; i < days.length; i += 7) {
       weekCols.push(days.slice(i, i + 7));
     }
 
-    // Determine month label headers for week columns
     const labels: { weekIndex: number; label: string }[] = [];
     let lastMonth = -1;
     weekCols.forEach((week, wIdx) => {
@@ -163,12 +180,34 @@ export const AboutSection = () => {
           </div>
 
           <div className="about-shell locked-content">
+            {/* ── LEFT ZONE: Seated inside the Dark Cosmic Sphere Void ── */}
             <div className="about-image-container relative">
-              <div data-about-fade data-about-fade-order="0" data-about-fade-dir="left" className="about-image-wrap about-scroll-fade">
-                <img src={heroImage} alt="Profile" className="about-image" decoding="async" fetchPriority="high" />
+              <div
+                data-about-fade
+                data-about-fade-order="0"
+                data-about-fade-dir="left"
+                className="about-image-wrap about-scroll-fade"
+              >
+                <div className="about-portrait-stage">
+                  {!imgError ? (
+                    <img
+                      src={ABOUT_PORTRAIT_SRC}
+                      alt="Edrian Nieves portrait"
+                      className="about-image"
+                      decoding="async"
+                      fetchPriority="high"
+                      referrerPolicy="no-referrer"
+                      onError={() => setImgError(true)}
+                    />
+                  ) : (
+                    <div className="about-portrait-fallback" aria-label="Edrian Nieves">
+                      <span>EN</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Desktop GitHub Contributions Tracker (placed on the left side below profile) */}
+              {/* Desktop GitHub Contributions Pedestal (anchored in 1 row + compact grid on the left sphere side) */}
               <div
                 data-about-fade
                 data-about-fade-order="10"
@@ -176,7 +215,6 @@ export const AboutSection = () => {
                 className="about-skills-box about-skills-box--desktop about-scroll-fade"
               >
                 <div className="about-gh-left-card">
-                  {/* Single-row header on the left side */}
                   <div className="about-gh-single-row">
                     <div className="about-gh-single-main">
                       <span className="about-gh-total-num">{stats.total.toLocaleString()}</span>
@@ -205,7 +243,6 @@ export const AboutSection = () => {
                     </div>
                   </div>
 
-                  {/* Compact 53-week heatmap on the left side over the dark cosmic sphere */}
                   <div className="about-gh-heatmap-panel">
                     <div className="about-gh-months">
                       {monthLabels.map((m) => (
@@ -243,18 +280,76 @@ export const AboutSection = () => {
               </div>
             </div>
 
+            {/* ── RIGHT ZONE: Seated over the Stark White Canvas ── */}
             <div className="about-content">
-              <h2 data-about-fade data-about-fade-order="1" data-about-fade-dir="top" className="about-title about-scroll-fade">Hello!, I'm</h2>
-              <h3 data-about-fade data-about-fade-order="2" data-about-fade-dir="right" className="about-name about-name--first about-scroll-fade"><span className="about-name-e">E</span>drian</h3>
-              <h3 data-about-fade data-about-fade-order="2.6" data-about-fade-dir="right" className="about-name about-name--second about-scroll-fade"><span className="about-name-n">N</span>ieves</h3>
+              <div
+                data-about-fade
+                data-about-fade-order="1"
+                data-about-fade-dir="top"
+                className="about-header-group about-scroll-fade"
+              >
+                <div className="about-editorial-kicker">
+                  <span className="about-kicker-index">01. Profile</span>
+                  <span className="about-kicker-sep" aria-hidden="true">·</span>
+                  <span>Leon City, Philippines</span>
+                  <span className="about-kicker-sep" aria-hidden="true">·</span>
+                  <span className="about-kicker-role">Full-Stack Engineer</span>
+                </div>
+                <h2 className="about-title">Hello!, I&apos;m</h2>
+              </div>
+
+              <h3
+                data-about-fade
+                data-about-fade-order="2"
+                data-about-fade-dir="right"
+                className="about-name about-name--first about-scroll-fade"
+              >
+                <span className="about-name-e">E</span>drian
+              </h3>
+              <h3
+                data-about-fade
+                data-about-fade-order="2.6"
+                data-about-fade-dir="right"
+                className="about-name about-name--second about-scroll-fade"
+              >
+                <span className="about-name-n">N</span>ieves
+              </h3>
 
               <div className="about-text-wrapper">
-                <p data-about-fade data-about-fade-order="6" data-about-fade-dir="bottom" className="about-text about-scroll-fade">
+                <p
+                  data-about-fade
+                  data-about-fade-order="6"
+                  data-about-fade-dir="bottom"
+                  className="about-text about-text--lead about-scroll-fade"
+                >
                   I’m a Full-Stack Developer based in Leon City, Philippines. My development journey started with curiosity about how digital products work, then grew into a focus on building useful tools that solve real problems.
                 </p>
-                <p data-about-fade data-about-fade-order="8" data-about-fade-dir="bottom" className="about-text about-scroll-fade">
+                <p
+                  data-about-fade
+                  data-about-fade-order="8"
+                  data-about-fade-dir="bottom"
+                  className="about-text about-scroll-fade"
+                >
                   I’ve worked across web applications, dashboards, automation, APIs, and mobile experiences. Each project has helped me improve how I turn ideas into clear, reliable products, from planning the user experience to building and refining the final result.
                 </p>
+              </div>
+
+              {/* Clean Editorial Focus Strip on the White Canvas */}
+              <div
+                data-about-fade
+                data-about-fade-order="9"
+                data-about-fade-dir="bottom"
+                className="about-focus-strip about-scroll-fade"
+              >
+                {FOCUS_PILLARS.map((pillar) => (
+                  <div key={pillar.index} className="about-focus-item">
+                    <div className="about-focus-heading">
+                      <span className="about-focus-idx">{pillar.index}</span>
+                      <span className="about-focus-title">{pillar.title}</span>
+                    </div>
+                    <p className="about-focus-list">{pillar.items}</p>
+                  </div>
+                ))}
               </div>
 
               {/* Mobile GitHub Contributions View */}
@@ -325,78 +420,20 @@ export const AboutSection = () => {
           backface-visibility: hidden;
         }
 
-        /* Keyframe animations */
-        @keyframes slideFromLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-100px) translateY(-60px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0) translateY(-60px);
-          }
-        }
-
-        @keyframes slideFromBottom {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideFromTop {
-          from {
-            opacity: 0;
-            transform: translateY(-50px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideFromRight {
-          from {
-            opacity: 0;
-            transform: translateX(100px) translateY(35px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0) translateY(0);
-          }
-        }
-
-        @keyframes slideTextFromBottom {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
+        /* ── Dual-Zone Shell: Single-row 2-column grid where Portrait & GitHub share "left" ── */
         .about-shell {
           position: relative;
           display: grid;
-          grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
-          grid-template-rows: auto auto;
-          grid-template-areas:
-            "image content"
-            "skills skills";
+          grid-template-columns: minmax(340px, 42%) minmax(0, 47%);
+          grid-template-rows: 1fr;
+          grid-template-areas: "left content";
+          justify-content: space-between;
           align-content: center;
           align-items: center;
-          column-gap: clamp(2.5rem, 5vw, 6rem);
-          row-gap: clamp(1rem, 2vh, 1.75rem);
           width: 100%;
           height: 100%;
           min-height: 0;
-          padding: clamp(5.25rem, 8vh, 6.5rem) clamp(3rem, 5vw, 6rem) clamp(1.5rem, 3vh, 2.5rem);
+          padding: clamp(4rem, 5.5vh, 5.25rem) clamp(2rem, 4vw, 4.75rem) clamp(1.25rem, 2.5vh, 2.25rem);
           z-index: 1;
         }
 
@@ -404,41 +441,129 @@ export const AboutSection = () => {
           display: contents;
         }
 
+        /* ── Left Zone: Large Hero Portrait (overlapped at the bottom by GitHub Contributions) ──
+             Note: useScrollAnimation applies translateY(-60px) to .about-image-wrap,
+             so top: 44px seats the large portrait down behind the overlapping GitHub card. ── */
         .about-image-wrap {
-          grid-area: image;
+          grid-area: left;
           position: relative;
+          top: 44px;
           justify-self: center;
-          width: min(430px, 100%);
-          max-height: 54vh;
-          aspect-ratio: 1 / 1;
+          align-self: center;
+          width: min(640px, 114%);
+          height: clamp(460px, 78vh, 760px);
           overflow: visible;
           opacity: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1;
+        }
+
+        .about-portrait-stage {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: visible;
+          -webkit-mask-image: linear-gradient(
+            180deg,
+            #000000 0%,
+            #000000 88%,
+            rgba(0, 0, 0, 0.45) 96%,
+            transparent 100%
+          );
+          mask-image: linear-gradient(
+            180deg,
+            #000000 0%,
+            #000000 88%,
+            rgba(0, 0, 0, 0.45) 96%,
+            transparent 100%
+          );
         }
 
         .about-image {
           width: 100%;
           height: 100%;
           object-fit: contain;
-          object-position: center;
+          object-position: center center;
+          transform: scale(1.12);
+          filter: contrast(1.03) brightness(0.99);
+          user-select: none;
+          pointer-events: none;
         }
 
+        .about-portrait-fallback {
+          width: 260px;
+          height: 260px;
+          border-radius: 50%;
+          border: 1px solid rgba(167, 139, 250, 0.35);
+          background: radial-gradient(circle, rgba(124, 58, 237, 0.25), rgba(6, 5, 16, 0.9));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Sora', sans-serif;
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        /* ── Right Zone: Editorial Monograph seated 100% on the Stark White Canvas ── */
         .about-content {
           grid-area: content;
           align-self: center;
-          max-width: 700px;
+          justify-self: start;
+          max-width: 640px;
+          width: 100%;
           min-width: 0;
           padding: 0;
         }
 
+        .about-header-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.45rem;
+          margin-bottom: 0.15rem;
+        }
+
+        .about-editorial-kicker {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.5rem;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.68rem;
+          letter-spacing: 0.04em;
+          color: #5b5470;
+          padding-bottom: 0.55rem;
+          border-bottom: 1px solid rgba(17, 8, 26, 0.1);
+        }
+
+        .about-kicker-index {
+          color: #7c3aed;
+          font-weight: 600;
+        }
+
+        .about-kicker-sep {
+          color: rgba(17, 8, 26, 0.28);
+        }
+
+        .about-kicker-role {
+          color: #11081a;
+          font-weight: 500;
+        }
+
         .about-title {
           font-family: 'Sora', sans-serif;
-          font-size: clamp(1.2rem, 1.8vw, 1.8rem);
+          font-size: clamp(1.1rem, 1.5vw, 1.45rem);
           font-weight: 700;
           color: #11081a;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          opacity: 0;
-          margin: 0;
+          letter-spacing: 0.06em;
+          margin: 0.2rem 0 0;
         }
 
         .about-name {
@@ -447,13 +572,13 @@ export const AboutSection = () => {
           font-weight: 600;
           color: #000000;
           margin-left: -0.2rem;
-          line-height: 1.1;
+          line-height: 1.08;
           opacity: 0;
           display: block;
           text-align: left;
         }
         .about-name--first {
-          margin-top: 0.5rem;
+          margin-top: 0.35rem;
         }
         .about-name--second {
           margin-top: 0;
@@ -469,17 +594,70 @@ export const AboutSection = () => {
         }
 
         .about-text-wrapper {
-          max-width: 680px;
+          max-width: 630px;
+          margin-top: 1.15rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.9rem;
         }
 
         .about-text {
           font-family: 'Space Grotesk', sans-serif;
-          font-size: clamp(0.92rem, 1vw, 1.02rem);
-          line-height: 1.6;
-          color: #4a4a5a;
-          margin-top: 1.5rem;
-          margin-bottom: 0;
+          font-size: clamp(0.9rem, 0.98vw, 1rem);
+          line-height: 1.62;
+          color: #4a455a;
+          margin: 0;
           opacity: 0;
+        }
+
+        .about-text--lead {
+          color: #1e182b;
+          font-weight: 500;
+        }
+
+        /* ── Clean 3-Column Architectural Focus Index on the White Canvas ── */
+        .about-focus-strip {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1.25rem;
+          margin-top: 1.35rem;
+          padding-top: 0.95rem;
+          border-top: 1px solid rgba(17, 8, 26, 0.12);
+          max-width: 630px;
+          opacity: 0;
+        }
+
+        .about-focus-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          min-width: 0;
+        }
+
+        .about-focus-heading {
+          display: flex;
+          align-items: baseline;
+          gap: 0.35rem;
+          font-family: 'Sora', sans-serif;
+          font-size: 0.74rem;
+          font-weight: 600;
+          color: #11081a;
+          white-space: nowrap;
+        }
+
+        .about-focus-idx {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.66rem;
+          font-weight: 600;
+          color: #7c3aed;
+        }
+
+        .about-focus-list {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.62rem;
+          line-height: 1.45;
+          color: #5b5470;
+          margin: 0;
         }
 
         .about-scroll-fade {
@@ -488,30 +666,36 @@ export const AboutSection = () => {
           will-change: opacity, transform;
         }
 
-        /* ── GitHub Contributions Tracker (Desktop & Mobile) ── */
+        /* ── Larger GitHub Contributions Card Overlapping the Portrait in "left" ── */
         .about-skills-box {
           opacity: 0;
         }
 
         .about-skills-box.about-skills-box--desktop {
-          grid-column: 1 / 2;
-          grid-row: 2;
+          grid-area: left;
           justify-self: center;
-          width: min(440px, 100%);
-          padding: 0.7rem 0 0;
-          border-top: 1px solid rgba(124, 58, 237, 0.28);
+          align-self: end;
+          margin-bottom: clamp(0.25rem, 1.5vh, 1.25rem);
+          width: min(530px, 100%);
+          padding: 0.95rem 1.2rem 0.9rem;
+          background: rgba(6, 5, 14, 0.8);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(124, 58, 237, 0.34);
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+          border-radius: 10px;
           box-sizing: border-box;
+          z-index: 3;
         }
 
         .about-skills-box.about-skills-box--mobile {
           display: none;
         }
 
-        /* Compact left-column container (sits 100% over the dark cosmic void sphere) */
         .about-gh-left-card {
           display: flex;
           flex-direction: column;
-          gap: 0.42rem;
+          gap: 0.55rem;
           width: 100%;
           min-width: 0;
         }
@@ -520,7 +704,7 @@ export const AboutSection = () => {
           display: flex;
           align-items: baseline;
           justify-content: space-between;
-          gap: 0.5rem;
+          gap: 0.65rem;
           flex-wrap: nowrap;
           min-width: 0;
         }
@@ -528,14 +712,14 @@ export const AboutSection = () => {
         .about-gh-single-main {
           display: flex;
           align-items: baseline;
-          gap: 0.38rem;
+          gap: 0.45rem;
           min-width: 0;
           white-space: nowrap;
         }
 
         .about-gh-total-num {
           font-family: 'Sora', sans-serif;
-          font-size: clamp(1rem, 1.25vw, 1.2rem);
+          font-size: clamp(1.25rem, 1.55vw, 1.5rem);
           font-weight: 700;
           line-height: 1;
           color: #ffffff;
@@ -544,21 +728,21 @@ export const AboutSection = () => {
 
         .about-gh-total-label {
           font-family: 'Space Grotesk', sans-serif;
-          font-size: 0.72rem;
-          color: rgba(237, 233, 254, 0.82);
+          font-size: 0.82rem;
+          color: rgba(237, 233, 254, 0.86);
         }
 
         .about-gh-sep {
-          color: rgba(167, 139, 250, 0.48);
-          font-size: 0.7rem;
+          color: rgba(167, 139, 250, 0.55);
+          font-size: 0.8rem;
         }
 
         .about-gh-handle {
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 0.66rem;
+          font-size: 0.76rem;
           color: #a78bfa;
           text-decoration: none;
-          font-weight: 500;
+          font-weight: 600;
           transition: color 150ms ease;
         }
 
@@ -569,8 +753,8 @@ export const AboutSection = () => {
 
         .about-gh-inspect {
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 0.58rem;
-          color: rgba(196, 181, 253, 0.82);
+          font-size: 0.66rem;
+          color: rgba(196, 181, 253, 0.86);
           white-space: nowrap;
           font-variant-numeric: tabular-nums;
           overflow: hidden;
@@ -582,11 +766,10 @@ export const AboutSection = () => {
           font-weight: 600;
         }
 
-        /* Heatmap panel on the left side over the dark cosmic sphere */
         .about-gh-heatmap-panel {
           display: flex;
           flex-direction: column;
-          gap: 0.28rem;
+          gap: 0.35rem;
           width: 100%;
           min-width: 0;
         }
@@ -594,12 +777,12 @@ export const AboutSection = () => {
         .about-gh-months {
           position: relative;
           width: 100%;
-          height: 11px;
+          height: 13px;
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 0.52rem;
-          color: rgba(221, 214, 254, 0.68);
+          font-size: 0.6rem;
+          color: rgba(221, 214, 254, 0.74);
           text-transform: uppercase;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.03em;
         }
 
         .about-gh-month-label {
@@ -611,20 +794,20 @@ export const AboutSection = () => {
         .about-gh-grid {
           display: grid;
           grid-template-columns: repeat(53, minmax(0, 1fr));
-          gap: 2px;
+          gap: 2.5px;
           width: 100%;
         }
 
         .about-gh-week {
           display: grid;
           grid-template-rows: repeat(7, minmax(0, 1fr));
-          gap: 2px;
+          gap: 2.5px;
         }
 
         .about-gh-cell {
           width: 100%;
           aspect-ratio: 1 / 1;
-          border-radius: 1.5px;
+          border-radius: 2px;
           transition: transform 120ms ease;
         }
 
@@ -665,7 +848,7 @@ export const AboutSection = () => {
             padding: 24px 20px 56px !important;
             height: auto !important;
             min-height: 100vh !important;
-            gap: 24px !important;
+            gap: 20px !important;
             align-items: center !important;
             text-align: center !important;
           }
@@ -678,8 +861,9 @@ export const AboutSection = () => {
           }
 
           .about-image-wrap {
-            width: min(300px, 82vw) !important;
-            height: min(300px, 82vw) !important;
+            top: 0 !important;
+            width: min(290px, 80vw) !important;
+            height: min(340px, 92vw) !important;
             transform: none !important;
             margin: 0 auto !important;
           }
@@ -687,6 +871,15 @@ export const AboutSection = () => {
           .about-content {
             width: 100% !important;
             max-width: 100% !important;
+            padding: 0 !important;
+          }
+
+          .about-header-group {
+            align-items: center !important;
+          }
+
+          .about-editorial-kicker {
+            justify-content: center !important;
           }
 
           .about-title { display: none !important; }
@@ -703,7 +896,7 @@ export const AboutSection = () => {
             margin-bottom: 0 !important;
           }
           .about-name--second {
-            margin-bottom: 1.5rem !important;
+            margin-bottom: 1.25rem !important;
           }
 
           .about-name-e, .about-name-n {
@@ -715,7 +908,17 @@ export const AboutSection = () => {
             font-size: 15px !important;
             line-height: 1.6 !important;
             text-align: center !important;
-            margin-top: 1rem !important;
+            margin-top: 0.75rem !important;
+          }
+
+          .about-focus-strip {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+            text-align: center !important;
+          }
+
+          .about-focus-heading {
+            justify-content: center !important;
           }
 
           .about-skills-box--desktop {
@@ -726,7 +929,7 @@ export const AboutSection = () => {
             display: block !important;
             width: 100% !important;
             max-width: 520px !important;
-            margin: 1.75rem auto 0 !important;
+            margin: 1.5rem auto 0 !important;
             opacity: 1 !important;
           }
 
