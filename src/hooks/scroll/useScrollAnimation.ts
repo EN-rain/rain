@@ -12,7 +12,8 @@ export const useScrollAnimation = (onSectionChange: (index: number) => void) => 
   const { domCacheRef, vhRef, cacheDom } = useDomCache();
   const lastScrollRef = useRef(-1);
   const lastActiveSectionRef = useRef(-1);
-  const rafIdRef = useRef<number>();
+  const scrollDirectionRef = useRef<1 | -1>(1);
+  const rafIdRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     cacheDom();
@@ -42,38 +43,132 @@ export const useScrollAnimation = (onSectionChange: (index: number) => void) => 
     const applySectionTransform = (
       sec: HTMLElement,
       state: SectionAnimationState,
-      bgImages: NodeListOf<HTMLElement>
+      bgImages: NodeListOf<HTMLElement>,
+      index: number,
+      activeIndex: number
     ) => {
-      const { currentYMoveVh, currentRotation, currentRotationX, currentRotationY, currentScale, currentOpacity } = state;
+      const { currentOpacity } = state;
+      const isVisible = currentOpacity > 0.01;
+      const isActive = index === activeIndex;
 
+      // Full-bleed native 1:1 viewport positioning (no 3D card-stack scale/rotate distortion)
       sec.style.transformOrigin = 'center center';
-      sec.style.transform = `perspective(2000px) translate3d(0vw, ${currentYMoveVh}vh, 0) rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg) rotateZ(${currentRotation}deg) scale(${currentScale})`;
-      sec.style.opacity = currentOpacity.toString();
+      sec.style.transform = 'translate3d(0, 0, 0) scale(1)';
+      sec.style.opacity = isVisible ? '1' : '0';
+      sec.style.visibility = isVisible ? 'visible' : 'hidden';
+      sec.style.pointerEvents = isVisible && isActive ? 'auto' : 'none';
+      sec.style.zIndex = isActive ? '40' : isVisible ? '20' : '0';
 
       if (bgImages.length > 0) {
-        const safeScale = Math.max(0.001, currentScale);
-        const invScale = 1 / safeScale;
-        const bgTransform = `scale(${invScale}) rotateZ(${-currentRotation}deg) rotateY(${-currentRotationY}deg) rotateX(${-currentRotationX}deg) translate3d(0vw, ${-currentYMoveVh}vh, 0)`;
         for (let i = 0; i < bgImages.length; i++) {
-          bgImages[i].style.transform = bgTransform;
+          bgImages[i].style.transform = 'translate3d(0, 0, 0) scale(1)';
         }
       }
+    };
+
+    const dispatchWebGLSectionTransition = (currentScroll: number, ctx: ScrollContext) => {
+      if ((window as any).__isProgrammaticSectionTransition) {
+        return;
+      }
+
+      if (window.innerWidth <= 768) {
+        window.dispatchEvent(
+          new CustomEvent('section-scroll-transition', {
+            detail: { active: false, fromIndex: 0, toIndex: 1, progress: 0, direction: 1 },
+          })
+        );
+        return;
+      }
+
+      const { pauseLength, transitionLength } = ctx;
+      // 3 transition zones:
+      // Zone 0 (Home -> About): [vh, 2*vh]
+      // Zone 1 (About -> Works): [3*vh, 4*vh]
+      // Zone 2 (Works -> Contact): [5*vh, 6*vh]
+      const z0Start = pauseLength;
+      const z0End = z0Start + transitionLength;
+
+      const z1Start = 2 * pauseLength + transitionLength;
+      const z1End = z1Start + transitionLength;
+
+      const z2Start = 3 * pauseLength + 2 * transitionLength;
+      const z2End = z2Start + transitionLength;
+
+      let active = false;
+      let fromIndex = 0;
+      let toIndex = 1;
+      let progress = 0;
+
+      const isScrollingUp = scrollDirectionRef.current < 0;
+
+      if (currentScroll > z0Start && currentScroll < z0End) {
+        active = true;
+        const normProgress = (currentScroll - z0Start) / Math.max(1, transitionLength);
+        if (isScrollingUp) {
+          fromIndex = 1;
+          toIndex = 0;
+          progress = 1.0 - normProgress;
+        } else {
+          fromIndex = 0;
+          toIndex = 1;
+          progress = normProgress;
+        }
+      } else if (currentScroll > z1Start && currentScroll < z1End) {
+        active = true;
+        const normProgress = (currentScroll - z1Start) / Math.max(1, transitionLength);
+        if (isScrollingUp) {
+          fromIndex = 2;
+          toIndex = 1;
+          progress = 1.0 - normProgress;
+        } else {
+          fromIndex = 1;
+          toIndex = 2;
+          progress = normProgress;
+        }
+      } else if (currentScroll > z2Start && currentScroll < z2End) {
+        active = true;
+        const normProgress = (currentScroll - z2Start) / Math.max(1, transitionLength);
+        if (isScrollingUp) {
+          fromIndex = 3;
+          toIndex = 2;
+          progress = 1.0 - normProgress;
+        } else {
+          fromIndex = 2;
+          toIndex = 3;
+          progress = normProgress;
+        }
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('section-scroll-transition', {
+          detail: {
+            active,
+            fromIndex,
+            toIndex,
+            progress: Math.max(0, Math.min(1, progress)),
+            direction: scrollDirectionRef.current,
+          },
+        })
+      );
     };
 
     const handleScroll = () => {
       const currentScroll = lenisRef.current?.scroll ?? (window.pageYOffset || document.documentElement.scrollTop);
 
-      if (Math.abs(currentScroll - lastScrollRef.current) < 0.5) return;
+      const delta = currentScroll - lastScrollRef.current;
+      if (Math.abs(delta) < 0.5) return;
+      if (lastScrollRef.current >= 0) {
+        scrollDirectionRef.current = delta >= 0 ? 1 : -1;
+      }
       lastScrollRef.current = currentScroll;
 
       const ctx = createScrollContext(currentScroll);
       const { transitionLength, pauseLength, sectionUnit } = ctx;
-      const isDesktop = window.innerWidth >= 1024;
 
       // Section detection (avoid getBoundingClientRect reflow on desktop fixed stack)
-      let newActiveIndex = currentScroll < sectionUnit * 0.5 ? 0
-        : currentScroll < sectionUnit * 1.5 ? 1
-        : currentScroll < sectionUnit * 2.5 ? 2 : 3;
+      let newActiveIndex = currentScroll < sectionUnit * 0.75 ? 0
+        : currentScroll < sectionUnit * 1.75 ? 1
+        : currentScroll < sectionUnit * 2.75 ? 2 : 3;
 
       if (window.innerWidth <= 768 && domCacheRef.current.sections) {
         const sectionsArray = Array.from(domCacheRef.current.sections);
@@ -105,9 +200,17 @@ export const useScrollAnimation = (onSectionChange: (index: number) => void) => 
         onSectionChange(newActiveIndex);
       }
 
-      // Broadcast scroll range visibility to WebGL background so it pauses when offscreen
-      const aboutActiveRange = currentScroll >= pauseLength * 0.25 && currentScroll <= sectionUnit * 1.65;
+      // Broadcast scroll range visibility to WebGL backgrounds so they pause when offscreen
+      const aboutActiveRange = currentScroll >= pauseLength * 0.25 && currentScroll <= sectionUnit * 1.85;
       window.dispatchEvent(new CustomEvent('about-webgl-visibility', { detail: aboutActiveRange }));
+
+      const worksActiveRange = window.innerWidth <= 768
+        ? newActiveIndex === 2
+        : currentScroll >= sectionUnit * 1.35 && currentScroll <= sectionUnit * 3.1;
+      window.dispatchEvent(new CustomEvent('works-webgl-visibility', { detail: worksActiveRange }));
+
+      // Drive the cloned repo's WebGL 2 section scroll transition shader
+      dispatchWebGLSectionTransition(currentScroll, ctx);
 
       const {
         progressEl, root, globalEnBackdrop: cachedBackdrop, experienceEnSpan, sections, sectionCaches
@@ -147,13 +250,7 @@ export const useScrollAnimation = (onSectionChange: (index: number) => void) => 
             state = { currentYMoveVh: 0, currentRotation: 0, currentRotationX: 0, currentRotationY: 0, currentScale: 1, currentOpacity: 1, lockedContentXVw: 0 };
         }
 
-        applySectionTransform(secEl, state, cache.bgImages);
-
-        // Sub-elements animation using cache
-        const { currentYMoveVh, currentRotation, currentRotationY, currentOpacity, currentScale } = state;
-        const safeScale = Math.max(0.001, currentScale);
-        const invScale = 1 / safeScale;
-        const transformBase = `scale(${invScale}) rotateZ(${-currentRotation}deg) translate3d(0vw, ${-currentYMoveVh}vh, 0)`;
+        applySectionTransform(secEl, state, cache.bgImages, i, newActiveIndex);
 
         if (cache.parallaxContent) {
           cache.parallaxContent.style.transform = 'translate3d(0, 0, 0)';
@@ -163,134 +260,27 @@ export const useScrollAnimation = (onSectionChange: (index: number) => void) => 
         for (let k = 0; k < lockedList.length; k++) {
           const content = lockedList[k];
           if (i === 0 && content.classList.contains('parallax-image')) continue;
-          if (i === 2 && currentScroll >= (i * (transitionLength + pauseLength) + pauseLength)) {
-            content.style.transform = `scale(${invScale}) rotateY(${-currentRotationY}deg) rotateZ(${-currentRotation}deg) translate3d(0vw, ${-currentYMoveVh}vh, 0)`;
-          } else {
-            content.style.transform = transformBase;
-          }
-          content.style.opacity = (i === 2 && currentScroll >= (pauseLength + transitionLength + pauseLength) && currentScroll < (2 * (transitionLength + pauseLength) + pauseLength)) ? '1' : currentOpacity.toString();
-        }
-
-        if (i === 2 && isDesktop) {
-          const section2ImageEl = cache.section2Image ?? (secEl.querySelector('[data-section2="image"]') as HTMLElement | null);
-          const section2DescEl = cache.section2Desc ?? (secEl.querySelector('[data-section2="desc"]') as HTMLElement | null);
-          const section2SkillsEl = cache.section2Skills ?? (secEl.querySelector('[data-section2="skills"]') as HTMLElement | null);
-
-          const worksContainer = cache.worksScrollContainer;
-          const baseP = (() => {
-            if (!worksContainer || !section2ImageEl) return 1;
-            const revealStart = section2ImageEl.offsetTop - worksContainer.clientHeight * 0.55;
-            const revealRange = Math.max(1, worksContainer.clientHeight * 0.35);
-            const raw = (worksContainer.scrollTop - revealStart) / revealRange;
-            return Math.max(0, Math.min(1, raw));
-          })();
-
-          const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-
-          const applyFade = (el: HTMLElement | null, t: number, baseYPx: number) => {
-            if (!el) return;
-            const e = easeOut(t);
-            el.style.opacity = e.toString();
-            el.style.transform = `translate3d(0, ${(1 - e) * baseYPx}px, 0)`;
-            if (t >= 1) {
-              el.style.transform = 'translate3d(0, 0, 0)';
-            }
-            if (t <= 0) {
-              el.style.opacity = '0';
-            }
-          };
-
-          const imgT = Math.max(0, Math.min(1, (baseP - 0.00) / 0.75));
-          const descT = Math.max(0, Math.min(1, (baseP - 0.18) / 0.75));
-          const skillsT = Math.max(0, Math.min(1, (baseP - 0.35) / 0.70));
-
-          applyFade(section2ImageEl, imgT, 120);
-          applyFade(section2DescEl, descT, 90);
-          applyFade(section2SkillsEl, skillsT, 70);
-
-          if (currentOpacity < 0.99) {
-            const safeOpacity = Math.max(0, Math.min(1, currentOpacity));
-            if (section2ImageEl) section2ImageEl.style.opacity = safeOpacity.toString();
-            if (section2DescEl) section2DescEl.style.opacity = safeOpacity.toString();
-            if (section2SkillsEl) section2SkillsEl.style.opacity = safeOpacity.toString();
-          }
+          content.style.transform = 'translate3d(0, 0, 0) scale(1)';
+          content.style.opacity = '1';
         }
 
         if (i === 1) {
-          // About (Section 1): directional scroll-driven animations using pre-parsed cache
+          // About (Section 1): solid elements without opacity fade out/in
           const { aboutFadeItems } = cache;
           if (aboutFadeItems && aboutFadeItems.length > 0) {
-            const enterEnd = pauseLength + transitionLength;
-            const fadeStart = enterEnd - transitionLength * 0.45;
-            const fadeRange = transitionLength * 0.45;
-            const rawProgress = Math.max(0, Math.min(1, (currentScroll - fadeStart) / fadeRange));
-            const easeOut3 = (t: number) => 1 - Math.pow(1 - t, 3);
-
             for (let f = 0; f < aboutFadeItems.length; f++) {
               const item = aboutFadeItems[f];
-              const { el, order, dir, isImageWrap, children } = item;
-              const staggerOffset = order * 0.05;
-              const denom = Math.max(0.01, 1 - staggerOffset);
-              const elRaw = Math.max(0, Math.min(1, (rawProgress - staggerOffset) / denom));
-
-              const opacityP = Math.pow(elRaw, 1.5);
-              const p = easeOut3(elRaw);
-
+              const { el, children } = item;
               el.style.transition = 'none';
+              el.style.opacity = '1';
+              el.style.transform = 'translate3d(0, 0, 0)';
 
-              if (dir === 'pop-children') {
-                el.style.opacity = opacityP.toString();
-                el.style.transform = '';
-                const childCount = children.length;
-                for (let c = 0; c < childCount; c++) {
-                  const child = children[c];
-                  const childDelay = (c / Math.max(1, childCount)) * 0.6;
-                  const childRaw = Math.max(0, Math.min(1, (p - childDelay) / Math.max(0.01, 1 - childDelay)));
-                  const childP = easeOut3(childRaw);
-                  child.style.transition = 'none';
-                  child.style.opacity = childP.toString();
-                  child.style.transform = `scale(${childP})`;
-                }
-              } else {
-                el.style.opacity = opacityP.toString();
-                const baseY = isImageWrap ? -60 : 0;
-                switch (dir) {
-                  case 'left': {
-                    const tx = (1 - p) * -100;
-                    const s = 0.85 + p * 0.15;
-                    el.style.transform = `translateX(${tx}px) translateY(${baseY}px) scale(${s})`;
-                    break;
-                  }
-                  case 'top': {
-                    const ty = (1 - p) * -50;
-                    el.style.transform = `translateY(${baseY + ty}px)`;
-                    break;
-                  }
-                  case 'right': {
-                    const tx = (1 - p) * 100;
-                    el.style.transform = `translateX(${tx}px) translateY(${baseY}px)`;
-                    break;
-                  }
-                  case 'bottom':
-                  default: {
-                    const ty = (1 - p) * 40;
-                    el.style.transform = `translateY(${baseY + ty}px)`;
-                    break;
-                  }
-                }
-              }
-            }
-
-            if (currentOpacity < 0.99) {
-              const safeOpacity = Math.max(0, Math.min(1, currentOpacity));
-              for (let f = 0; f < aboutFadeItems.length; f++) {
-                const item = aboutFadeItems[f];
-                item.el.style.opacity = safeOpacity.toString();
-                if (item.dir === 'pop-children') {
-                  for (let c = 0; c < item.children.length; c++) {
-                    item.children[c].style.opacity = safeOpacity.toString();
-                  }
-                }
+              const childCount = children.length;
+              for (let c = 0; c < childCount; c++) {
+                const child = children[c];
+                child.style.transition = 'none';
+                child.style.opacity = '1';
+                child.style.transform = 'translate3d(0, 0, 0)';
               }
             }
           }
@@ -304,7 +294,7 @@ export const useScrollAnimation = (onSectionChange: (index: number) => void) => 
         }
 
         if (cache.frameOverlay) {
-          cache.frameOverlay.style.transform = `scale(${invScale}) rotateZ(${-currentRotation}deg) rotateY(${-currentRotationY}deg) rotateX(0deg) translate3d(0vw, ${-currentYMoveVh}vh, 0)`;
+          cache.frameOverlay.style.transform = 'translate3d(0, 0, 0) scale(1)';
         }
       });
 

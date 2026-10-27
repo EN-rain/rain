@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { ENSO_FRAGMENT_SHADER, ENSO_VERTEX_SHADER } from '../shaders/ensoHorizonShader';
 import { buildEnsoSculpture } from '../scene/buildEnsoSculpture';
 import { EnsoSceneConfig, PALETTE_PRESETS } from '../types';
+import { webglPerformanceTracker } from '../hooks/useWebGLPerformanceMonitor';
 
 interface WebGLCanvasProps {
   config: EnsoSceneConfig;
@@ -180,7 +181,21 @@ export const WebGLCanvas: React.FC<WebGLCanvasProps> = ({ config }) => {
       const cfg = configRef.current;
       const pal = PALETTE_PRESETS[cfg.palette];
 
+      const perf = webglPerformanceTracker.recordFrame(performance.now());
+
+      // Dynamically adjust particle count on 3D instanced meshes if frame rate drops during scroll
+      if (sculptureRig.embersMesh) {
+        sculptureRig.embersMesh.count = Math.max(2, Math.round(10 * perf.particleMultiplier));
+      }
+      if (sculptureRig.starsMesh) {
+        sculptureRig.starsMesh.count = Math.max(4, Math.round(18 * perf.particleMultiplier));
+      }
+
+      // Dynamically adjust shader blur, bristle detail, and ink density
       shaderUniforms.uTime.value = elapsed;
+      shaderUniforms.uBristleDetail.value = cfg.bristleDetail * perf.blurMultiplier;
+      shaderUniforms.uInkDensity.value = cfg.inkDensity * (0.4 + 0.6 * perf.blurMultiplier);
+      shaderUniforms.uEmberIntensity.value = cfg.emberIntensity * perf.particleMultiplier;
 
       sculptureRig.update(elapsed, delta, cfg.flowSpeed, 0.0, {
         deepInk: pal.deepInk,
@@ -226,19 +241,39 @@ export const WebGLCanvas: React.FC<WebGLCanvasProps> = ({ config }) => {
 
     tick();
 
-    return () => {
+    const cleanup = () => {
+      if (!isRunning) return;
       isRunning = false;
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('about-webgl-visibility', handleVisibilityEvent);
+      window.removeEventListener('portfolio-navigate', handleNavigation);
       document.removeEventListener('visibilitychange', handleDocVisibility);
       renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
       renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);
-      shaderPlaneGeo.dispose();
-      shaderPlaneMat.dispose();
-      sculptureRig.dispose();
-      renderer.dispose();
+      try {
+        shaderPlaneGeo.dispose();
+        shaderPlaneMat.dispose();
+        sculptureRig.dispose();
+        renderer.dispose();
+        renderer.forceContextLoss();
+      } catch {
+        // ignore errors during teardown
+      }
+    };
+
+    const handleNavigation = (e: Event) => {
+      const detail = (e as CustomEvent<{ path?: string }>).detail;
+      if (detail?.path && detail.path.startsWith('/projects')) {
+        cleanup();
+      }
+    };
+
+    window.addEventListener('portfolio-navigate', handleNavigation);
+
+    return () => {
+      cleanup();
     };
   }, []);
 

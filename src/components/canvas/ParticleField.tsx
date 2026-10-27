@@ -1,17 +1,19 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useWebGLPerformanceMonitor, webglPerformanceTracker } from '../../hooks/useWebGLPerformanceMonitor';
 
 const ParticleCloud = () => {
   const pointsRef = useRef<THREE.Points>(null);
   const mousePosition = useRef({ x: 0, y: 0 });
+  const { particleMultiplier } = useWebGLPerformanceMonitor();
+  const maxCount = 2000;
 
   const particlesGeometry = useMemo(() => {
-    const count = 2000;
-    const positions = new Float32Array(count * 3);
-    const colors = new Float32Array(count * 3);
+    const positions = new Float32Array(maxCount * 3);
+    const colors = new Float32Array(maxCount * 3);
     
-    for (let i = 0; i < count * 3; i += 3) {
+    for (let i = 0; i < maxCount * 3; i += 3) {
       // Position
       positions[i] = (Math.random() - 0.5) * 30;
       positions[i + 1] = (Math.random() - 0.5) * 30;
@@ -30,32 +32,20 @@ const ParticleCloud = () => {
     return geometry;
   }, []);
 
+  useEffect(() => {
+    if (particlesGeometry) {
+      const activeCount = Math.max(300, Math.round(maxCount * particleMultiplier));
+      particlesGeometry.setDrawRange(0, activeCount);
+    }
+  }, [particlesGeometry, particleMultiplier]);
+
   useFrame((state) => {
+    webglPerformanceTracker.recordFrame(performance.now());
     if (!pointsRef.current) return;
     
     const time = state.clock.elapsedTime;
     pointsRef.current.rotation.y = time * 0.03;
     pointsRef.current.rotation.x = Math.sin(time * 0.05) * 0.1;
-    
-    // Mouse interaction
-    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
-    for (let i = 0; i < positions.length; i += 3) {
-      const x = positions[i];
-      const y = positions[i + 1];
-      
-      const mouseX = mousePosition.current.x * 10;
-      const mouseY = mousePosition.current.y * 10;
-      
-      const dx = x - mouseX;
-      const dy = y - mouseY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < 3) {
-        positions[i] += dx * 0.01;
-        positions[i + 1] += dy * 0.01;
-      }
-    }
-    pointsRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
   return (

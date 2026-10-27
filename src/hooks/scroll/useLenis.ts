@@ -4,7 +4,7 @@ import type { LenisInstance } from './types';
 
 export const useLenis = () => {
   const lenisRef = useRef<LenisInstance | null>(null);
-  const rafIdRef = useRef<number>();
+  const rafIdRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     // Initialize Lenis directly from npm package
@@ -29,9 +29,14 @@ export const useLenis = () => {
     rafIdRef.current = requestAnimationFrame(raf);
 
     // Handle custom scroll events from navigation
-    const handleLenisScroll = (e: CustomEvent<number | string>) => {
-      const target = typeof e.detail === 'string' ? e.detail : (e.detail as number);
-      lenis.scrollTo(target as any);
+    const handleLenisScroll = (e: Event) => {
+      const detail = (e as CustomEvent<number | string | { target: number | string; immediate?: boolean }>).detail;
+      if (typeof detail === 'object' && detail !== null && 'target' in detail) {
+        lenis.scrollTo(detail.target as any, { immediate: detail.immediate ?? false });
+      } else {
+        const target = typeof detail === 'string' ? detail : (detail as number);
+        lenis.scrollTo(target as any);
+      }
     };
     window.addEventListener('lenis-scroll', handleLenisScroll as EventListener);
     (lenis as any)._customHandler = handleLenisScroll;

@@ -26,19 +26,19 @@ export const animateContact = (
     }
     if (contactHeading) {
       contactHeading.style.clipPath = 'none';
-      contactHeading.style.transform = `translate3d(0, ${headingLiftPx}px, 0)`;
-      contactHeading.style.opacity = '0';
+      contactHeading.style.transform = 'translate3d(0, 0, 0)';
+      contactHeading.style.opacity = '1';
     }
     if (contactSubtext) {
-      contactSubtext.style.opacity = '0';
-      contactSubtext.style.transform = `translate3d(0, ${subtextLiftPx}px, 0)`;
+      contactSubtext.style.opacity = '1';
+      contactSubtext.style.transform = 'translate3d(0, 0, 0)';
     }
     if (contactGrid) {
       contactGrid.style.opacity = '1';
-      contactGrid.style.transform = 'translate3d(0, 40px, 0)';
+      contactGrid.style.transform = 'translate3d(0, 0, 0)';
     }
     contactTexts?.forEach(el => {
-      el.style.opacity = '0';
+      el.style.opacity = '1';
     });
   } else if (currentScroll >= contactEnterStart && currentScroll < contactEnterStart + contactAnimDuration) {
     const p = (currentScroll - contactEnterStart) / contactAnimDuration;
@@ -50,34 +50,28 @@ export const animateContact = (
       contactIcon.style.clipPath = `inset(0 0 ${(1 - iconStepped) * 100}% 0)`;
     }
     
-    // Heading: Fade + slide up (no clip)
+    // Heading: Solid opacity
     if (contactHeading) {
-      const headingP = Math.max(0, Math.min(1, p));
-      const headingEased = 1 - Math.pow(1 - headingP, 3);
       contactHeading.style.clipPath = 'none';
-      contactHeading.style.transform = `translate3d(0, ${(1 - headingEased) * headingLiftPx}px, 0)`;
-      contactHeading.style.opacity = headingEased.toString();
+      contactHeading.style.transform = 'translate3d(0, 0, 0)';
+      contactHeading.style.opacity = '1';
     }
     
-    // Subtext: Fade + slide up
+    // Subtext: Solid opacity
     if (contactSubtext) {
-      const subP = Math.max(0, Math.min(1, (p - 0.2) / 0.6));
-      const subEased = 1 - Math.pow(1 - subP, 3);
-      contactSubtext.style.opacity = subEased.toString();
-      contactSubtext.style.transform = `translate3d(0, ${(1 - subEased) * subtextLiftPx}px, 0)`;
+      contactSubtext.style.opacity = '1';
+      contactSubtext.style.transform = 'translate3d(0, 0, 0)';
     }
     
-    // Grid: Slide up only (no fade)
+    // Grid: Solid opacity
     if (contactGrid) {
-      const gridP = Math.max(0, Math.min(1, (p - 0.4) / 0.6));
-      const gridEased = 1 - Math.pow(1 - gridP, 3);
-      contactGrid.style.transform = `translate3d(0, ${(1 - gridEased) * 40}px, 0)`;
+      contactGrid.style.transform = 'translate3d(0, 0, 0)';
+      contactGrid.style.opacity = '1';
     }
 
-    // Individual links fade
+    // Individual links: Solid opacity
     contactTexts?.forEach(el => {
-      const linkP = Math.max(0, Math.min(1, (p - 0.5) / 0.5));
-      el.style.opacity = linkP.toString();
+      el.style.opacity = '1';
     });
   } else {
     // Final states
@@ -91,7 +85,10 @@ export const animateContact = (
       contactSubtext.style.opacity = '1';
       contactSubtext.style.transform = 'translate3d(0, 0, 0)';
     }
-    if (contactGrid) contactGrid.style.transform = 'translate3d(0, 0, 0)';
+    if (contactGrid) {
+      contactGrid.style.transform = 'translate3d(0, 0, 0)';
+      contactGrid.style.opacity = '1';
+    }
     
     contactTexts?.forEach(el => {
       el.style.opacity = '1';

@@ -66,34 +66,6 @@ main.projects-page {
   height: auto;
 }
 
-.global-en-backdrop {
-  position: fixed;
-  top: 46.5%;
-  left: 55%;
-  z-index: 200;
-  font-family: 'Sora', sans-serif;
-  font-size: clamp(400px, 150vw, 600px);
-  font-weight: 700;
-  letter-spacing: 0.3em;
-  line-height: 0.82;
-  color: #ffffff;
-  transform: translate(-50%, -50%);
-  opacity: 1;
-  pointer-events: none;
-  user-select: none;
-  white-space: nowrap;
-  will-change: transform;
-}
-
-.global-en-backdrop .letter-e,
-.global-en-backdrop .letter-n {
-  display: inline-block;
-  text-shadow: 
-    -1.5px -1.5px 0 #000,
-     1.5px -1.5px 0 #000,
-    -1.5px  1.5px 0 #000,
-     1.5px  1.5px 0 #000;
-}
 
 .stack-section {
   position: fixed;
@@ -103,17 +75,15 @@ main.projects-page {
   height: 100vh;
   overflow: hidden;
   background: transparent;
-  transform: translate3d(0, -100%, 0) scale(1.2);
+  transform: translate3d(0, 0, 0) scale(1);
   transform-origin: center center;
   will-change: transform, opacity;
-  -webkit-transform: translate3d(0, -100%, 0) scale(1.2);
+  -webkit-transform: translate3d(0, 0, 0) scale(1);
   -webkit-transform-origin: center center;
   outline: 1px solid transparent;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   -webkit-font-smoothing: subpixel-antialiased;
-  -webkit-perspective: 1000px;
-  perspective: 1000px;
 }
 
 .parallax-content {
@@ -130,7 +100,7 @@ main.projects-page {
 
 .clip-gap-outer {
   position: absolute;
-  inset: -2px;
+  inset: 0;
   background-color: transparent;
   clip-path: none;
   -webkit-clip-path: none;
@@ -138,7 +108,7 @@ main.projects-page {
 
 .clip-gap-inner {
   position: absolute;
-  inset: -2px;
+  inset: 0;
   background-color: inherit;
   clip-path: none;
   -webkit-clip-path: none;
@@ -146,10 +116,7 @@ main.projects-page {
 
 .bg-image {
   position: absolute;
-  top: -25%;
-  right: -25%;
-  bottom: -25%;
-  left: -25%;
+  inset: 0;
   background-size: cover;
   background-position: center;
   transform-origin: center center;
@@ -346,14 +313,8 @@ main.projects-page {
   clip-path: none;
   background: transparent;
   filter: none;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2048 972' preserveAspectRatio='none'%3E%3Cpath fill='%23d9d9d9' d='M134 2H1320Q1336 2 1347 13L1415 63Q1426 74 1442 74H1998C2025 74 2046 95 2046 122V912C2046 939 2025 960 1998 960H440Q424 960 413 949L357 913Q346 902 330 902H48C21 902 0 881 0 854V242C0 226 8 214 20 204L86 146V50C86 23 107 2 134 2Z'/%3E%3C/svg%3E");
-  -webkit-mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2048 972' preserveAspectRatio='none'%3E%3Cpath fill='%23d9d9d9' d='M134 2H1320Q1336 2 1347 13L1415 63Q1426 74 1442 74H1998C2025 74 2046 95 2046 122V912C2046 939 2025 960 1998 960H440Q424 960 413 949L357 913Q346 902 330 902H48C21 902 0 881 0 854V242C0 226 8 214 20 204L86 146V50C86 23 107 2 134 2Z'/%3E%3C/svg%3E");
-  mask-size: 100% 100%;
-  mask-repeat: no-repeat;
-  mask-position: center;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 /* Smooth Transitions */
@@ -500,9 +461,6 @@ main.projects-page {
     display: none !important;
   }
 
-  .global-en-backdrop {
-    display: none !important;
-  }
 
   /* Ensure animated elements are visible if animations are reduced/disabled */
   .home-section__intro-copy,
@@ -530,11 +488,6 @@ main.projects-page {
     visibility: visible !important;
   }
 
-  /* Works header: ensure EN/CT are visible on mobile */
-  #works [data-en-target="experience-en"],
-  #works [data-en-target="projects-ct"] {
-    opacity: 1 !important;
-  }
 
   .stack-section {
     position: relative !important;
@@ -659,6 +612,26 @@ main.projects-page {
   transform: scale(0.6);
   pointer-events: none;
   margin: 0 -2px;
+}
+
+.fixed-navbar.scrolling:hover {
+  gap: 30px;
+  padding: 8px 30px;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.fixed-navbar.scrolling:hover .link-text {
+  max-width: 120px;
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  margin: 0;
+}
+
+.fixed-navbar.scrolling:hover .link-dot {
+  position: absolute;
+  opacity: 0;
+  transform: scale(0);
 }
 
 .link-dot {
@@ -786,9 +759,6 @@ main.projects-page {
     gap: 0.4rem !important; /* Fix disjointed headers on mobile */
   }
 
-  .global-en-backdrop {
-    display: none !important;
-  }
 
   .project-back-button {
     top: max(12px, env(safe-area-inset-top)) !important;

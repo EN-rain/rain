@@ -12,7 +12,7 @@ const glyphs = [
 
 export const HomeSection = () => {
   return (
-    <section id="home" className="stack-section mask-shaped-section mask-theme-purple" style={{ zIndex: 300, transform: 'translate3d(0, 0, 0)' }}>
+    <section id="home" className="stack-section mask-shaped-section mask-theme-purple">
       <div className="clip-gap-outer parallax-content">
         <div className="clip-gap-inner" style={{ backgroundColor: '#020202' }}>
           <div className="home-section">
@@ -36,10 +36,6 @@ export const HomeSection = () => {
               <div className="home-section__image-wrap" data-speed-mobile="0.15">
                 <div className="home-section__image-stack home-section__intro-image">
                   <div className="home-section__image-shadow" />
-                  <span className="home-section__image-bg-text mobile-hide">
-                    <span className="home-letter-e">E</span>
-                    <span className="home-letter-n">N</span>
-                  </span>
                   {/* Glyphs above EN with mix-blend-mode for color inversion */}
                   {glyphs.map((glyph) => (
                     <div

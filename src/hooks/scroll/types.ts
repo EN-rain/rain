@@ -111,7 +111,7 @@ export interface LenisInstance {
   scroll: number;
   raf: (time: number) => void;
   on: (event: string, callback: (e: any) => void) => void;
-  scrollTo: (value: number | string | HTMLElement) => void;
+  scrollTo: (value: number | string | HTMLElement, options?: { immediate?: boolean; lock?: boolean; force?: boolean; [key: string]: any }) => void;
   stop: () => void;
   start: () => void;
   destroy: () => void;

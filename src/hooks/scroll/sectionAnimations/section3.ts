@@ -6,26 +6,20 @@ export const animateSection3 = (
   ctx: ScrollContext
 ): SectionAnimationState => {
   const { transitionLength, pauseLength } = ctx;
-  // Use the same base as Section 2's leaveStart to ensure synchronization
-  const section2LeaveStart = 2 * (transitionLength + pauseLength) + pauseLength;
-  const buffer = pauseLength * 0.1;
-  
-  // Start revealing exactly when Section 2 starts to shrink
-  const contactRevealStart = section2LeaveStart + buffer;
+  const enterStart = 2 * (transitionLength + pauseLength) + pauseLength; // 5 * vh
+  const enterEnd = enterStart + transitionLength; // 6 * vh
 
-  let currentYMoveVh = 0;
-  let currentOpacity = 0;
+  // Solid opacity without fade out/in: strictly 1 once entered, 0 before
+  const isVisible = currentScroll >= enterStart;
+  const currentOpacity = isVisible ? 1 : 0;
 
-  if (currentScroll < contactRevealStart) {
-    currentYMoveVh = 0;
-    currentOpacity = 0;
-  } else if (currentScroll >= contactRevealStart) {
-    currentYMoveVh = 0;
-    currentOpacity = 1;
-  } else {
-    currentYMoveVh = 0;
-    currentOpacity = 1;
-  }
-
-  return { currentYMoveVh, currentRotation: 0, currentRotationX: 0, currentRotationY: 0, currentScale: 1, currentOpacity, lockedContentXVw: 0 };
+  return {
+    currentYMoveVh: 0,
+    currentRotation: 0,
+    currentRotationX: 0,
+    currentRotationY: 0,
+    currentScale: 1,
+    currentOpacity,
+    lockedContentXVw: 0,
+  };
 };

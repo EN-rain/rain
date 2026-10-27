@@ -167,7 +167,7 @@ export const AboutSection = () => {
   const mobileWeeks = useMemo(() => weeks.slice(-26), [weeks]);
 
   return (
-    <section ref={revealRef} id="about" className="stack-section mask-shaped-section mask-theme-purple" style={{ zIndex: 20 }}>
+    <section ref={revealRef} id="about" className="stack-section mask-shaped-section mask-theme-purple">
       <div className="clip-gap-outer parallax-content">
         <div className="clip-gap-inner">
           {/* ── WebGL Cosmic Ink Background ──
@@ -304,7 +304,7 @@ export const AboutSection = () => {
                 data-about-fade-dir="right"
                 className="about-name about-name--first about-scroll-fade"
               >
-                <span className="about-name-e">E</span>drian
+                Edrian
               </h3>
               <h3
                 data-about-fade
@@ -312,7 +312,7 @@ export const AboutSection = () => {
                 data-about-fade-dir="right"
                 className="about-name about-name--second about-scroll-fade"
               >
-                <span className="about-name-n">N</span>ieves
+                Nieves
               </h3>
 
               <div className="about-text-wrapper">
@@ -453,7 +453,7 @@ export const AboutSection = () => {
           width: min(640px, 114%);
           height: clamp(460px, 78vh, 760px);
           overflow: visible;
-          opacity: 0;
+          opacity: 1;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -573,7 +573,7 @@ export const AboutSection = () => {
           color: #000000;
           margin-left: -0.2rem;
           line-height: 1.08;
-          opacity: 0;
+          opacity: 1;
           display: block;
           text-align: left;
         }
@@ -607,7 +607,7 @@ export const AboutSection = () => {
           line-height: 1.62;
           color: #4a455a;
           margin: 0;
-          opacity: 0;
+          opacity: 1;
         }
 
         .about-text--lead {
@@ -624,7 +624,7 @@ export const AboutSection = () => {
           padding-top: 0.95rem;
           border-top: 1px solid rgba(17, 8, 26, 0.12);
           max-width: 630px;
-          opacity: 0;
+          opacity: 1;
         }
 
         .about-focus-item {
@@ -661,14 +661,14 @@ export const AboutSection = () => {
         }
 
         .about-scroll-fade {
-          opacity: 0;
+          opacity: 1;
           animation: none !important;
-          will-change: opacity, transform;
+          will-change: transform;
         }
 
         /* ── Larger GitHub Contributions Card Overlapping the Portrait in "left" ── */
         .about-skills-box {
-          opacity: 0;
+          opacity: 1;
         }
 
         .about-skills-box.about-skills-box--desktop {

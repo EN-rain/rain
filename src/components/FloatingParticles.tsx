@@ -1,15 +1,17 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useWebGLPerformanceMonitor, webglPerformanceTracker } from '../hooks/useWebGLPerformanceMonitor';
 
 const Particles = () => {
   const particlesRef = useRef<THREE.Points>(null);
+  const { particleMultiplier } = useWebGLPerformanceMonitor();
+  const maxCount = 1000;
   
   const particlesGeometry = useMemo(() => {
-    const count = 1000;
-    const positions = new Float32Array(count * 3);
+    const positions = new Float32Array(maxCount * 3);
     
-    for (let i = 0; i < count * 3; i += 3) {
+    for (let i = 0; i < maxCount * 3; i += 3) {
       positions[i] = (Math.random() - 0.5) * 20;
       positions[i + 1] = (Math.random() - 0.5) * 20;
       positions[i + 2] = (Math.random() - 0.5) * 10;
@@ -20,7 +22,15 @@ const Particles = () => {
     return geometry;
   }, []);
 
+  useEffect(() => {
+    if (particlesGeometry) {
+      const activeCount = Math.max(150, Math.round(maxCount * particleMultiplier));
+      particlesGeometry.setDrawRange(0, activeCount);
+    }
+  }, [particlesGeometry, particleMultiplier]);
+
   useFrame((state) => {
+    webglPerformanceTracker.recordFrame(performance.now());
     if (!particlesRef.current) return;
     particlesRef.current.rotation.y = state.clock.elapsedTime * 0.05;
     particlesRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.1) * 0.1;
@@ -32,7 +42,7 @@ const Particles = () => {
         size={0.02}
         color="#6ee7b7"
         transparent
-        opacity={0.6}
+        opacity={0.6 * particleMultiplier}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
       />

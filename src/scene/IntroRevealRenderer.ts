@@ -418,12 +418,33 @@ export async function createIntroRevealRenderer(
   };
 
   const dispose = () => {
-    window.removeEventListener('mousemove', handleMouseMove);
-    textures.forEach((texture) => gl.deleteTexture(texture));
-    gl.deleteBuffer(buffer);
-    gl.deleteProgram(program);
-    gl.deleteShader(vertexShader);
-    gl.deleteShader(fragmentShader);
+    try {
+      window.removeEventListener('mousemove', handleMouseMove);
+      textures.forEach((texture) => {
+        if (texture && gl.isTexture(texture)) {
+          gl.deleteTexture(texture);
+        }
+      });
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+      if (gl.isBuffer(buffer)) {
+        gl.deleteBuffer(buffer);
+      }
+      if (gl.isProgram(program)) {
+        gl.useProgram(null);
+        if (gl.isShader(vertexShader)) {
+          gl.detachShader(program, vertexShader);
+          gl.deleteShader(vertexShader);
+        }
+        if (gl.isShader(fragmentShader)) {
+          gl.detachShader(program, fragmentShader);
+          gl.deleteShader(fragmentShader);
+        }
+        gl.deleteProgram(program);
+      }
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+    } catch {
+      // Ignore errors on teardown
+    }
   };
 
   draw(0, 0);

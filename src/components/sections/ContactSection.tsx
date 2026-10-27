@@ -3,7 +3,7 @@ import { Mail, Github, Linkedin } from 'lucide-react';
 
 export const ContactSection = () => {
   return (
-    <section id="contact" className="stack-section" style={{ zIndex: 120 }}>
+    <section id="contact" className="stack-section">
       <div
         className="parallax-content relative flex flex-col items-center justify-center overflow-hidden pl-0 pr-0 text-[#151226]"
         style={{ backgroundColor: '#ffffff' }}

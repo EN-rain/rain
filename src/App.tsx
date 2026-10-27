@@ -8,9 +8,18 @@ import {
   ContactSection
 } from './components/sections';
 import { LoadingScreen } from './components/LoadingScreen';
+import { SectionScrollTransition } from './components/SectionScrollTransition';
 import { ProjectsPage } from './components/ProjectsPage';
 import { ProjectDetailPage } from './components/ProjectDetailPage';
+import { textureManager } from './utils/TextureManager';
 import './App.css';
+
+const NAV_ITEMS = [
+  { index: 0, label: 'Home' },
+  { index: 1, label: 'About' },
+  { index: 2, label: 'Works' },
+  { index: 3, label: 'Contact' },
+] as const;
 
 const assetModules = import.meta.glob('./assets/**/*.{png,jpg,jpeg,webp,gif,svg,mp4,webm,ogg,mp3,wav}', {
   eager: true,
@@ -91,15 +100,123 @@ const waitForFonts = () =>
 
 function PortfolioApp() {
   const [currentSection, setCurrentSection] = useState(0);
-  const [vh, setVh] = useState(window.innerHeight);
-  const [isScrolling, setIsScrolling] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(portfolioLoadingComplete);
   const [showLoading, setShowLoading] = useState(!portfolioLoadingComplete);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-  const isScrollingRef = useRef(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef<number | null>(null);
+  const isNavigatingRef = useRef(false);
 
   useScrollAnimation(setCurrentSection);
+
+  useEffect(() => {
+    const handleScrollActivity = () => {
+      if (isNavigatingRef.current) return;
+      setIsScrolling(true);
+      if (scrollTimeoutRef.current !== null) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        setIsScrolling(false);
+      }, 800);
+    };
+
+    window.addEventListener('scroll', handleScrollActivity, { passive: true });
+    window.addEventListener('wheel', handleScrollActivity, { passive: true });
+    window.addEventListener('touchmove', handleScrollActivity, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScrollActivity);
+      window.removeEventListener('wheel', handleScrollActivity);
+      window.removeEventListener('touchmove', handleScrollActivity);
+      if (scrollTimeoutRef.current !== null) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const navigateToSection = useCallback((targetIndex: number) => {
+    if (targetIndex === currentSection || isNavigatingRef.current) return;
+
+    const isMobile = window.innerWidth <= 768;
+    const sectionIds = ['home', 'about', 'works', 'contact'];
+
+    if (isMobile) {
+      const el = document.getElementById(sectionIds[targetIndex]);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        setCurrentSection(targetIndex);
+      }
+      return;
+    }
+
+    isNavigatingRef.current = true;
+    (window as any).__isProgrammaticSectionTransition = true;
+    setIsScrolling(true);
+
+    const fromIndex = currentSection;
+    const direction: 1 | -1 = targetIndex > fromIndex ? 1 : -1;
+    const duration = 720;
+    const startTime = performance.now();
+    const vh = window.innerHeight;
+    const targetScrollPositions = [0, 2 * vh, 4 * vh, 6 * vh];
+    const targetScroll = targetScrollPositions[targetIndex] ?? 0;
+    let scrollSwapped = false;
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+
+      if (progress >= 0.48 && !scrollSwapped) {
+        scrollSwapped = true;
+        window.scrollTo({ top: targetScroll, behavior: 'auto' });
+        window.dispatchEvent(
+          new CustomEvent('lenis-scroll', {
+            detail: { target: targetScroll, immediate: true },
+          })
+        );
+        setCurrentSection(targetIndex);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('section-scroll-transition', {
+          detail: {
+            active: progress < 1,
+            fromIndex,
+            toIndex: targetIndex,
+            progress,
+            direction,
+          },
+        })
+      );
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        window.dispatchEvent(
+          new CustomEvent('section-scroll-transition', {
+            detail: {
+              active: false,
+              fromIndex,
+              toIndex: targetIndex,
+              progress: 1,
+              direction,
+            },
+          })
+        );
+        (window as any).__isProgrammaticSectionTransition = false;
+        isNavigatingRef.current = false;
+        if (scrollTimeoutRef.current !== null) {
+          window.clearTimeout(scrollTimeoutRef.current);
+        }
+        scrollTimeoutRef.current = window.setTimeout(() => {
+          setIsScrolling(false);
+        }, 500);
+      }
+    };
+
+    requestAnimationFrame(step);
+  }, [currentSection]);
 
   useEffect(() => {
     if (portfolioLoadingComplete) return;
@@ -136,63 +253,6 @@ function PortfolioApp() {
     };
   }, []);
 
-  useEffect(() => {
-    const handleScrollState = () => {
-      if (!isScrollingRef.current) {
-        isScrollingRef.current = true;
-        setIsScrolling(true);
-      }
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      scrollTimeoutRef.current = setTimeout(() => {
-        isScrollingRef.current = false;
-        setIsScrolling(false);
-      }, 1500);
-    };
-
-    window.addEventListener('scroll', handleScrollState, { passive: true });
-    window.addEventListener('wheel', handleScrollState, { passive: true });
-    window.addEventListener('touchmove', handleScrollState, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScrollState);
-      window.removeEventListener('wheel', handleScrollState);
-      window.removeEventListener('touchmove', handleScrollState);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setVh(window.innerHeight);
-    };
-    window.addEventListener('resize', handleResize, { passive: true });
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const navigationValues = useMemo(() => {
-    const transitionLength = vh;
-    const pauseLength = vh;
-    const sectionUnit = transitionLength + pauseLength;
-
-    return {
-      home: 0,
-      about: sectionUnit,
-      works: 2 * sectionUnit,
-      contact: 3 * sectionUnit,
-    };
-  }, [vh]);
-
-  const scrollToSection = useCallback((section: 'home' | 'about' | 'works' | 'contact') => {
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const target = isMobile ? `#${section}` : navigationValues[section];
-
-    window.dispatchEvent(new CustomEvent('lenis-scroll', { detail: target }));
-  }, [navigationValues]);
-
   return (
     <>
       {showLoading && (
@@ -205,41 +265,25 @@ function PortfolioApp() {
           }}
         />
       )}
-      <nav className={`fixed-navbar ${isScrolling ? 'scrolling' : ''}`}>
-        <button
-          onClick={() => scrollToSection('home')}
-          className={`navbar-link ${currentSection === 0 ? 'active' : ''}`}
-        >
-          <span className="link-text">Home</span>
-          <span className="link-dot"></span>
-        </button>
-        <button
-          onClick={() => scrollToSection('about')}
-          className={`navbar-link ${currentSection === 1 ? 'active' : ''}`}
-        >
-          <span className="link-text">About</span>
-          <span className="link-dot"></span>
-        </button>
-        <button
-          onClick={() => scrollToSection('works')}
-          className={`navbar-link ${currentSection === 2 ? 'active' : ''}`}
-        >
-          <span className="link-text">Works</span>
-          <span className="link-dot"></span>
-        </button>
-        <button
-          onClick={() => scrollToSection('contact')}
-          className={`navbar-link ${currentSection === 3 ? 'active' : ''}`}
-        >
-          <span className="link-text">Contact</span>
-          <span className="link-dot"></span>
-        </button>
+
+      {/* Restored floating centered pill navbar */}
+      <nav className={`fixed-navbar ${isScrolling ? 'scrolling' : ''}`} aria-label="Main Navigation">
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.index}
+            type="button"
+            onClick={() => navigateToSection(item.index)}
+            className={`navbar-link ${currentSection === item.index ? 'active' : ''}`}
+            aria-label={`Navigate to ${item.label}`}
+          >
+            <span className="link-text">{item.label}</span>
+            <span className="link-dot" aria-hidden="true"></span>
+          </button>
+        ))}
       </nav>
+
       <main style={{ position: 'relative', height: '900vh' }}>
-        <div aria-hidden="true" className="global-en-backdrop mobile-hide">
-          <span className="letter-e">E</span>
-          <span className="letter-n">N</span>
-        </div>
+        <SectionScrollTransition />
         <HomeSection />
         <AboutSection />
         <WorksSection />
@@ -287,6 +331,10 @@ function App() {
       if (!path || path === window.location.pathname || isTransitioning) return;
 
       routeScrollPositionsRef.current[currentPathRef.current] = window.scrollY;
+
+      if (path.startsWith('/projects')) {
+        textureManager.disposeAll();
+      }
 
       if (returnToWorksProjects) {
         setIsTransitioning(true);
