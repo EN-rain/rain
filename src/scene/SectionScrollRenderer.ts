@@ -1,5 +1,4 @@
-import { textureManager } from '../utils/TextureManager';
-import { performanceMonitor } from '../hooks/usePerformanceMonitor';
+import mudNormalUrl from '../assets/images/mud_normal.jpg';
 
 const VERTEX_SHADER = `#version 300 es
 in vec2 aPosition;
@@ -15,7 +14,6 @@ void main() {
  * Ported from https://github.com/EN-rain/web000 (RouteTransitionRenderer.ts)
  * Uses mud_normal.jpg directional wavefront + hardware derivative luminance contours (fwidth)
  * + 1.0 <-> 1.3 UV scale warp + pulsing rim glow to transition between sections.
- * All textures are pre-decoded and pinned in memory via TextureManager.
  */
 const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
@@ -183,7 +181,7 @@ void main() {
   // The wavefront beam and glow sweep across the screen, smoothly blending with live DOM sections underneath
   float waveBandAlpha = edgeProximity * smoothstep(0.005, 0.06, progress) * (1.0 - smoothstep(0.94, 0.995, progress));
   float transitionBell = sin(progress * 3.14159265);
-  float finalAlpha = clamp(waveBandAlpha * 0.92 + glowMix * 1.1 + transitionBell * 0.4, 0.0, 1.0);
+  float finalAlpha = clamp(waveBandAlpha * 0.96 + glowMix * 1.15 + pow(transitionBell, 0.85) * 0.88, 0.0, 1.0);
 
   // Premultiplied alpha output
   outColor = vec4(litColor * finalAlpha, finalAlpha);
@@ -231,6 +229,102 @@ function requiredUniform(
   return location;
 }
 
+function loadImage(source: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Unable to load ${source}`));
+    img.src = source;
+  });
+}
+
+/**
+ * Generates high-definition atmospheric textures for each section (from git TextureManager.ts).
+ */
+function createSectionAtmosphericCanvas(sectionIndex: number): HTMLCanvasElement {
+  const width = 1600;
+  const height = 1000;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  if (sectionIndex === 0) {
+    // ── SECTION 0: HOME ATMOSPHERE ──
+    const bgGrad = ctx.createRadialGradient(
+      width * 0.5,
+      height * 0.48,
+      80,
+      width * 0.5,
+      height * 0.48,
+      width * 0.65
+    );
+    bgGrad.addColorStop(0, '#0a0a0a');
+    bgGrad.addColorStop(0.45, '#040404');
+    bgGrad.addColorStop(1, '#000000');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(width * 0.5, height * 0.48, 360, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.strokeRect(width * 0.14, height * 0.2, 110, 110);
+    ctx.strokeRect(width * 0.78, height * 0.62, 85, 85);
+  } else {
+    // ── SECTION 1: WORKS ATMOSPHERE ──
+    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+    bgGrad.addColorStop(0, '#020202');
+    bgGrad.addColorStop(0.5, '#080808');
+    bgGrad.addColorStop(1, '#020202');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, height * 0.5);
+    ctx.lineTo(width, height * 0.5);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.beginPath();
+    ctx.moveTo(0, height * 0.28);
+    ctx.lineTo(width, height * 0.28);
+    ctx.moveTo(0, height * 0.72);
+    ctx.lineTo(width, height * 0.72);
+    ctx.stroke();
+  }
+
+  return canvas;
+}
+
+function createGLTexture(
+  gl: WebGL2RenderingContext,
+  source: TexImageSource,
+  wrapS: number,
+  wrapT: number
+): WebGLTexture {
+  const texture = gl.createTexture();
+  if (!texture) throw new Error('Unable to create section scroll texture.');
+
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrapT);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  return texture;
+}
+
 export async function createSectionScrollRenderer(
   canvas: HTMLCanvasElement
 ): Promise<SectionScrollRenderer> {
@@ -242,8 +336,15 @@ export async function createSectionScrollRenderer(
   });
   if (!gl) throw new Error('WebGL 2 is unavailable.');
 
-  // Pre-decode and cache all transition textures in memory via TextureManager
-  await textureManager.getOrInitContextTextures(gl);
+  const mudImg = await loadImage(mudNormalUrl);
+  const section0Canvas = createSectionAtmosphericCanvas(0);
+  const section1Canvas = createSectionAtmosphericCanvas(1);
+
+  const sectionTextures = [
+    createGLTexture(gl, section0Canvas, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE),
+    createGLTexture(gl, section1Canvas, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE),
+  ];
+  const mudTexture = createGLTexture(gl, mudImg, gl.REPEAT, gl.REPEAT);
 
   const vertexShader = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
   const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
@@ -294,8 +395,7 @@ export async function createSectionScrollRenderer(
   gl.uniform1f(uBlurIntensity, 1.0);
 
   const resize = () => {
-    const perf = performanceMonitor.getMetrics();
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * perf.dprScale;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const width = Math.max(1, Math.round(window.innerWidth * dpr));
     const height = Math.max(1, Math.round(window.innerHeight * dpr));
     if (canvas.width !== width || canvas.height !== height) {
@@ -315,18 +415,19 @@ export async function createSectionScrollRenderer(
     direction: 1 | -1,
     time: number
   ) => {
-    const perf = performanceMonitor.recordFrame(performance.now());
     gl.useProgram(program);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    const safeFrom = Math.max(0, Math.min(3, fromIndex));
-    const safeTo = Math.max(0, Math.min(3, toIndex));
+    const safeFrom = Math.max(0, Math.min(1, fromIndex));
+    const safeTo = Math.max(0, Math.min(1, toIndex));
 
-    // Bind pre-cached textures from TextureManager
-    textureManager.bindTexture(gl, 0, `section${safeFrom}`);
-    textureManager.bindTexture(gl, 1, `section${safeTo}`);
-    textureManager.bindTexture(gl, 2, 'mudNormal');
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, sectionTextures[safeFrom]);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, sectionTextures[safeTo]);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, mudTexture);
 
     gl.uniform1i(uTCurrent, 0);
     gl.uniform1i(uTNext, 1);
@@ -335,25 +436,21 @@ export async function createSectionScrollRenderer(
     gl.uniform1f(uProgress, progress);
     gl.uniform1f(uDirection, direction);
     gl.uniform1f(uTime, time);
-    gl.uniform1f(uBlurIntensity, perf.blurIntensity);
-    gl.uniform1f(uCurrentEdgeMultiplier, 1.15 * perf.blurMultiplier);
-    gl.uniform1f(uNextEdgeMultiplier, 1.15 * perf.blurMultiplier);
+    gl.uniform1f(uBlurIntensity, 1.0);
+    gl.uniform1f(uCurrentEdgeMultiplier, 1.15);
+    gl.uniform1f(uNextEdgeMultiplier, 1.15);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 
   const dispose = () => {
     try {
-      // 1. Explicitly dispose all cached WebGL textures for this context
-      textureManager.disposeContext(gl);
-
-      // 2. Unbind and delete vertex buffer
+      sectionTextures.forEach((tex) => {
+        if (gl.isTexture(tex)) gl.deleteTexture(tex);
+      });
+      if (gl.isTexture(mudTexture)) gl.deleteTexture(mudTexture);
       gl.bindBuffer(gl.ARRAY_BUFFER, null);
-      if (gl.isBuffer(buffer)) {
-        gl.deleteBuffer(buffer);
-      }
-
-      // 3. Detach shaders, delete shaders, and delete shader program
+      if (gl.isBuffer(buffer)) gl.deleteBuffer(buffer);
       if (gl.isProgram(program)) {
         gl.useProgram(null);
         if (gl.isShader(vertexShader)) {
@@ -366,13 +463,12 @@ export async function createSectionScrollRenderer(
         }
         gl.deleteProgram(program);
       }
-
-      // 4. Force context loss to immediately free GPU memory handles
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     } catch {
-      // Ignore errors if context already lost or torn down
+      // Ignore errors if context already lost
     }
   };
 
   return { draw, resize, dispose };
 }
+

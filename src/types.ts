@@ -74,3 +74,5 @@ export const PALETTE_PRESETS: Record<PaletteId, PalettePreset> = {
     swatchHex: '#147ac7',
   },
 };
+
+export * from './types/stationery';

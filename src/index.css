@@ -24,7 +24,7 @@ html {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #ffffff;
+  background: #151715;
   color: #e2e8f0;
   overflow-x: hidden;
   animation: page-fade-in 450ms ease both;
@@ -49,7 +49,7 @@ body.page-fade-out {
 
 #root {
   position: relative;
-  background: #ffffff;
+  background: #151715;
 }
 
 .route-transition {
@@ -236,4 +236,13 @@ body.page-fade-out {
     transform: translateY(0) !important;
     pointer-events: auto;
   }
+}
+
+.heading-font {
+  font-family: 'Sora', sans-serif;
+  text-transform: uppercase;
+}
+
+.tech-font {
+  font-family: 'IBM Plex Mono', monospace;
 }

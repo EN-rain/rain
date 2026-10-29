@@ -14,10 +14,86 @@ export interface SectionTransitionEventDetail {
 
 const SECTION_META = [
   { number: '01', name: 'HOME' },
-  { number: '02', name: 'ABOUT' },
-  { number: '03', name: 'WORKS' },
-  { number: '04', name: 'CONTACT' },
+  { number: '02', name: 'WORKS' },
 ] as const;
+
+type DirectTransitionHandler = (detail: SectionTransitionEventDetail, now: number) => void;
+let directHandler: DirectTransitionHandler | null = null;
+let activeRafId: number | null = null;
+
+/**
+ * Drives the GitHub repo WebGL 2 section-to-section transition shader and HUD title
+ * between Page 1 (01 // HOME) and Page 2 (02 // WORKS) in a single unified RAF loop.
+ */
+export function triggerSectionTransition(
+  fromPage: 1 | 2,
+  toPage: 1 | 2,
+  onMidpointSwap: () => void,
+  onFinish?: () => void
+) {
+  if (fromPage === toPage) {
+    onMidpointSwap();
+    onFinish?.();
+    return;
+  }
+
+  if (activeRafId !== null) {
+    window.cancelAnimationFrame(activeRafId);
+    activeRafId = null;
+  }
+
+  const fromIndex = fromPage === 1 ? 0 : 1;
+  const toIndex = toPage === 1 ? 0 : 1;
+  const direction: 1 | -1 = toIndex > fromIndex ? 1 : -1;
+  const duration = 760;
+  const startTime = performance.now();
+  let swapped = false;
+
+  const step = (now: number) => {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+
+    if (progress >= 0.48 && !swapped) {
+      swapped = true;
+      onMidpointSwap();
+    }
+
+    const detail: SectionTransitionEventDetail = {
+      active: progress < 1,
+      fromIndex,
+      toIndex,
+      progress,
+      direction,
+    };
+
+    if (directHandler) {
+      directHandler(detail, now);
+    } else {
+      window.dispatchEvent(new CustomEvent('section-scroll-transition', { detail }));
+    }
+
+    if (progress < 1) {
+      activeRafId = window.requestAnimationFrame(step);
+    } else {
+      activeRafId = null;
+      const doneDetail: SectionTransitionEventDetail = {
+        active: false,
+        fromIndex,
+        toIndex,
+        progress: 1,
+        direction,
+      };
+      if (directHandler) {
+        directHandler(doneDetail, now);
+      } else {
+        window.dispatchEvent(new CustomEvent('section-scroll-transition', { detail: doneDetail }));
+      }
+      onFinish?.();
+    }
+  };
+
+  activeRafId = window.requestAnimationFrame(step);
+}
 
 export const SectionScrollTransition = memo(() => {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -33,16 +109,8 @@ export const SectionScrollTransition = memo(() => {
 
     let disposed = false;
     let renderer: SectionScrollRenderer | null = null;
-    let rafId: number | null = null;
     const startTime = performance.now();
-
-    let state: SectionTransitionEventDetail = {
-      active: false,
-      fromIndex: 0,
-      toIndex: 1,
-      progress: 0,
-      direction: 1,
-    };
+    let lastToIndex = -1;
 
     createSectionScrollRenderer(canvas)
       .then((instance) => {
@@ -51,16 +119,12 @@ export const SectionScrollTransition = memo(() => {
           return;
         }
         renderer = instance;
-        if (state.active) {
-          scheduleFrame();
-        }
       })
       .catch(() => {
         // Fallback if WebGL 2 is unavailable
       });
 
-    const renderFrame = (now: number) => {
-      rafId = null;
+    const renderTransitionFrame = (state: SectionTransitionEventDetail, now: number) => {
       if (disposed || !overlay) return;
 
       if (!state.active || state.progress <= 0.002 || state.progress >= 0.998) {
@@ -84,12 +148,14 @@ export const SectionScrollTransition = memo(() => {
         elapsed
       );
 
-      // Update Route Title HUD lift matching destination section
       if (titleRef.current && numberRef.current && nameRef.current) {
         const targetIndex = state.toIndex;
-        const meta = SECTION_META[targetIndex] ?? SECTION_META[0];
-        numberRef.current.textContent = `// ${meta.number}`;
-        nameRef.current.textContent = meta.name;
+        if (targetIndex !== lastToIndex) {
+          lastToIndex = targetIndex;
+          const meta = SECTION_META[targetIndex] ?? SECTION_META[0];
+          numberRef.current.textContent = `// ${meta.number}`;
+          nameRef.current.textContent = meta.name;
+        }
 
         const titleBell = Math.sin(Math.max(0, Math.min(1, state.progress)) * Math.PI);
         const titleOpacity = Math.pow(titleBell, 1.35);
@@ -97,62 +163,34 @@ export const SectionScrollTransition = memo(() => {
         titleRef.current.style.opacity = `${titleOpacity.toFixed(3)}`;
         titleRef.current.style.transform = `translate3d(0, ${liftY.toFixed(1)}px, 0)`;
       }
-
-      // Keep animating time uniform while the transition wavefront is paused mid-scroll
-      if (state.active && state.progress > 0.01 && state.progress < 0.99) {
-        rafId = window.requestAnimationFrame(renderFrame);
-      }
     };
 
-    const scheduleFrame = () => {
-      if (rafId === null) {
-        rafId = window.requestAnimationFrame(renderFrame);
-      }
-    };
+    directHandler = renderTransitionFrame;
 
     const handleTransitionEvent = (event: Event) => {
       const detail = (event as CustomEvent<SectionTransitionEventDetail>).detail;
       if (!detail) return;
-      state = detail;
-      scheduleFrame();
+      renderTransitionFrame(detail, performance.now());
     };
 
     const handleResize = () => {
       renderer?.resize();
-      if (state.active) {
-        scheduleFrame();
-      }
-    };
-
-    const cleanup = () => {
-      if (disposed) return;
-      disposed = true;
-      window.removeEventListener('section-scroll-transition', handleTransitionEvent);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('portfolio-navigate', handleNavigation);
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      if (renderer) {
-        renderer.dispose();
-        renderer = null;
-      }
-    };
-
-    const handleNavigation = (event: Event) => {
-      const detail = (event as CustomEvent<{ path?: string }>).detail;
-      if (detail?.path && detail.path.startsWith('/projects')) {
-        cleanup();
-      }
     };
 
     window.addEventListener('section-scroll-transition', handleTransitionEvent);
     window.addEventListener('resize', handleResize, { passive: true });
-    window.addEventListener('portfolio-navigate', handleNavigation);
 
     return () => {
-      cleanup();
+      disposed = true;
+      if (directHandler === renderTransitionFrame) {
+        directHandler = null;
+      }
+      window.removeEventListener('section-scroll-transition', handleTransitionEvent);
+      window.removeEventListener('resize', handleResize);
+      if (renderer) {
+        renderer.dispose();
+        renderer = null;
+      }
     };
   }, []);
 
@@ -160,7 +198,7 @@ export const SectionScrollTransition = memo(() => {
     <div
       ref={overlayRef}
       aria-hidden="true"
-      className="section-scroll-transition mobile-hide"
+      className="section-scroll-transition"
       style={{
         position: 'fixed',
         inset: 0,
@@ -216,7 +254,6 @@ export const SectionScrollTransition = memo(() => {
               textTransform: 'uppercase',
             }}
           />
-          {/* Subtle horizontal baseline rule in pure white/monochrome */}
           <div
             style={{
               position: 'absolute',

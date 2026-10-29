@@ -1,0 +1,324 @@
+/* Cinematic Camera Rig: Holds the entire room (single continuous wall, lamp, board, yarn, notes) */
+.scrapbook-camera-rig {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  contain: layout style;
+  pointer-events: none;
+}
+
+/* Single Unified Seamless Wall Backdrop (No seams, no split lines) */
+.scrapbook-wall-backdrop {
+  position: absolute;
+  inset: -30%;
+  width: 160%;
+  height: 160%;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  transition: filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scrapbook-wall-backdrop[data-lamp-on='false'] {
+  filter: brightness(0.60) contrast(1.12) saturate(0.75);
+}
+
+.scrapbook-wall-backdrop[data-lamp-on='true'] {
+  filter: brightness(0.96) contrast(1.02) saturate(1.0);
+}
+
+.scrapbook-wall-scene {
+  position: relative;
+  width: min(100vw, 177.6833dvh);
+  aspect-ratio: 1672 / 941;
+  flex: none;
+  isolation: isolate;
+  background: transparent !important;
+  transition: filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Corkboard Artwork & Content Stage */
+.scrapbook-corkboard-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scrapbook-corkboard-stage > * {
+  pointer-events: auto;
+}
+
+/* Corkboard Artwork */
+.scrapbook-board-art {
+  position: absolute;
+  left: 6.9%;
+  top: 2.5%;
+  width: 86.9%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  pointer-events: none;
+  transition: filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Wall Clock & Keys */
+.scrapbook-clock-art,
+.scrapbook-keys-art {
+  position: absolute;
+  object-fit: contain;
+  pointer-events: none;
+  transition: filter 0.75s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+}
+
+.scrapbook-clock-art { left: 89.5%; top: 10%; width: 10%; height: 22%; }
+.scrapbook-keys-art { left: 91%; top: 48%; width: 8%; height: 30%; }
+
+/* Natural Lighting Filters based on Lamp State */
+/* Dim State (Lamp OFF): Authentic soft noir night ambient across the entire scene */
+.scrapbook-wall-scene[data-lamp-on='false'] .scrapbook-board-art {
+  filter: brightness(0.60) contrast(1.14) saturate(0.75);
+}
+
+/* Frames & Notes dim realistically in the dark when the lamp is off */
+.scrapbook-wall-scene[data-lamp-on='false'] .scrapbook-wall-content {
+  filter: brightness(0.58) contrast(1.15) saturate(0.70);
+}
+
+.scrapbook-wall-scene[data-lamp-on='false'] .scrapbook-clock-art,
+.scrapbook-wall-scene[data-lamp-on='false'] .scrapbook-keys-art {
+  filter: brightness(0.50) contrast(1.16) saturate(0.68);
+}
+
+/* Lit State (Lamp ON): Warm incandescent illumination washing across board, frames & notes */
+.scrapbook-wall-scene[data-lamp-on='true'] .scrapbook-board-art {
+  filter: brightness(1.02) contrast(1.03) saturate(1.05);
+}
+
+/* Frames & Notes are warmly illuminated by the lamp */
+.scrapbook-wall-scene[data-lamp-on='true'] .scrapbook-wall-content {
+  filter: brightness(1.06) contrast(1.03) saturate(1.08) sepia(0.06);
+}
+
+.scrapbook-wall-scene[data-lamp-on='true'] .scrapbook-clock-art,
+.scrapbook-wall-scene[data-lamp-on='true'] .scrapbook-keys-art {
+  filter: brightness(0.92) contrast(1.02) saturate(0.95);
+}
+
+/* Wall Accents Dim during evidence inspection zoom (pure opacity so GPU texture cache is never invalidated during 4x zoom) */
+.scrapbook-wall-scene[data-zoomed='true'] .scrapbook-clock-art,
+.scrapbook-wall-scene[data-zoomed='true'] .scrapbook-keys-art,
+.scrapbook-wall-scene[data-zoomed='true'] .scrapbook-wall-lamp {
+  opacity: 0.22;
+  transition: opacity 0.55s ease;
+}
+
+/* Tapes & Notes */
+.scrapbook-tape { filter: none; box-shadow: none; }
+
+.scrapbook-wall-content {
+  container-type: inline-size;
+  position: absolute;
+  left: 13%;
+  top: 12%;
+  width: 73%;
+  height: 66.5%;
+  transition: filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scrapbook-note-copy {
+  font-size: .56cqw;
+  line-height: 1;
+}
+
+/* Vintage Wall Lamp Interactive Toggle */
+.scrapbook-wall-lamp {
+  position: absolute;
+  left: .5%;
+  top: 16%;
+  width: 9%;
+  height: 36%;
+  z-index: 35;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, opacity 0.5s ease, filter 0.5s ease;
+}
+
+.scrapbook-wall-lamp:hover {
+  transform: scale(1.03);
+}
+
+.scrapbook-wall-lamp:active {
+  transform: scale(0.98);
+}
+
+.scrapbook-wall-lamp:focus-visible {
+  outline: 2px solid #e8cf92;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.scrapbook-wall-lamp img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  transition: opacity .5s ease;
+}
+
+.scrapbook-lamp-off { opacity: 1; filter: brightness(.6) saturate(.7); }
+.scrapbook-lamp-on {
+  opacity: 0;
+  filter: drop-shadow(0 0 16px rgba(255, 195, 90, 0.5));
+}
+
+[data-lamp-on='true'] .scrapbook-lamp-off { opacity: 0; }
+[data-lamp-on='true'] .scrapbook-lamp-on { opacity: 1; }
+
+/* Subtle Ambient Noir Vignette Layer */
+.scrapbook-ambient-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 26;
+  background: radial-gradient(circle at 52% 48%, transparent 62%, rgba(6, 8, 11, 0.22) 92%, rgba(2, 3, 5, 0.42) 100%);
+  transition: opacity 0.75s ease;
+}
+
+/* Focus Dim Backdrop: softly darkens distant outer borders during dossier inspection, leaving the wide center & bottom-right note clear */
+.scrapbook-focus-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  background: radial-gradient(ellipse 92% 85% at 54% 52%, transparent 72%, rgba(6, 8, 11, 0.14) 90%, rgba(3, 4, 6, 0.28) 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scrapbook-focus-backdrop[data-active='true'] {
+  opacity: 1;
+}
+
+/* ============================================================
+   PAGE 2 (SCRAPBOOK) STAGGERED INTRO CHOREOGRAPHY (GPU Transform + Opacity)
+   ============================================================ */
+
+/* 1. Corkboard Stage settle */
+.scrapbook-wall-scene[data-entered='false'] .scrapbook-board-art {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0) scale(0.95);
+}
+
+.scrapbook-wall-scene[data-entered='true'] .scrapbook-board-art {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    transform 0.68s cubic-bezier(0.22, 1, 0.36, 1) 0.04s,
+    opacity 0.48s ease-out 0.04s,
+    filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 2. Wall Lamp, Clock & Keys entrance */
+.scrapbook-wall-scene[data-entered='false'] .scrapbook-wall-lamp {
+  opacity: 0;
+  transform: translate3d(-24px, -20px, 0) rotate(-8deg) scale(0.92);
+}
+
+.scrapbook-wall-scene[data-entered='true'] .scrapbook-wall-lamp {
+  transition:
+    transform 0.72s cubic-bezier(0.22, 1, 0.36, 1) 0.1s,
+    opacity 0.5s ease-out 0.1s;
+}
+
+.scrapbook-wall-scene[data-entered='false'] .scrapbook-clock-art {
+  opacity: 0;
+  transform: translate3d(24px, -18px, 0) scale(0.88);
+}
+
+.scrapbook-wall-scene[data-entered='true'] .scrapbook-clock-art {
+  transition:
+    transform 0.72s cubic-bezier(0.22, 1, 0.36, 1) 0.16s,
+    opacity 0.55s ease 0.16s,
+    filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scrapbook-wall-scene[data-entered='false'] .scrapbook-keys-art {
+  opacity: 0;
+  transform: translate3d(20px, 22px, 0) rotate(12deg) scale(0.9);
+}
+
+.scrapbook-wall-scene[data-entered='true'] .scrapbook-keys-art {
+  transition:
+    transform 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.22s,
+    opacity 0.55s ease 0.22s,
+    filter 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 3. Staggered Picture Frames drop onto corkboard */
+.scrapbook-frame-inner {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.scrapbook-wall-scene[data-entered='false'] .scrapbook-frame-inner {
+  opacity: 0;
+  transform: translate3d(0, -28px, 0) scale(1.14);
+}
+
+.scrapbook-wall-scene[data-entered='true'] .scrapbook-frame-inner {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1) calc(0.12s + var(--item-index, 0) * 0.065s),
+    opacity 0.42s ease-out calc(0.12s + var(--item-index, 0) * 0.065s);
+}
+
+/* 4. Staggered Lined Notes & Tapes settle alongside frames */
+.scrapbook-note-inner {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.scrapbook-wall-scene[data-entered='false'] .scrapbook-note-inner {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0) scale(0.9);
+}
+
+.scrapbook-wall-scene[data-entered='true'] .scrapbook-note-inner {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    transform 0.64s cubic-bezier(0.22, 1, 0.36, 1) calc(0.18s + var(--item-index, 0) * 0.065s),
+    opacity 0.44s ease-out calc(0.18s + var(--item-index, 0) * 0.065s);
+}
+
+/* 5. Staggered 3D Red Pushpins thrust into the corkboard after each frame lands */
+.scrapbook-pin-img {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.scrapbook-wall-scene[data-entered='false'] .scrapbook-pin-img {
+  opacity: 0;
+  transform: translate3d(4px, -32px, 0) scale(1.38);
+}
+
+.scrapbook-wall-scene[data-entered='true'] .scrapbook-pin-img {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    transform 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) calc(0.26s + var(--item-index, 0) * 0.065s),
+    opacity 0.28s ease-out calc(0.26s + var(--item-index, 0) * 0.065s);
+}
+
