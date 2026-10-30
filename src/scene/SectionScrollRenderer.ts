@@ -278,28 +278,9 @@ function createSectionAtmosphericCanvas(sectionIndex: number): HTMLCanvasElement
     ctx.strokeRect(width * 0.14, height * 0.2, 110, 110);
     ctx.strokeRect(width * 0.78, height * 0.62, 85, 85);
   } else {
-    // ── SECTION 1: WORKS ATMOSPHERE ──
-    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-    bgGrad.addColorStop(0, '#020202');
-    bgGrad.addColorStop(0.5, '#080808');
-    bgGrad.addColorStop(1, '#020202');
-    ctx.fillStyle = bgGrad;
+    // ── SECTION 1: CONTACTS ATMOSPHERE (White Background) ──
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(0, height * 0.5);
-    ctx.lineTo(width, height * 0.5);
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-    ctx.beginPath();
-    ctx.moveTo(0, height * 0.28);
-    ctx.lineTo(width, height * 0.28);
-    ctx.moveTo(0, height * 0.72);
-    ctx.lineTo(width, height * 0.72);
-    ctx.stroke();
   }
 
   return canvas;

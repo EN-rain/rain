@@ -14,7 +14,7 @@ export interface SectionTransitionEventDetail {
 
 const SECTION_META = [
   { number: '01', name: 'HOME' },
-  { number: '02', name: 'WORKS' },
+  { number: '02', name: 'CONTACTS' },
 ] as const;
 
 type DirectTransitionHandler = (detail: SectionTransitionEventDetail, now: number) => void;

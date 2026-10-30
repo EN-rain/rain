@@ -7,6 +7,7 @@ import {
 
 type LoadingScreenProps = {
   progress: number;
+  statusText?: string;
   isComplete: boolean;
   onRevealStart?: () => void;
   onComplete: () => void;
@@ -85,6 +86,8 @@ interface MeshItem {
 }
 
 export const LoadingScreen = ({
+  progress,
+  statusText,
   isComplete,
   onRevealStart,
   onComplete,
@@ -101,7 +104,11 @@ export const LoadingScreen = ({
   const rendererRef = useRef<IntroRevealRenderer | null>(null);
   const rendererPromiseRef = useRef<Promise<IntroRevealRenderer | null> | null>(null);
 
-  // Store callbacks in refs so parent state updates never cancel/restart the reveal effect
+  // Store props and callbacks in refs so rendering loops always read current values
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
+  const statusTextRef = useRef(statusText);
+  statusTextRef.current = statusText;
   const isCompleteRef = useRef(isComplete);
   isCompleteRef.current = isComplete;
   const onCompleteRef = useRef(onComplete);
@@ -340,7 +347,7 @@ export const LoadingScreen = ({
       const bw = Math.min(560, W - 56);
       const by = cy + 22;
       const topRuleY = cy - 88;
-      const botRuleY = cy + 84;
+      const botRuleY = cy + 96;
 
       // Bake full-length lines into `isBar: true` so `layerAll` (for WebGL suction) has them all
       rule(cx - bw / 2, cx + bw / 2, by, 2.5, { isBar: true });
@@ -349,7 +356,7 @@ export const LoadingScreen = ({
 
       // 3. Percentage counter in IBM Plex Mono below the main progress line
       const pctFont = `500 12px "IBM Plex Mono", monospace`;
-      const pctY = by + 30;
+      const pctY = by + 28;
       text('100%', cx, pctY, pctFont, 'center', 2.4, { isCounter: true });
 
       counter = {
@@ -401,7 +408,7 @@ export const LoadingScreen = ({
       build();
     }
 
-    function loading(progVal: number, alpha: number, slide: number, timeMs: number) {
+    function loading(progVal: number, alpha: number, slide: number, timeMs: number, statusStr?: string) {
       if (!ctx || !layer || !counter) return;
       const pct = Math.min(100, Math.max(0, Math.floor(progVal)));
       const str = `${pct}%`;
@@ -453,6 +460,14 @@ export const LoadingScreen = ({
       ctx.textAlign = 'center';
       ctx.fillText(str.split('').join(' '), cx, counter.y);
 
+      // 4. Clean status indicator text
+      if (statusStr) {
+        ctx.font = '500 10.5px "IBM Plex Mono", monospace';
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.42)';
+        ctx.letterSpacing = '0.08em';
+        ctx.fillText(statusStr.toUpperCase(), cx, counter.y + 22);
+      }
+
       ctx.restore();
     }
 
@@ -464,30 +479,47 @@ export const LoadingScreen = ({
       octx.fill();
     }
 
+    let displayProgress = 0;
+    let loadingTime = 0;
+    let suctionTime = 0;
+    let isSuctionStarted = false;
+    let completeHoldTimer = 0;
+
     function frame(now: number) {
       if (disposed || !ctx || !octx || !gl) return;
       const dt = Math.min(64, now - last || 16);
       last = now;
 
-      if (phaseName !== 'DONE') {
-        T += dt;
-        // Hold just before SUCTION if critical assets are still loading
-        if (!isCompleteRef.current && T > LOAD - 40) {
-          T = LOAD - 40;
-        }
-      }
-
       hx += (thx - hx) * 0.12;
       hy += (thy - hy) * 0.12;
 
-      const ph =
-        T < LOAD
-          ? 'LOADING'
-          : T < LOAD + SUCT
-          ? 'SUCTION'
-          : T < LOAD + SUCT + COLL
-          ? 'COLLAPSING'
-          : 'DONE';
+      let ph = 'LOADING';
+
+      if (!isSuctionStarted) {
+        loadingTime += dt;
+        const target = Math.min(100, Math.max(0, progressRef.current));
+        // Smoothly animate towards target progress with responsive ease
+        displayProgress += (target - displayProgress) * 0.14;
+
+        if (isCompleteRef.current && displayProgress >= 99.4) {
+          displayProgress = 100;
+          completeHoldTimer += dt;
+          if (completeHoldTimer >= 180) {
+            isSuctionStarted = true;
+          }
+        }
+        ph = 'LOADING';
+      } else {
+        suctionTime += dt;
+        if (suctionTime < SUCT) {
+          ph = 'SUCTION';
+        } else if (suctionTime < SUCT + COLL) {
+          ph = 'COLLAPSING';
+        } else {
+          ph = 'DONE';
+        }
+      }
+
       phaseName = ph;
 
       ctx.clearRect(0, 0, W, H);
@@ -497,12 +529,12 @@ export const LoadingScreen = ({
 
       let hole = 0;
       if (ph === 'LOADING') {
-        const a = E.out(clamp(T / 520));
+        const a = E.out(clamp(loadingTime / 450));
         vrot = 0;
         pm = 0;
-        loading(100 * E.io(clamp((T - 80) / (LOAD - 120))), a, 16 * (1 - a), T);
+        loading(displayProgress, a, 16 * (1 - a), loadingTime, statusTextRef.current);
       } else {
-        const ts = T - LOAD;
+        const ts = suctionTime;
         if (ph === 'SUCTION') {
           const u = clamp((ts - 40) / (SUCT - 40));
           const vp = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;

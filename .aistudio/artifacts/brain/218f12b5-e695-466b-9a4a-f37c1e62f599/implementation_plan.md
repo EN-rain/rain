@@ -1,107 +1,108 @@
-# WebGL Section Scroll Transitions & Works Horizontal Timeline Redesign
+# Implementation Plan: Fantasy Clipboard Works & Vintage Contact Desk
 
-This plan replaces the rigid custom SVG section masks and 3D card-stack scroll transforms with the cloned repository's directional **WebGL Mud-Normal & Contour-Edge Scroll Transition** across all sections, while redesigning the **Works** section into an interactive **Horizontal Timeline** powered by **Anime.js** choreography and a **velocity-reactive WebGL** backdrop.
+Restructure the portfolio to feature the fantasy clipboard layout from `fantasy-clipboard.zip` for the **Works** section with an entrance scatter-and-settle animation, update navigation to 4 bookmark tabs (**Home**, **About**, **Works**, **Contact**), and establish **Page 2** as a vintage typewriter **Contact** desk.
 
-## User Review & Critical Decisions
+---
+
+## User Review Required
 
 > [!IMPORTANT]
-> **Updated Scope Based on Your Feedback**:
-> - **Confirmed Decision 1 — Full-Bleed Sections with Cloned Repo WebGL Scroll Transitions**: Remove the custom SVG polygon masks (`mask-shaped-section`) and 3D card-stack scaling/rotation (`scale(1.2)`, `rotateZ`, counter-scaled containers) across `Home`, `About`, `Works`, and `Contact`. Each section now renders at clean, native `100vw × 100vh` (`scale(1)`) geometry for effortless layout editing, connected by the cloned repo's directional WebGL mud-normal + `fwidth` contour-edge scroll wipe shader.
-> - **Confirmed Decision 2 — Unified Horizontal Works Timeline**: Arrange the Works timeline as a single continuous horizontal track starting with **Work Experience (`00 / EXPERIENCE`)** followed by **Featured Projects (`01`–`04`)** and ending with a **Full Archive Portal (`05 / ARCHIVE`)**.
-> - **Confirmed Decision 3 — Velocity-Reactive WebGL Timeline Backdrop & Anime.js**: Pair a scroll-velocity-reactive WebGL energy wave and particle field behind the Works timeline with Anime.js SVG rail drawing, elastic node pulses, and staggered card reveals.
+> - **Navigation Structure**: The 4 bookmark tabs will be **Home** (returns to desk folder), **About** (opens the Page 1.5 spread dossier), **Works** (opens the animated fantasy clipboard), and **Contact** (triggers the WebGL transition to Page 2 vintage typewriter desk).
+> - **Works Interaction**: Clicking any of the 6 projects on the front paper will smoothly update the picture frame with the project's screenshot and display its tech stack tags on the small note, along with an interactive link to inspect the repository.
+> - **Animation Behavior**: The clipboard pieces start scattered across the desk background with randomized rotations and offsets, then seamlessly animate and settle into the exact pixel-perfect positions and rotations defined in `index.html`. A "Re-scatter" button allows replaying this sequence anytime.
 
 ---
 
-## 1. Overview & Core Concept
+## Proposed Changes
 
-- **What It Does**:
-  1. **WebGL Section Scroll Transitions**: Scrolling between `Home`, `About`, `Works`, and `Contact` triggers the cloned repo's directional WebGL shader transition—wiping vertically and diagonally with `mud_normal` organic distortion, luminance derivative (`fwidth`) wireframe contour etching, a pulsing luminous rim, and a rising section title indicator (`#01 Home`, `#02 About`, `#03 Works`, `#04 Contact`).
-  2. **Native 1:1 Section Geometry**: Every section occupies a true `100vw × 100vh` frame without SVG cutout masks or counter-scaled wrapper math, making future layout edits clean and flexible.
-  3. **Works Horizontal Timeline**: Once inside `#works`, vertical scroll smoothly scrubs a unified horizontal timeline track from Work Experience through Featured Projects to the Archive portal.
-- **Target Audience / Persona**: Engineering recruiters, hiring managers, and collaborators exploring Edrian Nieves's portfolio.
-- **Key Value**: Combines the signature WebGL shader transitions from the reference repository with a flexible, easy-to-edit section layout and a showcase horizontal timeline for Works.
-
----
-
-## 2. User Experience & Visual Design
-
-- **Key User Flows**:
-  1. **Section-to-Section Scrolling (`Home ↔ About ↔ Works ↔ Contact`)**:
-     - While viewing a section, it fills the full viewport cleanly at `1:1` scale.
-     - Scrolling across a section boundary activates the **WebGL Scroll Transition Overlay**: the outgoing section's visual snapshot zooms subtly (`1.0 → 1.3`) while the incoming section zooms in (`1.3 → 1.0`) across a jagged `mud_normal` wavefront etched with `fwidth` contour lines and a bright wavefront glow.
-     - During the transition between `About` and `Works`, the global `EN` monogram docks cleanly into the `WORK EXPERIENCE` heading at the start of the horizontal timeline.
-  2. **Horizontal Timeline Scrubbing in `#works`**:
-     - **Station 00 (`00 / EXPERIENCE`)**: Anchors the start of the timeline with the `WORK EXPERIENCE` title and the **Logicbase Interactive** (`2026 / INTERNSHIP`) milestone card.
-     - **Stations 01–04 (`01`–`04 / SELECTED WORKS`)**: Scrubbing horizontally reveals featured project stations along a glowing SVG circuit rail. Each node pulses with Anime.js elastic rings and staggered card/tag reveals.
-     - **Station 05 (`05 / ARCHIVE`)**: Terminal node at the end of the rail displaying total project count and an interactive trigger that opens the `/projects` archive view.
-     - **Bottom Timeline Scrubber HUD**: Displays clickable station ticks (`EXP`, `01`–`04`, `ARCHIVE`) and progress percentage for instant jumping.
-
-- **Visual Identity & Theme**:
-  - *Aesthetic Direction*: High-craft dark-mode technical portfolio with atmospheric WebGL shaders and crisp architectural typography.
-  - *Color Palette & Mood*: Deep obsidian (`#070709`) and stark white (`#ffffff`) contrast across sections, accented by electric violet (`#7c3aed`), soft lavender (`#a78bfa`), and luminous white contour edges during WebGL transitions.
-  - *Typography & Hierarchy*: `Sora` for bold display headers and station numerals, `Space Grotesk` for editorial body copy, and `IBM Plex Mono` for technical metadata, timestamps, and timeline HUD coordinates.
-  - *Component Styling & Layout*: Full-bleed `100vw × 100vh` section containers on desktop; responsive vertical flow on mobile (`<= 768px`).
-
-- **Interactive Feedback & Motion**:
-  - **WebGL Scroll Wipe**: Directional (`uDirection = 1` down, `-1` up) shader wipe with `mud_normal` distortion and `fwidth` luminance edge detection.
-  - **Anime.js Timeline Micro-Interactions**: SVG timeline path `strokeDashoffset` drawing, elastic node activation rings, and magnetic hover states on project cards.
-  - **Velocity-Reactive Works Shader**: Horizontal scroll speed amplifies the WebGL energy wave ribbon and particle streak intensity behind the timeline track.
+### 1. Asset Pipeline & Preloading
+- Ensure clipboard assets extracted from `/public/assets/aistudio/fantasy-clipboard_49c7cd9d.zip` are located at `/public/assets/clipboard/`:
+  - `clipboard-board.png`
+  - `bottom-paper.png`
+  - `middle-paper.png`
+  - `front-paper.png`
+  - `transparent-photo-frame.png`
+  - `small-note.png`
+  - `clipboard-clip.png`
+- Register these assets in `ALL_AHEAD_OF_TIME_ASSETS` in `src/App.tsx` so they are fully decoded into memory before the loading screen completes.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
-
-- **Decision 1: Replace SVG Masked Card-Stack with Full-Bleed Sections + WebGL Scroll Shader**
-  - *Chosen Approach*: Remove `.mask-shaped-section` SVG masks and the `scale(0.5..1.2)` / `rotateZ(10deg)` / `rotateY(70deg)` 3D card-stack transforms; use a dedicated fullscreen WebGL 2 transition canvas (`SectionScrollTransition`) ported from the cloned repo's `RouteTransitionRenderer` to transition between sections.
-  - *Why*: Eliminates counter-scaling math (`invScale = 1 / 1.2`) and SVG clipping boundaries so any section can be edited with standard CSS/Tailwind positioning while delivering the exact WebGL scroll transition look from the cloned repo.
-  - *Alternatives Considered*: Keeping the SVG mask and adding WebGL inside each card—rejected because the SVG mask clips full-screen effects and makes layout edits brittle.
-
-- **Decision 2: Scroll-Driven Horizontal Timeline Pinning in `#works`**
-  - *Chosen Approach*: Keep `#works` pinned during its scroll window so vertical wheel/touch scroll scrubs the horizontal track (`0 → 1` progress) before triggering the WebGL transition into `#contact`.
-  - *Why*: Preserves natural single-page vertical scrolling while giving the user full control over horizontal timeline scrubbing and station jumping.
+### 2. Navigation Bookmark Tabs (`src/components/BookmarkTabs.tsx`)
+- Expand `TABS` array to 4 distinct bookmark tabs with alternating typewriter rotations and z-index hierarchy:
+  1. **Home** (`paperId: 'home'`) — resets stationery and folder.
+  2. **About** (`paperId: 'about'`) — triggers the Page 1.5 dossier spread.
+  3. **Works** (`paperId: 'works'`) — opens the fantasy clipboard modal/view.
+  4. **Contact** (`paperId: 'contact'`) — triggers the WebGL section transition to Page 2.
 
 ---
 
-## 4. Technical Architecture & Data Strategy *(Technical Reference)*
+### 3. Fantasy Clipboard Works Component (`src/components/FantasyClipboardWorks.tsx`)
+- Migrate `index.html` CSS coordinate system (`aspect-ratio: 1672/941`):
+  - **Board Asset**: `left: 16.9856%`, `top: 9.1392%`, `width: 64.8923%`, `height: 75.8767%`.
+  - **Bottom Paper**: `left: 34.7488%`, `top: 18.7035%`, `rotate: 1.4deg`.
+  - **Middle Paper**: `left: 35.3469%`, `top: 17.6408%`, `rotate: -1.1deg`.
+  - **Front Paper**: `left: 35.9450%`, `top: 16.5781%`, `rotate: 0deg`.
+  - **Photo Frame**: `left: 20.6340%`, `top: 20.9352%`, `width: 12.8589%`, `height: 24.4421%`.
+  - **Small Note**: `left: 18.4211%`, `top: 45.8023%`, `width: 16.4474%`, `height: 35.6004%`.
+  - **Clipboard Clip**: `left: 50.1%`, `top: 8%`, `width: 14.4%`, `height: 10.9%`.
+- **Entrance Animation (Scatter to Settle)**:
+  - On mount/open, each asset starts at an offset scattered coordinate beyond the board edges with randomized rotations (-25° to +25°).
+  - Animate each element into its exact target HTML coordinate using spring/cubic-bezier physics with staggered delays.
+  - Provide a vintage stamp **"Re-scatter / Assemble"** control button.
+- **Front Paper Content**:
+  - Title at the top: `PROJECTS` (vintage stamped serif/typewriter typography).
+  - 6 project items formatted strictly as:
+    ```
+    - StudentFlow           2024 – 2025
+    - PocketTrade           June 2026
+    - ChemQuest             2024 – 2025
+    - TypeDuel              May 2026
+    - TsukiAI               2025 – 2026
+    - Auvrynt               July – Oct 2026
+    ```
+  - Interactive selection highlight (ink underline and quill marker).
+- **Small Note Content**:
+  - Exclusively displays the **Tech Stack** chips/pills for the currently active project (e.g., Next.js, TypeScript, Node.js, Express, PostgreSQL for StudentFlow).
+- **Picture Frame Content**:
+  - Image only: renders the active project's screenshot (`/assets/projects/studentflow.png`, etc.) clipped neatly inside the transparent photo frame.
+  - Hover action reveals a subtle vintage wax seal or link to open the GitHub repository.
 
-- **Architecture & Component Diagram**:
+---
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Portfolio Scroll Controller                      │
-│   Lenis Smooth Scroll ──► Section Progress & Transition State [0..3]    │
-└───────────────┬─────────────────────────────────────────┬───────────────┘
-                │                                         │
-                ▼                                         ▼
-┌───────────────────────────────────────┐ ┌───────────────────────────────┐
-│   WebGL Section Scroll Transition     │ │   Global EN Monogram Docker   │
-│  (Ported from Cloned Repo Shader)     │ │  Tracks Home ──► About ──►    │
-│  • Directional mud_normal wavefront   │ │  Works Station 00 [EN] Target │
-│  • fwidth(luma) contour edge etching  │ └───────────────────────────────┘
-│  • UV zoom (1.0 ↔ 1.3) + rim glow     │
-│  • Section HUD (#01..#04 title lift)  │
-└───────────────┬───────────────────────┘
-                │ Reveals Full-Bleed 100vw × 100vh Sections (No SVG Mask)
-                ▼
-┌───────────────┬───────────────┬─────────────────────────────────────────┐
-│ #01 Home      │ #02 About     │ #03 Works (Horizontal Timeline)         │
-│ Full-bleed    │ Full-bleed    │ ┌─────────────────────────────────────┐ │
-│ Hero +        │ WebGL Enso +  │ │ Velocity-Reactive WebGL Backdrop    │ │
-│ Parallax      │ GitHub Graph  │ │ (Energy Wave + Particle Field)      │ │
-└───────────────┴───────────────┘ ├─────────────────────────────────────┤ │
-                                  │ Anime.js Choreographed Track        │ │
-                                  │ [00 EXP]─[01]─[02]─[03]─[04]─[05]   │ │
-                                  ├─────────────────────────────────────┤ │
-                                  │ Interactive Bottom Scrubber HUD     │ │
-                                  └─────────────────────────────────────┘ │
-                                  #04 Contact (Full-bleed White Canvas)   │
-                                  └───────────────────────────────────────┘
-```
+### 4. Page 2: Vintage Typewriter Contact Desk (`src/components/VintageContactDesk.tsx`)
+- Replace the old case board with a vintage typewriter message station matching the user's preference:
+  - Vintage telegram dispatch card with input fields:
+    - `Agent Callsign / Name`
+    - `Return Frequency / Email`
+    - `Dispatch Message`
+    - `Transmit Dispatch` button with mechanical typewriter sound feedback / visual typewriter key press effect.
+  - Pinned communication channels:
+    - GitHub profile link (`https://github.com/EN-rain`)
+    - Direct email link (`edrian.vipscaleph@gmail.com`)
+    - Location / Timezone status indicator.
+  - Return to Desk bookmark navigation button to transition back to Page 1.
 
-- **Data Model & State**:
-  - **Section Transition State**: Active section index (`0..3`), transition pair (`fromIndex`, `toIndex`), normalized transition progress (`uProgress ∈ [0, 1]`), and scroll direction (`uDirection ∈ {1, -1}`).
-  - **Works Timeline State**: Normalized horizontal progress (`timelineProgress ∈ [0, 1]`), smoothed scroll velocity (`uVelocity`), active station index (`0..5`), and expanded project modal/route navigation state.
+---
 
-- **Interactive Component & State Mapping**:
-  - **Scroll Transition Shader**: Receives `uProgress`, `uDirection`, and `uTime` on each scroll frame during section transitions; renders transparent (`display: none` / `opacity: 0`) when settled inside a section so DOM interactions remain 100% native and unobstructed.
-  - **Works Horizontal Track & Scrubber**: Translates `translate3d(-progress * maxTrackScroll, 0, 0)` on desktop, triggers Anime.js node animations when `activeStation` updates, and allows clicking any bottom HUD station button to scroll directly to that station's scroll offset.
+### 5. Orchestration in `src/App.tsx` and `src/components/VintageStationery.tsx`
+- Connect bookmark navigation:
+  - Clicking `Home` resets any open spread and returns to desk.
+  - Clicking `About` displays the Page 1.5 spread dossier.
+  - Clicking `Works` opens the `FantasyClipboardWorks` scene.
+  - Clicking `Contact` triggers `handleSwitchPage(2)` through the WebGL transition overlay.
+
+---
+
+## Verification Plan
+
+### Automated Checks
+- `lint_applet`: Verify syntax, TypeScript types, and import validity.
+- `compile_applet`: Confirm full Vite React production build succeeds with no missing dependencies or assets.
+
+### Interactive User Experience Verification
+- **Preload Flow**: Confirm loading bar smoothly loads all assets including clipboard textures.
+- **Bookmarks**: Verify 4 tabs (Home, About, Works, Contact) click seamlessly.
+- **Works Scatter & Settle**: Verify assets scatter in background and smoothly settle into the exact coordinates of `index.html`.
+- **Works Selection**: Click through all 6 projects; check that photo frame updates image only and small note updates tech stack.
+- **Page 2 Contact**: Switch to Page 2; verify WebGL transition runs without purple tint, typewriter dispatch desk loads, and contact links function.

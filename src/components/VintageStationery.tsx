@@ -7,7 +7,8 @@ import { BookmarkTabs } from './BookmarkTabs';
 import { DeskAccents } from './DeskAccents';
 import { JournalOverlay } from './JournalOverlay';
 import { PageOneHalf } from './PageOneHalf';
-import { ScrapbookBoard } from './ScrapbookBoard';
+import { FantasyClipboardWorks } from './FantasyClipboardWorks';
+import { VintageContactDesk } from './VintageContactDesk';
 import { triggerSectionTransition } from './SectionScrollTransition';
 
 export const VintageStationery: React.FC<VintageStationeryProps> = ({
@@ -57,6 +58,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
   const [journalVisible, setJournalVisible] = useState(false);
   const [journalBusy, setJournalBusy] = useState(false);
   const [showPageOneHalf, setShowPageOneHalf] = useState(false);
+  const [showWorks, setShowWorks] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const { renderPose, move, replay } = useStationeryMotion({
@@ -87,7 +89,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
       setIsTransitioning(true);
 
       if (targetPage === 2) {
-        if (page === 1 && !showPageOneHalf) {
+        if (page === 1 && !showPageOneHalf && !showWorks) {
           void move('outro');
         }
         triggerSectionTransition(
@@ -95,6 +97,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
           2,
           () => {
             setShowPageOneHalf(false);
+            setShowWorks(false);
             setPage(2);
           },
           () => {
@@ -109,6 +112,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
           1,
           () => {
             setShowPageOneHalf(false);
+            setShowWorks(false);
             setPage(1);
             replay();
           },
@@ -119,7 +123,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         );
       }
     },
-    [isTransitioning, journalBusy, move, page, renderPose, replay, setPage, showPageOneHalf]
+    [isTransitioning, journalBusy, move, page, renderPose, replay, setPage, showPageOneHalf, showWorks]
   );
 
   const hasPlayedIntroRef = useRef(false);
@@ -153,18 +157,71 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
     });
   }, []);
 
-  // Show Dossier (Page 1.5) or Works (Page 2) handler
+  // Show Dossier (Page 1.5), Works (Clipboard), or Contact (Page 2) handler
   const handleSelectBookmark = useCallback(
     async (paperId: string) => {
       if (journalBusy || isTransitioning || state === 'journal-open' || state === 'journal-opening') return;
       setActiveBookmark(paperId);
       onBookmarkClick?.(paperId);
 
+      if (paperId === 'home') {
+        const wasOnSubpage = showWorks || showPageOneHalf;
+        setShowWorks(false);
+        setShowPageOneHalf(false);
+        if (wasOnSubpage) {
+          replay();
+        }
+        return;
+      }
+
       if (paperId === 'works') {
+        const wasOnHome = !showPageOneHalf && !showWorks;
+        setShowPageOneHalf(false);
+        if (wasOnHome) {
+          setJournalBusy(true);
+          try {
+            setShowWorks(true);
+            await move('outro');
+          } catch {
+            setShowWorks(true);
+          } finally {
+            setJournalBusy(false);
+          }
+        } else {
+          // Coming from About: "the about has intro only no outro outro"
+          setShowWorks(true);
+        }
+        return;
+      }
+
+      if (paperId === 'contact') {
+        setShowWorks(false);
+        setShowPageOneHalf(false);
         handleSwitchPage(2);
         return;
       }
 
+      if (paperId === 'about') {
+        const wasOnHome = !showPageOneHalf && !showWorks;
+        setShowWorks(false);
+        if (wasOnHome) {
+          setJournalBusy(true);
+          try {
+            setShowPageOneHalf(true);
+            await move('outro');
+          } catch {
+            setShowPageOneHalf(true);
+          } finally {
+            setJournalBusy(false);
+          }
+        } else {
+          // Coming from Works (folder already tucked away):
+          setShowPageOneHalf(true);
+        }
+        return;
+      }
+
+      // Default fallback for any other bookmark ID
       setJournalBusy(true);
       try {
         setShowPageOneHalf(true);
@@ -175,7 +232,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         setJournalBusy(false);
       }
     },
-    [handleSwitchPage, isTransitioning, journalBusy, move, onBookmarkClick, state]
+    [handleSwitchPage, isTransitioning, journalBusy, move, onBookmarkClick, replay, showPageOneHalf, showWorks, state]
   );
 
   // Close Journal handler
@@ -241,54 +298,70 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
               setShowPageOneHalf(false);
               replay();
             }}
-            onNext={() => handleSwitchPage(2)}
+            onNext={() => {
+              setShowPageOneHalf(false);
+              setShowWorks(true);
+            }}
           />
 
-          {/* Stationery Parent Container */}
-          <div
-            ref={stationeryRef}
-            className="absolute inset-0 z-20 will-change-transform"
-          >
-            {/* Folder Back Base */}
-            <FolderEnvelope assetsPath={assetsPath} isFront={false} />
+          {/* Unified Works Clipboard System: Scatters in BG behind folder -> Assembles in center */}
+          <FantasyClipboardWorks
+            isAssembled={showWorks}
+            onBack={() => {
+              setShowWorks(false);
+              replay();
+            }}
+            onNext={() => {
+              setShowWorks(false);
+              handleSwitchPage(2);
+            }}
+          />
 
-            {/* 3 Distinct Parchment Document Stack */}
-            <PaperStack
-              assetsPath={assetsPath}
-              paperBundleRef={paperBundleRef}
-              sheetOneRef={sheetOneRef}
-              sheetTwoRef={sheetTwoRef}
-              sheetThreeRef={sheetThreeRef}
+            {/* Stationery Parent Container */}
+            <div
+              ref={stationeryRef}
+              className="absolute inset-0 z-20 will-change-transform"
             >
-              {/* 4 Navigation Bookmark Tabs in Center-Left (Home, About, Works, Contacts) */}
-              <BookmarkTabs
+              {/* Folder Back Base */}
+              <FolderEnvelope assetsPath={assetsPath} isFront={false} />
+
+              {/* 3 Distinct Parchment Document Stack */}
+              <PaperStack
                 assetsPath={assetsPath}
-                tabOneRef={tabOneRef}
-                tabTwoRef={tabTwoRef}
-                tabThreeRef={tabThreeRef}
-                tabFourRef={tabFourRef}
-                onSelectBookmark={handleSelectBookmark}
-                disabled={journalBusy || isTransitioning}
-              />
-            </PaperStack>
+                paperBundleRef={paperBundleRef}
+                sheetOneRef={sheetOneRef}
+                sheetTwoRef={sheetTwoRef}
+                sheetThreeRef={sheetThreeRef}
+              >
+                {/* 4 Navigation Bookmark Tabs in Center-Left (Home, About, Works, Contacts) */}
+                <BookmarkTabs
+                  assetsPath={assetsPath}
+                  tabOneRef={tabOneRef}
+                  tabTwoRef={tabTwoRef}
+                  tabThreeRef={tabThreeRef}
+                  tabFourRef={tabFourRef}
+                  onSelectBookmark={handleSelectBookmark}
+                  disabled={journalBusy || isTransitioning}
+                />
+              </PaperStack>
 
-            {/* Folder Front Pocket Flap */}
-            <FolderEnvelope assetsPath={assetsPath} isFront={true} />
+              {/* Folder Front Pocket Flap */}
+              <FolderEnvelope assetsPath={assetsPath} isFront={true} />
+            </div>
+
+            {/* Desk Accents: Photographs & Magnifying Glass */}
+            <DeskAccents
+              assetsPath={assetsPath}
+              photoBundleRef={photoBundleRef}
+              photoRef={photoRef}
+              portraitRef={portraitRef}
+              magnifierRef={magnifierRef}
+              glassReflectionRef={glassReflectionRef}
+            />
           </div>
-
-          {/* Desk Accents: Photographs & Magnifying Glass */}
-          <DeskAccents
-            assetsPath={assetsPath}
-            photoBundleRef={photoBundleRef}
-            photoRef={photoRef}
-            portraitRef={portraitRef}
-            magnifierRef={magnifierRef}
-            glassReflectionRef={glassReflectionRef}
-          />
         </div>
-      </div>
 
-      {/* Page 2 Layer: Pre-mounted in DOM with WebGL loops paused when inactive for 0ms transition latency */}
+      {/* Page 2 Layer: Vintage Typewriter Contact Desk */}
       <div
         className="absolute inset-0 w-full h-full z-30"
         style={{
@@ -298,12 +371,9 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
           transition: 'opacity 180ms ease-out',
         }}
       >
-        <ScrapbookBoard
-          assetsPath={assetsPath}
-          active={isPage2Visible || isTransitioning}
-          entered={isPage2Visible}
-          transitionComplete={isPage2Visible && !isTransitioning}
+        <VintageContactDesk
           onBack={() => handleSwitchPage(1)}
+          active={isPage2Visible && !isTransitioning}
         />
       </div>
 
