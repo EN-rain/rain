@@ -65,20 +65,8 @@ const ALL_AHEAD_OF_TIME_ASSETS = [
   '/assets/clipboard/small-note.png',
   '/assets/clipboard/clipboard-clip.png',
 
-  // Contacts: Detective Desk Assets
-  '/assets/detective-desk/detective-desk-scene.png',
-  '/assets/detective-desk/wood.png',
-  '/assets/detective-desk/left-clipped-notebook.png',
-  '/assets/detective-desk/upper-right-papers-and-clip.png',
-  '/assets/detective-desk/right-bottom-combined.png',
-  '/assets/detective-desk/gold-bookmark.png',
-  '/assets/detective-desk/compass-document.png',
-  '/assets/detective-desk/right-paper-scrap.png',
-  '/assets/detective-desk/clean-paper-stack.png',
-  '/assets/detective-desk/closed-detective-journal.png',
-  '/assets/detective-desk/ink-bottle.png',
-  '/assets/detective-desk/sealed-envelope.png',
-  '/assets/detective-desk/fountain-pen.png',
+  // Contacts: Detective Desk Scene Background
+  '/assets/detective-desk/detective-desk-scene-1672.png',
 
   // WebGL 2 Shaders & Noise Textures
   mudNormalUrl,
