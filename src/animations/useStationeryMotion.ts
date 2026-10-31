@@ -1,14 +1,17 @@
 import { useCallback, useRef } from 'react';
+import gsap from 'gsap';
 import { StationeryState } from '../types';
 import { ANIMATION_CONFIG } from './constants';
+
+export type DeskSection = 'home' | 'about' | 'works';
 
 interface UseStationeryMotionParams {
   sceneRef: React.RefObject<HTMLDivElement | null>;
   stationeryRef: React.RefObject<HTMLDivElement | null>;
   paperBundleRef: React.RefObject<HTMLDivElement | null>;
-  sheetOneRef?: React.RefObject<HTMLImageElement | null>;
-  sheetTwoRef?: React.RefObject<HTMLImageElement | null>;
-  sheetThreeRef?: React.RefObject<HTMLImageElement | null>;
+  sheetOneRef?: React.RefObject<HTMLElement | null>;
+  sheetTwoRef?: React.RefObject<HTMLElement | null>;
+  sheetThreeRef?: React.RefObject<HTMLElement | null>;
   tabOneRef: React.RefObject<HTMLButtonElement | null>;
   tabTwoRef: React.RefObject<HTMLButtonElement | null>;
   tabThreeRef: React.RefObject<HTMLButtonElement | null>;
@@ -22,6 +25,25 @@ interface UseStationeryMotionParams {
   setState: (state: StationeryState) => void;
   onStateChange?: (state: StationeryState) => void;
 }
+
+const DOSSIER_LAYERS = [
+  { selector: '.page-half-spread', scattered: { xPercent: -3, yPercent: -41, rotation: 6, scale: 0.76 } },
+  { selector: '.page-half-backing', scattered: { xPercent: -56, yPercent: -45, rotation: -35, scale: 0.60 } },
+  { selector: '.page-half-black-card', scattered: { xPercent: -210, yPercent: 38, rotation: 34, scale: 0.92 } },
+  { selector: '.page-half-large-card', scattered: { xPercent: -2, yPercent: -46, rotation: -20, scale: 0.93 } },
+  { selector: '.page-half-paper', scattered: { xPercent: 124, yPercent: -44, rotation: 30, scale: 0.96 } },
+  { selector: '.page-half-small-card', scattered: { xPercent: 485, yPercent: -18, rotation: -42, scale: 1.28 } },
+] as const;
+
+const CLIPBOARD_LAYERS = [
+  { selector: '.clipboard-layer-board', scattered: { xPercent: 21, yPercent: 21, rotation: 15, scale: 0.56 }, assembledRot: 0 },
+  { selector: '.clipboard-layer-bottom-paper', scattered: { xPercent: -112, yPercent: -19, rotation: -22, scale: 0.50 }, assembledRot: 1.4 },
+  { selector: '.clipboard-layer-middle-paper', scattered: { xPercent: 57, yPercent: -60, rotation: 24, scale: 0.49 }, assembledRot: -1.1 },
+  { selector: '.clipboard-layer-front-paper', scattered: { xPercent: -98, yPercent: 32, rotation: -15, scale: 0.49 }, assembledRot: 0 },
+  { selector: '.clipboard-layer-photo-frame', scattered: { xPercent: 420, yPercent: 82, rotation: 30, scale: 0.74 }, assembledRot: 0 },
+  { selector: '.clipboard-layer-small-note', scattered: { xPercent: 230, yPercent: 25, rotation: -25, scale: 0.60 }, assembledRot: 0 },
+  { selector: '.clipboard-layer-clip', scattered: { xPercent: -46, yPercent: -112, rotation: 68, scale: 0.63 }, assembledRot: 0 },
+] as const;
 
 export function useStationeryMotion({
   sceneRef,
@@ -42,8 +64,9 @@ export function useStationeryMotion({
   setState,
   onStateChange,
 }: UseStationeryMotionParams) {
-  const activeAnimationsRef = useRef<Animation[]>([]);
-  const ticketRef = useRef(0);
+  // Single GSAP Master Timeline Controller
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const currentSectionRef = useRef<DeskSection>('home');
 
   const getExitDistance = useCallback(() => {
     if (!sceneRef.current) return 796;
@@ -51,461 +74,769 @@ export function useStationeryMotion({
     return Math.max(796, Math.ceil(window.innerHeight - bounds.top + 64));
   }, [sceneRef]);
 
-  const renderPose = useCallback((pose: 'visible' | 'hidden') => {
-    const exitY = getExitDistance();
-    const isVis = pose === 'visible';
-
-    if (stationeryRef.current) {
-      stationeryRef.current.style.transform = isVis ? 'translate3d(0, 0, 0)' : `translate3d(0, ${exitY}px, 0)`;
-    }
-
-    if (paperBundleRef.current) {
-      paperBundleRef.current.style.transform = isVis ? 'translate3d(0, 0, 0)' : 'translate3d(0, 240px, 0)';
-    }
-
-    // 3 Individual document sheets (Sheet 1: Center, Sheet 2: Right fan, Sheet 3: Left fan)
-    if (sheetOneRef?.current) {
-      sheetOneRef.current.style.transform = isVis ? 'translate3d(0, 0, 0) rotate(0deg)' : 'translate3d(0, 20px, 0) rotate(0deg)';
-    }
-    if (sheetTwoRef?.current) {
-      sheetTwoRef.current.style.transform = isVis ? 'translate3d(20px, -4px, 0) rotate(4.2deg)' : 'translate3d(0, 45px, 0) rotate(0deg)';
-    }
-    if (sheetThreeRef?.current) {
-      sheetThreeRef.current.style.transform = isVis ? 'translate3d(-24px, -6px, 0) rotate(-4.8deg)' : 'translate3d(0, 65px, 0) rotate(0deg)';
-    }
-
-    // 4 Bookmarks: start tucked behind paper stack
-    const tabRefs = [
-      { ref: tabOneRef, rot: '-1.8deg' },
-      { ref: tabTwoRef, rot: '1.4deg' },
-      { ref: tabThreeRef, rot: '-1.2deg' },
-      { ref: tabFourRef, rot: '1.6deg' },
+  const getTabElements = useCallback(() => {
+    return [
+      { el: tabOneRef.current, rot: -1.8 },
+      { el: tabTwoRef.current, rot: 1.4 },
+      { el: tabThreeRef.current, rot: -1.2 },
+      { el: tabFourRef?.current ?? null, rot: 1.6 },
     ];
-    tabRefs.forEach(({ ref, rot }) => {
-      if (ref?.current) {
-        ref.current.style.transform = isVis ? `translate3d(0, 0, 0) rotate(${rot})` : `translate3d(${ANIMATION_CONFIG.BOOKMARK_HIDDEN_OFFSET_X}px, 0, 0) rotate(${rot})`;
-        ref.current.style.opacity = isVis ? '1' : '0';
-      }
-    });
+  }, [tabOneRef, tabTwoRef, tabThreeRef, tabFourRef]);
 
-    if (photoBundleRef.current) {
-      photoBundleRef.current.style.transform = isVis ? 'translate3d(0, 0, 0)' : 'translate3d(48%, 55%, 0)';
-    }
-    if (photoRef.current) {
-      photoRef.current.style.transform = isVis ? 'translate3d(0, 0, 0)' : 'translate3d(70px, 90px, 0) rotate(8deg) scale(0.92)';
-    }
-    if (portraitRef.current) {
-      portraitRef.current.style.transform = isVis ? 'translate3d(0, 0, 0)' : 'translate3d(38px, 110px, 0) rotate(-7deg) scale(0.94)';
-    }
-    if (magnifierRef.current) {
-      magnifierRef.current.style.transform = isVis ? 'translate3d(0, 0, 0)' : 'translate3d(95px, 85px, 0) rotate(-12deg) scale(0.95)';
-    }
-    if (glassReflectionRef.current) {
-      glassReflectionRef.current.style.transform = isVis ? 'translate3d(0, 0, 0)' : 'translate3d(95px, 85px, 0) rotate(-12deg) scale(0.95)';
-    }
-  }, [getExitDistance, stationeryRef, paperBundleRef, sheetOneRef, sheetTwoRef, sheetThreeRef, tabOneRef, tabTwoRef, tabThreeRef, tabFourRef, photoBundleRef, photoRef, portraitRef, magnifierRef, glassReflectionRef]);
+  /**
+   * Synchronously sets resting poses via gsap.set so GSAP's internal transform cache
+   * stays 100% unified with the DOM without any state teleportation.
+   */
+  const renderPose = useCallback(
+    (
+      pose: 'visible' | 'hidden',
+      options?: { keepBookmarks?: boolean; skipBookmarks?: boolean; section?: DeskSection }
+    ) => {
+      timelineRef.current?.kill();
+      timelineRef.current = null;
 
-  const move = useCallback(async (kind: 'intro' | 'outro') => {
-    const exitY = getExitDistance();
-    const id = ++ticketRef.current;
+      const exitY = getExitDistance();
+      const isVis = pose === 'visible';
+      const activeSection = options?.section ?? currentSectionRef.current;
+      const isHomeVis = isVis && activeSection === 'home';
+      const isAboutVis = isVis && activeSection === 'about';
+      const isWorksVis = isVis && activeSection === 'works';
+      const isBookmarksVis = isVis || Boolean(options?.keepBookmarks);
 
-    const isRestingOrNone = (val?: string) => {
-      if (!val || val === 'none') return true;
-      if (val === 'matrix(1, 0, 0, 1, 0, 0)') return true;
-      if (val === 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)') return true;
-      return false;
-    };
-
-    const wasRunning = activeAnimationsRef.current.length > 0;
-
-    // Capture current computed transforms before cancelling animations so interrupted motions reverse smoothly
-    const curStationery = stationeryRef.current ? window.getComputedStyle(stationeryRef.current).transform : 'none';
-    const curPaper = paperBundleRef.current ? window.getComputedStyle(paperBundleRef.current).transform : 'none';
-    const curSheetOne = sheetOneRef?.current ? window.getComputedStyle(sheetOneRef.current).transform : 'none';
-    const curSheetTwo = sheetTwoRef?.current ? window.getComputedStyle(sheetTwoRef.current).transform : 'none';
-    const curSheetThree = sheetThreeRef?.current ? window.getComputedStyle(sheetThreeRef.current).transform : 'none';
-    const curPhotoBundle = photoBundleRef.current ? window.getComputedStyle(photoBundleRef.current).transform : 'none';
-
-    activeAnimationsRef.current.forEach(a => {
-      try { a.cancel(); } catch (e) {}
-    });
-    activeAnimationsRef.current = [];
-
-    const intro = kind === 'intro';
-    const nextState = intro ? 'entering' : 'leaving';
-    setState(nextState);
-    onStateChange?.(nextState);
-
-    const anims: Animation[] = [];
-
-    if (intro) {
-      // 1. Folder Base
       if (stationeryRef.current) {
-        const startStationery = (wasRunning && !isRestingOrNone(curStationery))
-          ? curStationery
-          : `translate3d(0, ${exitY}px, 0)`;
-
-        anims.push(stationeryRef.current.animate([
-          { transform: startStationery },
-          { transform: `translate3d(0, ${ANIMATION_CONFIG.FOLDER_INTRO.overshootY}px, 0)`, offset: 0.78 },
-          { transform: 'translate3d(0, 0, 0)' }
-        ], {
-          duration: ANIMATION_CONFIG.FOLDER_INTRO.duration,
-          easing: ANIMATION_CONFIG.FOLDER_INTRO.easing,
-          fill: 'both'
-        }));
+        gsap.set(stationeryRef.current, { x: 0, y: isHomeVis ? 0 : exitY, force3D: true });
       }
-
-      // 2. Parchment Bundle Carrier: smooth vertical emergence from pocket
       if (paperBundleRef.current) {
-        const startPaper = (wasRunning && !isRestingOrNone(curPaper))
-          ? curPaper
-          : 'translate3d(0, 240px, 0)';
-
-        anims.push(paperBundleRef.current.animate([
-          { transform: startPaper },
-          { transform: 'translate3d(0, -6px, 0)', offset: 0.74 },
-          { transform: 'translate3d(0, 0, 0)' }
-        ], {
-          delay: ANIMATION_CONFIG.PAPERS_INTRO.delay,
-          duration: ANIMATION_CONFIG.PAPERS_INTRO.duration,
-          easing: ANIMATION_CONFIG.PAPERS_INTRO.easing,
-          fill: 'both'
-        }));
+        gsap.set(paperBundleRef.current, { x: 0, y: isHomeVis ? 0 : 240, force3D: true });
       }
-
-      // 3. Individual Document Sheets: Distinct, staggered, organic motions fanning out
-      // Sheet 1 (Front / Centered Dossier): Emerges first, rises straight up with a gentle floating crest
       if (sheetOneRef?.current) {
-        const startSheet1 = (wasRunning && !isRestingOrNone(curSheetOne))
-          ? curSheetOne
-          : 'translate3d(0, 20px, 0) rotate(0deg)';
-
-        anims.push(sheetOneRef.current.animate([
-          { transform: startSheet1 },
-          { transform: 'translate3d(0, 6px, 0) rotate(0.1deg)', offset: 0.45 },
-          { transform: 'translate3d(0, -8px, 0) rotate(-0.15deg)', offset: 0.72 },
-          { transform: 'translate3d(0, 2px, 0) rotate(0.05deg)', offset: 0.88 },
-          { transform: 'translate3d(0, 0, 0) rotate(0deg)' }
-        ], {
-          delay: ANIMATION_CONFIG.SHEET_ONE_INTRO.delay,
-          duration: ANIMATION_CONFIG.SHEET_ONE_INTRO.duration,
-          easing: ANIMATION_CONFIG.SHEET_ONE_INTRO.easing,
-          fill: 'both'
-        }));
+        gsap.set(sheetOneRef.current, {
+          x: 0,
+          y: isHomeVis ? 0 : 20,
+          rotation: 0,
+          force3D: true,
+        });
       }
-
-      // Sheet 2 (Middle Dossier): Emerges second, sweeps clockwise outward to the right
       if (sheetTwoRef?.current) {
-        const startSheet2 = (wasRunning && !isRestingOrNone(curSheetTwo))
-          ? curSheetTwo
-          : 'translate3d(0, 45px, 0) rotate(0deg)';
-
-        anims.push(sheetTwoRef.current.animate([
-          { transform: startSheet2 },
-          { transform: 'translate3d(5px, 22px, 0) rotate(1.0deg)', offset: 0.35 },
-          { transform: 'translate3d(16px, 3px, 0) rotate(3.2deg)', offset: 0.65 },
-          { transform: 'translate3d(25px, -9px, 0) rotate(5.1deg)', offset: 0.78 },
-          { transform: 'translate3d(19px, -2px, 0) rotate(4.0deg)', offset: 0.90 },
-          { transform: 'translate3d(20px, -4px, 0) rotate(4.2deg)' }
-        ], {
-          delay: ANIMATION_CONFIG.SHEET_TWO_INTRO.delay,
-          duration: ANIMATION_CONFIG.SHEET_TWO_INTRO.duration,
-          easing: ANIMATION_CONFIG.SHEET_TWO_INTRO.easing,
-          fill: 'both'
-        }));
+        gsap.set(sheetTwoRef.current, {
+          x: isHomeVis ? 20 : 0,
+          y: isHomeVis ? -4 : 45,
+          rotation: isHomeVis ? 4.2 : 0,
+          force3D: true,
+        });
       }
-
-      // Sheet 3 (Back Dossier): Emerges third, sweeps counter-clockwise outward to the left
       if (sheetThreeRef?.current) {
-        const startSheet3 = (wasRunning && !isRestingOrNone(curSheetThree))
-          ? curSheetThree
-          : 'translate3d(0, 65px, 0) rotate(0deg)';
-
-        anims.push(sheetThreeRef.current.animate([
-          { transform: startSheet3 },
-          { transform: 'translate3d(-6px, 30px, 0) rotate(-1.1deg)', offset: 0.35 },
-          { transform: 'translate3d(-19px, 6px, 0) rotate(-3.7deg)', offset: 0.65 },
-          { transform: 'translate3d(-31px, -12px, 0) rotate(-5.9deg)', offset: 0.78 },
-          { transform: 'translate3d(-23px, -4px, 0) rotate(-4.5deg)', offset: 0.90 },
-          { transform: 'translate3d(-24px, -6px, 0) rotate(-4.8deg)' }
-        ], {
-          delay: ANIMATION_CONFIG.SHEET_THREE_INTRO.delay,
-          duration: ANIMATION_CONFIG.SHEET_THREE_INTRO.duration,
-          easing: ANIMATION_CONFIG.SHEET_THREE_INTRO.easing,
-          fill: 'both'
-        }));
+        gsap.set(sheetThreeRef.current, {
+          x: isHomeVis ? -24 : 0,
+          y: isHomeVis ? -6 : 65,
+          rotation: isHomeVis ? -4.8 : 0,
+          force3D: true,
+        });
       }
 
-      // 4. Bookmarks: Horizontal popup from behind paper stack
-      const tabConfigs = [
-        { ref: tabOneRef, rot: '-1.8deg', delay: 480, overshoot: -18 },
-        { ref: tabTwoRef, rot: '1.4deg', delay: 580, overshoot: -20 },
-        { ref: tabThreeRef, rot: '-1.2deg', delay: 680, overshoot: -18 },
-        { ref: tabFourRef, rot: '1.6deg', delay: 780, overshoot: -20 },
-      ];
+      if (!options?.skipBookmarks) {
+        const hideX = ANIMATION_CONFIG.BOOKMARK_HIDDEN_OFFSET_X;
+        getTabElements().forEach(({ el, rot }) => {
+          if (el) {
+            gsap.set(el, {
+              x: isBookmarksVis ? 0 : hideX,
+              y: 0,
+              rotation: rot,
+              opacity: isBookmarksVis ? 1 : 0,
+              force3D: true,
+            });
+          }
+        });
+      }
 
-      tabConfigs.forEach(({ ref, rot, delay, overshoot }) => {
-        if (ref?.current) {
-          anims.push(ref.current.animate([
-            { transform: `translate3d(${ANIMATION_CONFIG.BOOKMARK_HIDDEN_OFFSET_X}px, 0, 0) rotate(${rot})`, opacity: 0 },
-            { transform: `translate3d(${overshoot}px, 0, 0) rotate(${rot})`, opacity: 1, offset: 0.68 },
-            { transform: `translate3d(2px, 0, 0) rotate(${rot})`, offset: 0.88 },
-            { transform: `translate3d(0, 0, 0) rotate(${rot})`, opacity: 1 }
-          ], {
-            delay,
-            duration: ANIMATION_CONFIG.BOOKMARK_INTRO_DURATION,
-            easing: ANIMATION_CONFIG.BOOKMARK_INTRO_EASING,
-            fill: 'both'
-          }));
-        }
-      });
-
-      // 5. Photos & Magnifier
       if (photoBundleRef.current) {
-        anims.push(photoBundleRef.current.animate([
-          { transform: 'translate3d(48%, 55%, 0)' },
-          { transform: 'translate3d(-4px, -4px, 0)', offset: 0.82 },
-          { transform: 'translate3d(0, 0, 0)' }
-        ], {
-          duration: ANIMATION_CONFIG.PHOTO_BUNDLE_INTRO.duration,
-          easing: ANIMATION_CONFIG.PHOTO_BUNDLE_INTRO.easing,
-          fill: 'both'
-        }));
+        gsap.set(photoBundleRef.current, {
+          xPercent: isHomeVis ? 0 : 48,
+          yPercent: isHomeVis ? 0 : 55,
+          x: 0,
+          y: 0,
+          force3D: true,
+        });
       }
-
       if (photoRef.current) {
-        anims.push(photoRef.current.animate([
-          { transform: 'translate3d(70px, 90px, 0) rotate(8deg) scale(0.92)' },
-          { transform: 'translate3d(-5px, -3px, 0) rotate(-1deg) scale(1.01)', offset: 0.76 },
-          { transform: 'translate3d(0, 0, 0) rotate(0deg) scale(1)' }
-        ], {
-          delay: ANIMATION_CONFIG.PHOTO_INTRO.delay,
-          duration: ANIMATION_CONFIG.PHOTO_INTRO.duration,
-          easing: ANIMATION_CONFIG.PHOTO_INTRO.easing,
-          fill: 'both'
-        }));
+        gsap.set(photoRef.current, {
+          x: isHomeVis ? 0 : 70,
+          y: isHomeVis ? 0 : 90,
+          rotation: isHomeVis ? 0 : 8,
+          scale: isHomeVis ? 1 : 0.92,
+          force3D: true,
+        });
       }
-
       if (portraitRef.current) {
-        anims.push(portraitRef.current.animate([
-          { transform: 'translate3d(38px, 110px, 0) rotate(-7deg) scale(0.94)' },
-          { transform: 'translate3d(-3px, -4px, 0) rotate(1.4deg) scale(1.01)', offset: 0.80 },
-          { transform: 'translate3d(0, 0, 0) rotate(0deg) scale(1)' }
-        ], {
-          delay: ANIMATION_CONFIG.PORTRAIT_INTRO.delay,
-          duration: ANIMATION_CONFIG.PORTRAIT_INTRO.duration,
-          easing: ANIMATION_CONFIG.PORTRAIT_INTRO.easing,
-          fill: 'both'
-        }));
+        gsap.set(portraitRef.current, {
+          x: isHomeVis ? 0 : 38,
+          y: isHomeVis ? 0 : 110,
+          rotation: isHomeVis ? 0 : -7,
+          scale: isHomeVis ? 1 : 0.94,
+          force3D: true,
+        });
+      }
+      if (magnifierRef.current) {
+        gsap.set(magnifierRef.current, {
+          x: isHomeVis ? 0 : 95,
+          y: isHomeVis ? 0 : 85,
+          rotation: isHomeVis ? 0 : -12,
+          scale: isHomeVis ? 1 : 0.95,
+          force3D: true,
+        });
+      }
+      if (glassReflectionRef.current) {
+        gsap.set(glassReflectionRef.current, {
+          x: isHomeVis ? 0 : 95,
+          y: isHomeVis ? 0 : 85,
+          rotation: isHomeVis ? 0 : -12,
+          scale: isHomeVis ? 1 : 0.95,
+          force3D: true,
+        });
       }
 
-      [magnifierRef, glassReflectionRef].forEach(ref => {
-        if (ref.current) {
-          anims.push(ref.current.animate([
-            { transform: 'translate3d(95px, 85px, 0) rotate(-12deg) scale(0.95)' },
-            { transform: 'translate3d(-4px, -2px, 0) rotate(1.2deg) scale(1.01)', offset: 0.82 },
-            { transform: 'translate3d(0, 0, 0) rotate(0deg) scale(1)' }
-          ], {
-            delay: ANIMATION_CONFIG.MAGNIFIER_INTRO.delay,
-            duration: ANIMATION_CONFIG.MAGNIFIER_INTRO.duration,
-            easing: ANIMATION_CONFIG.MAGNIFIER_INTRO.easing,
-            fill: 'both'
-          }));
+      // Sync PageOneHalf (About Dossier) layers
+      const sceneEl = sceneRef.current;
+      if (sceneEl) {
+        const pageHalfRoot = sceneEl.querySelector<HTMLElement>('.page-half');
+        if (pageHalfRoot) {
+          gsap.set(pageHalfRoot, { zIndex: isAboutVis ? 35 : 2 });
+          pageHalfRoot.setAttribute('data-settled', isAboutVis ? 'true' : 'false');
+        }
+        DOSSIER_LAYERS.forEach(({ selector, scattered }) => {
+          const el = sceneEl.querySelector<HTMLElement>(selector);
+          if (el) {
+            gsap.set(el, {
+              xPercent: isAboutVis ? 0 : scattered.xPercent,
+              yPercent: isAboutVis ? 0 : scattered.yPercent,
+              rotation: isAboutVis ? 0 : scattered.rotation,
+              scale: isAboutVis ? 1 : scattered.scale,
+              force3D: true,
+            });
+          }
+        });
+        const dossierInscribedEls = sceneEl.querySelectorAll<HTMLElement>('.dossier-inscribed-content');
+        if (dossierInscribedEls.length > 0) {
+          gsap.set(dossierInscribedEls, { opacity: isAboutVis ? 1 : 0 });
+        }
+
+        // Sync FantasyClipboardWorks (Works Clipboard) layers
+        const clipboardRoot = sceneEl.querySelector<HTMLElement>('.clipboard-works');
+        if (clipboardRoot) {
+          gsap.set(clipboardRoot, { zIndex: isWorksVis ? 35 : 3 });
+          clipboardRoot.setAttribute('data-settled', isWorksVis ? 'true' : 'false');
+        }
+        CLIPBOARD_LAYERS.forEach(({ selector, scattered, assembledRot }) => {
+          const el = sceneEl.querySelector<HTMLElement>(selector);
+          if (el) {
+            gsap.set(el, {
+              xPercent: isWorksVis ? 0 : scattered.xPercent,
+              yPercent: isWorksVis ? 0 : scattered.yPercent,
+              rotation: isWorksVis ? assembledRot : scattered.rotation,
+              scale: isWorksVis ? 1 : scattered.scale,
+              force3D: true,
+            });
+          }
+        });
+        const inscribedEls = sceneEl.querySelectorAll<HTMLElement>('.clipboard-inscribed-content');
+        if (inscribedEls.length > 0) {
+          gsap.set(inscribedEls, { opacity: isWorksVis ? 1 : 0 });
+        }
+      }
+    },
+    [
+      getExitDistance,
+      getTabElements,
+      glassReflectionRef,
+      magnifierRef,
+      paperBundleRef,
+      photoBundleRef,
+      photoRef,
+      portraitRef,
+      sceneRef,
+      sheetOneRef,
+      sheetThreeRef,
+      sheetTwoRef,
+      stationeryRef,
+    ]
+  );
+
+  /**
+   * Dedicated GSAP bookmark slide-in (outro) or pop-out (intro) helper
+   */
+  const animateBookmarks = useCallback(
+    (kind: 'intro' | 'outro', baseDelayMs = 0): Promise<void> => {
+      return new Promise((resolve) => {
+        const hideX = ANIMATION_CONFIG.BOOKMARK_HIDDEN_OFFSET_X;
+        const tabs = getTabElements();
+        const delaySec = baseDelayMs / 1000;
+        const tl = gsap.timeline({
+          onComplete: () => resolve(),
+        });
+
+        tabs.forEach(({ el, rot }, idx) => {
+          if (!el) return;
+          if (kind === 'intro') {
+            tl.to(
+              el,
+              {
+                x: 0,
+                opacity: 1,
+                rotation: rot,
+                duration: 0.44,
+                ease: 'back.out(1.65)',
+                overwrite: 'auto',
+              },
+              delaySec + idx * 0.038
+            );
+          } else {
+            tl.to(
+              el,
+              {
+                x: hideX,
+                opacity: 0,
+                rotation: rot,
+                duration: 0.22,
+                ease: 'power2.in',
+                overwrite: 'auto',
+              },
+              delaySec + idx * 0.018
+            );
+          }
+        });
+      });
+    },
+    [getTabElements]
+  );
+
+  /**
+   * Master GSAP Timeline Controller for switching between Home, About (Dossier), and Works (Clipboard).
+   * Synchronizes bookmark retraction, outgoing view exit/scatter, midpoint route state update,
+   * incoming view assembly, and bookmark pop-out on a single timeline with zero state teleportation.
+   */
+  const transitionSection = useCallback(
+    (
+      targetSection: DeskSection,
+      onRouteCommit?: (section: DeskSection) => void
+    ): Promise<void> => {
+      // Kill any in-flight timeline; GSAP preserves exact current sub-pixel transforms on every element
+      timelineRef.current?.kill();
+
+      const exitY = getExitDistance();
+      const hideX = ANIMATION_CONFIG.BOOKMARK_HIDDEN_OFFSET_X;
+      const tabs = getTabElements();
+      const sceneEl = sceneRef.current;
+
+      currentSectionRef.current = targetSection;
+
+      return new Promise((resolve) => {
+        const tl = gsap.timeline({
+          defaults: { force3D: true, overwrite: 'auto' },
+          onComplete: () => {
+            if (timelineRef.current === tl) {
+              timelineRef.current = null;
+            }
+            if (targetSection === 'home') {
+              setState('visible');
+              onStateChange?.('visible');
+            } else {
+              setState('hidden');
+              onStateChange?.('hidden');
+            }
+            if (sceneEl) {
+              const pageHalfRoot = sceneEl.querySelector<HTMLElement>('.page-half');
+              const clipboardRoot = sceneEl.querySelector<HTMLElement>('.clipboard-works');
+              if (pageHalfRoot) {
+                pageHalfRoot.setAttribute('data-settled', targetSection === 'about' ? 'true' : 'false');
+              }
+              if (clipboardRoot) {
+                clipboardRoot.setAttribute('data-settled', targetSection === 'works' ? 'true' : 'false');
+              }
+            }
+            resolve();
+          },
+        });
+
+        timelineRef.current = tl;
+
+        // Pause idle CSS animations during motion
+        const transitionState: StationeryState = targetSection === 'home' ? 'entering' : 'leaving';
+        setState(transitionState);
+        onStateChange?.(transitionState);
+
+        if (sceneEl) {
+          const pageHalfRoot = sceneEl.querySelector<HTMLElement>('.page-half');
+          const clipboardRoot = sceneEl.querySelector<HTMLElement>('.clipboard-works');
+          pageHalfRoot?.setAttribute('data-settled', 'false');
+          clipboardRoot?.setAttribute('data-settled', 'false');
+        }
+
+        // ====================================================================
+        // 1. BOOKMARKS RETRACT BEHIND ACTIVE FOREGROUND (t = 0.00s -> 0.24s)
+        // ====================================================================
+        tabs.forEach(({ el, rot }, idx) => {
+          if (!el) return;
+          tl.to(
+            el,
+            {
+              x: hideX,
+              opacity: 0,
+              rotation: rot,
+              duration: 0.21,
+              ease: 'power2.in',
+            },
+            idx * 0.016
+          );
+        });
+
+        // ====================================================================
+        // 2. OUTGOING SECTIONS SCATTER / EXIT IMMEDIATELY AT t = 0.00s
+        // ====================================================================
+        if (targetSection !== 'home') {
+          if (sheetThreeRef?.current) {
+            tl.to(
+              sheetThreeRef.current,
+              { x: 0, y: 65, rotation: 0, duration: 0.32, ease: 'power2.inOut' },
+              0
+            );
+          }
+          if (sheetTwoRef?.current) {
+            tl.to(
+              sheetTwoRef.current,
+              { x: 0, y: 45, rotation: 0, duration: 0.32, ease: 'power2.inOut' },
+              0.015
+            );
+          }
+          if (sheetOneRef?.current) {
+            tl.to(
+              sheetOneRef.current,
+              { x: 0, y: 20, rotation: 0, duration: 0.32, ease: 'power2.inOut' },
+              0.03
+            );
+          }
+          if (paperBundleRef.current) {
+            tl.to(
+              paperBundleRef.current,
+              { x: 0, y: ANIMATION_CONFIG.PAPERS_OUTRO.tuckDepthY, duration: 0.36, ease: 'power2.in' },
+              0.02
+            );
+          }
+          [magnifierRef, glassReflectionRef].forEach((ref, idx) => {
+            if (ref?.current) {
+              tl.to(
+                ref.current,
+                { x: 60, y: 50, rotation: -8, scale: 0.95, duration: 0.34, ease: 'power2.in' },
+                idx * 0.01
+              );
+            }
+          });
+          if (portraitRef?.current) {
+            tl.to(
+              portraitRef.current,
+              { x: 45, y: 65, rotation: 5, scale: 0.94, duration: 0.35, ease: 'power2.in' },
+              0.01
+            );
+          }
+          if (photoRef?.current) {
+            tl.to(
+              photoRef.current,
+              { x: 60, y: 50, rotation: -4, scale: 0.92, duration: 0.36, ease: 'power2.in' },
+              0.015
+            );
+          }
+          if (photoBundleRef?.current) {
+            tl.to(
+              photoBundleRef.current,
+              { xPercent: 48, yPercent: 55, duration: 0.38, ease: 'power2.in' },
+              0.02
+            );
+          }
+          if (stationeryRef?.current) {
+            tl.to(
+              stationeryRef.current,
+              { x: 0, y: exitY, duration: 0.42, ease: 'power3.in' },
+              0.10
+            );
+          }
+        }
+
+        if (targetSection !== 'about' && sceneEl) {
+          const pageHalfRoot = sceneEl.querySelector<HTMLElement>('.page-half');
+          const dossierInscribedEls = sceneEl.querySelectorAll<HTMLElement>('.dossier-inscribed-content');
+          if (dossierInscribedEls.length > 0) {
+            tl.to(dossierInscribedEls, { opacity: 0, duration: 0.14, ease: 'power1.out' }, 0);
+          }
+          DOSSIER_LAYERS.forEach(({ selector, scattered }, idx) => {
+            const el = sceneEl.querySelector<HTMLElement>(selector);
+            if (el) {
+              tl.to(
+                el,
+                {
+                  xPercent: scattered.xPercent,
+                  yPercent: scattered.yPercent,
+                  rotation: scattered.rotation,
+                  scale: scattered.scale,
+                  duration: 0.48,
+                  ease: 'power3.inOut',
+                },
+                idx * 0.012
+              );
+            }
+          });
+          // Drop z-index only after bookmarks have tucked behind the foreground
+          if (pageHalfRoot) {
+            tl.set(pageHalfRoot, { zIndex: 2 }, 0.22);
+          }
+        }
+
+        if (targetSection !== 'works' && sceneEl) {
+          const clipboardRoot = sceneEl.querySelector<HTMLElement>('.clipboard-works');
+          const inscribedEls = sceneEl.querySelectorAll<HTMLElement>('.clipboard-inscribed-content');
+          if (inscribedEls.length > 0) {
+            tl.to(inscribedEls, { opacity: 0, duration: 0.14, ease: 'power1.out' }, 0);
+          }
+          CLIPBOARD_LAYERS.forEach(({ selector, scattered }, idx) => {
+            const el = sceneEl.querySelector<HTMLElement>(selector);
+            if (el) {
+              tl.to(
+                el,
+                {
+                  xPercent: scattered.xPercent,
+                  yPercent: scattered.yPercent,
+                  rotation: scattered.rotation,
+                  scale: scattered.scale,
+                  duration: 0.48,
+                  ease: 'power3.inOut',
+                },
+                idx * 0.012
+              );
+            }
+          });
+          // Drop z-index only after bookmarks have tucked behind the foreground
+          if (clipboardRoot) {
+            tl.set(clipboardRoot, { zIndex: 3 }, 0.22);
+          }
+        }
+
+        // ====================================================================
+        // 3. MIDPOINT ROUTE SYNC (t = 0.20s while bookmarks are hidden)
+        // ====================================================================
+        tl.call(
+          () => {
+            onRouteCommit?.(targetSection);
+          },
+          [],
+          0.20
+        );
+
+        // ====================================================================
+        // 4. INCOMING SECTION ASSEMBLY (Overlaps seamlessly at t = 0.15s)
+        // ====================================================================
+        if (targetSection === 'home') {
+          if (stationeryRef.current) {
+            tl.to(
+              stationeryRef.current,
+              { x: 0, y: 0, duration: 0.56, ease: 'back.out(1.12)' },
+              0.14
+            );
+          }
+          if (paperBundleRef.current) {
+            tl.to(
+              paperBundleRef.current,
+              { x: 0, y: 0, duration: 0.52, ease: 'back.out(1.22)' },
+              0.20
+            );
+          }
+          if (sheetOneRef?.current) {
+            tl.to(
+              sheetOneRef.current,
+              { x: 0, y: 0, rotation: 0, duration: 0.52, ease: 'back.out(1.3)' },
+              0.22
+            );
+          }
+          if (sheetTwoRef?.current) {
+            tl.to(
+              sheetTwoRef.current,
+              { x: 20, y: -4, rotation: 4.2, duration: 0.54, ease: 'back.out(1.35)' },
+              0.25
+            );
+          }
+          if (sheetThreeRef?.current) {
+            tl.to(
+              sheetThreeRef.current,
+              { x: -24, y: -6, rotation: -4.8, duration: 0.56, ease: 'back.out(1.35)' },
+              0.28
+            );
+          }
+          if (photoBundleRef.current) {
+            tl.to(
+              photoBundleRef.current,
+              { xPercent: 0, yPercent: 0, duration: 0.54, ease: 'power3.out' },
+              0.18
+            );
+          }
+          if (photoRef.current) {
+            tl.to(
+              photoRef.current,
+              { x: 0, y: 0, rotation: 0, scale: 1, duration: 0.52, ease: 'back.out(1.2)' },
+              0.22
+            );
+          }
+          if (portraitRef.current) {
+            tl.to(
+              portraitRef.current,
+              { x: 0, y: 0, rotation: 0, scale: 1, duration: 0.54, ease: 'back.out(1.2)' },
+              0.25
+            );
+          }
+          [magnifierRef, glassReflectionRef].forEach((ref) => {
+            if (ref.current) {
+              tl.to(
+                ref.current,
+                { x: 0, y: 0, rotation: 0, scale: 1, duration: 0.56, ease: 'back.out(1.25)' },
+                0.28
+              );
+            }
+          });
+        } else if (targetSection === 'about' && sceneEl) {
+          const pageHalfRoot = sceneEl.querySelector<HTMLElement>('.page-half');
+          if (pageHalfRoot) {
+            tl.set(pageHalfRoot, { zIndex: 35 }, 0.15);
+          }
+          DOSSIER_LAYERS.forEach(({ selector }, idx) => {
+            const el = sceneEl.querySelector<HTMLElement>(selector);
+            if (el) {
+              tl.to(
+                el,
+                {
+                  xPercent: 0,
+                  yPercent: 0,
+                  rotation: 0,
+                  scale: 1,
+                  duration: 0.56,
+                  ease: 'expo.out',
+                },
+                0.15 + idx * 0.026
+              );
+            }
+          });
+          const dossierInscribedEls = sceneEl.querySelectorAll<HTMLElement>('.dossier-inscribed-content');
+          if (dossierInscribedEls.length > 0) {
+            tl.to(dossierInscribedEls, { opacity: 1, duration: 0.24, ease: 'power2.out' }, 0.34);
+          }
+        } else if (targetSection === 'works' && sceneEl) {
+          const clipboardRoot = sceneEl.querySelector<HTMLElement>('.clipboard-works');
+          if (clipboardRoot) {
+            tl.set(clipboardRoot, { zIndex: 35 }, 0.15);
+          }
+          CLIPBOARD_LAYERS.forEach(({ selector, assembledRot }, idx) => {
+            const el = sceneEl.querySelector<HTMLElement>(selector);
+            if (el) {
+              tl.to(
+                el,
+                {
+                  xPercent: 0,
+                  yPercent: 0,
+                  rotation: assembledRot,
+                  scale: 1,
+                  duration: 0.56,
+                  ease: 'expo.out',
+                },
+                0.15 + idx * 0.024
+              );
+            }
+          });
+          const inscribedEls = sceneEl.querySelectorAll<HTMLElement>('.clipboard-inscribed-content');
+          if (inscribedEls.length > 0) {
+            tl.to(inscribedEls, { opacity: 1, duration: 0.24, ease: 'power2.out' }, 0.34);
+          }
+        }
+
+        // ====================================================================
+        // 5. BOOKMARKS POP OUT BEHIND INCOMING FOREGROUND (t = 0.38s)
+        // ====================================================================
+        tabs.forEach(({ el, rot }, idx) => {
+          if (!el) return;
+          tl.to(
+            el,
+            {
+              x: 0,
+              opacity: 1,
+              rotation: rot,
+              duration: 0.44,
+              ease: 'back.out(1.65)',
+            },
+            0.38 + idx * 0.034
+          );
+        });
+      });
+    },
+    [
+      getExitDistance,
+      getTabElements,
+      glassReflectionRef,
+      magnifierRef,
+      onStateChange,
+      paperBundleRef,
+      photoBundleRef,
+      photoRef,
+      portraitRef,
+      sceneRef,
+      setState,
+      sheetOneRef,
+      sheetThreeRef,
+      sheetTwoRef,
+      stationeryRef,
+    ]
+  );
+
+  /**
+   * Initial intro / full-page outro movement on the single GSAP timeline controller
+   */
+  const move = useCallback(
+    (
+      kind: 'intro' | 'outro',
+      options?: { keepBookmarks?: boolean; skipBookmarks?: boolean }
+    ): Promise<void> => {
+      if (kind === 'intro' && !options?.skipBookmarks) {
+        return transitionSection('home');
+      }
+
+      timelineRef.current?.kill();
+      const exitY = getExitDistance();
+      const hideX = ANIMATION_CONFIG.BOOKMARK_HIDDEN_OFFSET_X;
+      const tabs = getTabElements();
+      const intro = kind === 'intro';
+
+      const nextState: StationeryState = intro ? 'entering' : 'leaving';
+      setState(nextState);
+      onStateChange?.(nextState);
+
+      return new Promise((resolve) => {
+        const tl = gsap.timeline({
+          defaults: { force3D: true, overwrite: 'auto' },
+          onComplete: () => {
+            if (timelineRef.current === tl) {
+              timelineRef.current = null;
+            }
+            const finalState: StationeryState = intro ? 'visible' : 'hidden';
+            setState(finalState);
+            onStateChange?.(finalState);
+            resolve();
+          },
+        });
+
+        timelineRef.current = tl;
+
+        if (!options?.skipBookmarks && !options?.keepBookmarks) {
+          tabs.forEach(({ el, rot }, idx) => {
+            if (!el) return;
+            tl.to(
+              el,
+              {
+                x: intro ? 0 : hideX,
+                opacity: intro ? 1 : 0,
+                rotation: rot,
+                duration: intro ? 0.44 : 0.22,
+                ease: intro ? 'back.out(1.65)' : 'power2.in',
+              },
+              intro ? 0.34 + idx * 0.036 : idx * 0.018
+            );
+          });
+        }
+
+        if (intro) {
+          if (stationeryRef.current) {
+            tl.to(stationeryRef.current, { x: 0, y: 0, duration: 0.62, ease: 'back.out(1.12)' }, 0);
+          }
+          if (paperBundleRef.current) {
+            tl.to(paperBundleRef.current, { x: 0, y: 0, duration: 0.56, ease: 'back.out(1.22)' }, 0.06);
+          }
+          if (sheetOneRef?.current) {
+            tl.to(sheetOneRef.current, { x: 0, y: 0, rotation: 0, duration: 0.54, ease: 'back.out(1.3)' }, 0.08);
+          }
+          if (sheetTwoRef?.current) {
+            tl.to(sheetTwoRef.current, { x: 20, y: -4, rotation: 4.2, duration: 0.56, ease: 'back.out(1.35)' }, 0.12);
+          }
+          if (sheetThreeRef?.current) {
+            tl.to(sheetThreeRef.current, { x: -24, y: -6, rotation: -4.8, duration: 0.58, ease: 'back.out(1.35)' }, 0.16);
+          }
+          if (photoBundleRef.current) {
+            tl.to(photoBundleRef.current, { xPercent: 0, yPercent: 0, duration: 0.56, ease: 'power3.out' }, 0.04);
+          }
+          if (photoRef.current) {
+            tl.to(photoRef.current, { x: 0, y: 0, rotation: 0, scale: 1, duration: 0.54, ease: 'back.out(1.2)' }, 0.08);
+          }
+          if (portraitRef.current) {
+            tl.to(portraitRef.current, { x: 0, y: 0, rotation: 0, scale: 1, duration: 0.56, ease: 'back.out(1.2)' }, 0.12);
+          }
+          [magnifierRef, glassReflectionRef].forEach((ref) => {
+            if (ref.current) {
+              tl.to(ref.current, { x: 0, y: 0, rotation: 0, scale: 1, duration: 0.58, ease: 'back.out(1.25)' }, 0.16);
+            }
+          });
+        } else {
+          if (sheetThreeRef?.current) {
+            tl.to(sheetThreeRef.current, { x: 0, y: 65, rotation: 0, duration: 0.32, ease: 'power2.inOut' }, 0);
+          }
+          if (sheetTwoRef?.current) {
+            tl.to(sheetTwoRef.current, { x: 0, y: 45, rotation: 0, duration: 0.32, ease: 'power2.inOut' }, 0.015);
+          }
+          if (sheetOneRef?.current) {
+            tl.to(sheetOneRef.current, { x: 0, y: 20, rotation: 0, duration: 0.32, ease: 'power2.inOut' }, 0.03);
+          }
+          if (paperBundleRef.current) {
+            tl.to(paperBundleRef.current, { x: 0, y: ANIMATION_CONFIG.PAPERS_OUTRO.tuckDepthY, duration: 0.36, ease: 'power2.in' }, 0.02);
+          }
+          [magnifierRef, glassReflectionRef].forEach((ref, idx) => {
+            if (ref?.current) {
+              tl.to(ref.current, { x: 60, y: 50, rotation: -8, scale: 0.95, duration: 0.34, ease: 'power2.in' }, idx * 0.01);
+            }
+          });
+          if (portraitRef?.current) {
+            tl.to(portraitRef.current, { x: 45, y: 65, rotation: 5, scale: 0.94, duration: 0.35, ease: 'power2.in' }, 0.01);
+          }
+          if (photoRef?.current) {
+            tl.to(photoRef.current, { x: 60, y: 50, rotation: -4, scale: 0.92, duration: 0.36, ease: 'power2.in' }, 0.015);
+          }
+          if (photoBundleRef?.current) {
+            tl.to(photoBundleRef.current, { xPercent: 48, yPercent: 55, duration: 0.38, ease: 'power2.in' }, 0.02);
+          }
+          if (stationeryRef?.current) {
+            tl.to(stationeryRef.current, { x: 0, y: exitY, duration: 0.42, ease: 'power3.in' }, 0.10);
+          }
         }
       });
-    } else {
-      // OUTRO: Papers slide DOWN into the envelope pocket FIRST, and BEFORE the envelope moves down
-      // 1. Bookmarks smoothly slide horizontally into the paper sheets
-      const bookmarkConfigs = [
-        { ref: tabFourRef, rot: '1.6deg', delay: 0 },
-        { ref: tabThreeRef, rot: '-1.2deg', delay: 40 },
-        { ref: tabTwoRef, rot: '1.4deg', delay: 80 },
-        { ref: tabOneRef, rot: '-1.8deg', delay: 120 }
-      ];
-
-      bookmarkConfigs.forEach(({ ref, rot, delay }) => {
-        if (ref?.current) {
-          anims.push(ref.current.animate([
-            { transform: `translate3d(0, 0, 0) rotate(${rot})`, opacity: 1 },
-            { transform: `translate3d(85px, 0, 0) rotate(${rot})`, opacity: 1, offset: 0.7 },
-            { transform: `translate3d(${ANIMATION_CONFIG.BOOKMARK_HIDDEN_OFFSET_X}px, 0, 0) rotate(${rot})`, opacity: 0 }
-          ], {
-            delay,
-            duration: ANIMATION_CONFIG.BOOKMARK_OUTRO_DURATION,
-            easing: ANIMATION_CONFIG.BOOKMARK_OUTRO_EASING,
-            fill: 'both'
-          }));
-        }
-      });
-
-      // 2. Individual Paper Sheets collapse inward from fan
-      if (sheetThreeRef?.current) {
-        const startSheet3 = (wasRunning && !isRestingOrNone(curSheetThree))
-          ? curSheetThree
-          : 'translate3d(-24px, -6px, 0) rotate(-4.8deg)';
-        anims.push(sheetThreeRef.current.animate([
-          { transform: startSheet3 },
-          { transform: 'translate3d(-6px, 20px, 0) rotate(-1.2deg)', offset: 0.55 },
-          { transform: 'translate3d(0, 65px, 0) rotate(0deg)' }
-        ], {
-          delay: ANIMATION_CONFIG.SHEET_THREE_OUTRO.delay,
-          duration: ANIMATION_CONFIG.SHEET_THREE_OUTRO.duration,
-          easing: ANIMATION_CONFIG.SHEET_THREE_OUTRO.easing,
-          fill: 'both'
-        }));
-      }
-
-      if (sheetTwoRef?.current) {
-        const startSheet2 = (wasRunning && !isRestingOrNone(curSheetTwo))
-          ? curSheetTwo
-          : 'translate3d(20px, -4px, 0) rotate(4.2deg)';
-        anims.push(sheetTwoRef.current.animate([
-          { transform: startSheet2 },
-          { transform: 'translate3d(6px, 16px, 0) rotate(1.1deg)', offset: 0.55 },
-          { transform: 'translate3d(0, 45px, 0) rotate(0deg)' }
-        ], {
-          delay: ANIMATION_CONFIG.SHEET_TWO_OUTRO.delay,
-          duration: ANIMATION_CONFIG.SHEET_TWO_OUTRO.duration,
-          easing: ANIMATION_CONFIG.SHEET_TWO_OUTRO.easing,
-          fill: 'both'
-        }));
-      }
-
-      if (sheetOneRef?.current) {
-        const startSheet1 = (wasRunning && !isRestingOrNone(curSheetOne))
-          ? curSheetOne
-          : 'translate3d(0, 0, 0) rotate(0deg)';
-        anims.push(sheetOneRef.current.animate([
-          { transform: startSheet1 },
-          { transform: 'translate3d(0, 20px, 0) rotate(0deg)' }
-        ], {
-          delay: ANIMATION_CONFIG.SHEET_ONE_OUTRO.delay,
-          duration: ANIMATION_CONFIG.SHEET_ONE_OUTRO.duration,
-          easing: ANIMATION_CONFIG.SHEET_ONE_OUTRO.easing,
-          fill: 'both'
-        }));
-      }
-
-      // 3. Papers bundle descends into the envelope pocket behind folder-front
-      if (paperBundleRef.current) {
-        const startP = (wasRunning && !isRestingOrNone(curPaper))
-          ? curPaper
-          : 'translate3d(0, 0, 0)';
-        anims.push(paperBundleRef.current.animate([
-          { transform: startP },
-          { transform: `translate3d(0, ${ANIMATION_CONFIG.PAPERS_OUTRO.tuckDepthY}px, 0)` }
-        ], {
-          delay: ANIMATION_CONFIG.PAPERS_OUTRO.delay,
-          duration: ANIMATION_CONFIG.PAPERS_OUTRO.duration,
-          easing: ANIMATION_CONFIG.PAPERS_OUTRO.easing,
-          fill: 'both'
-        }));
-      }
-
-      // 4. Desk photos and magnifier slide off to lower right
-      [magnifierRef, glassReflectionRef].forEach((ref, idx) => {
-        if (ref?.current) {
-          const curEl = window.getComputedStyle(ref.current).transform;
-          anims.push(ref.current.animate([
-            { transform: curEl !== 'none' ? curEl : 'translate3d(0, 0, 0)' },
-            { transform: 'translate3d(60px, 50px, 0) rotate(-8deg) scale(0.95)' }
-          ], {
-            delay: idx * 20,
-            duration: 400,
-            easing: 'cubic-bezier(0.4, 0, 0.8, 1)',
-            fill: 'both'
-          }));
-        }
-      });
-
-      if (portraitRef?.current) {
-        const curPortrait = window.getComputedStyle(portraitRef.current).transform;
-        anims.push(portraitRef.current.animate([
-          { transform: curPortrait !== 'none' ? curPortrait : 'translate3d(0, 0, 0)' },
-          { transform: 'translate3d(45px, 65px, 0) rotate(5deg)' }
-        ], {
-          delay: ANIMATION_CONFIG.PORTRAIT_OUTRO.delay,
-          duration: ANIMATION_CONFIG.PORTRAIT_OUTRO.duration,
-          easing: ANIMATION_CONFIG.PORTRAIT_OUTRO.easing,
-          fill: 'both'
-        }));
-      }
-
-      if (photoRef?.current) {
-        const curPh = window.getComputedStyle(photoRef.current).transform;
-        anims.push(photoRef.current.animate([
-          { transform: curPh !== 'none' ? curPh : 'translate3d(0, 0, 0)' },
-          { transform: 'translate3d(60px, 50px, 0) rotate(-4deg)' }
-        ], {
-          delay: ANIMATION_CONFIG.PHOTO_OUTRO.delay,
-          duration: ANIMATION_CONFIG.PHOTO_OUTRO.duration,
-          easing: ANIMATION_CONFIG.PHOTO_OUTRO.easing,
-          fill: 'both'
-        }));
-      }
-
-      if (photoBundleRef?.current) {
-        const startPb = curPhotoBundle !== 'none' ? curPhotoBundle : 'translate3d(0, 0, 0)';
-        anims.push(photoBundleRef.current.animate([
-          { transform: startPb },
-          { transform: 'translate3d(48%, 55%, 0)' }
-        ], {
-          delay: ANIMATION_CONFIG.PHOTO_BUNDLE_OUTRO.delay,
-          duration: ANIMATION_CONFIG.PHOTO_BUNDLE_OUTRO.duration,
-          easing: ANIMATION_CONFIG.PHOTO_BUNDLE_OUTRO.easing,
-          fill: 'both'
-        }));
-      }
-
-      // 5. AFTER the papers are safely tucked inside the pocket (at ~560ms), the ENVELOPE descends offscreen
-      if (stationeryRef?.current) {
-        const startEnv = (wasRunning && !isRestingOrNone(curStationery))
-          ? curStationery
-          : 'translate3d(0, 0, 0)';
-        anims.push(stationeryRef.current.animate([
-          { transform: startEnv },
-          { transform: `translate3d(0, ${exitY}px, 0)` }
-        ], {
-          delay: ANIMATION_CONFIG.FOLDER_OUTRO.delay,
-          duration: ANIMATION_CONFIG.FOLDER_OUTRO.duration,
-          easing: ANIMATION_CONFIG.FOLDER_OUTRO.easing,
-          fill: 'both'
-        }));
-      }
-    }
-
-    activeAnimationsRef.current = anims;
-    await Promise.all(anims.map(a => a.finished.catch(() => null)));
-
-    if (id !== ticketRef.current) return;
-
-    // Commit final resting styles before cancelling animation objects
-    renderPose(intro ? 'visible' : 'hidden');
-    activeAnimationsRef.current.forEach(a => {
-      try { a.cancel(); } catch (e) {}
-    });
-    activeAnimationsRef.current = [];
-
-    const finalState = intro ? 'visible' : 'hidden';
-    setState(finalState);
-    onStateChange?.(finalState);
-  }, [getExitDistance, onStateChange, renderPose, setState, stationeryRef, paperBundleRef, sheetOneRef, sheetTwoRef, sheetThreeRef, tabOneRef, tabTwoRef, tabThreeRef, tabFourRef, photoBundleRef, photoRef, portraitRef, magnifierRef, glassReflectionRef]);
+    },
+    [
+      getExitDistance,
+      getTabElements,
+      glassReflectionRef,
+      magnifierRef,
+      onStateChange,
+      paperBundleRef,
+      photoBundleRef,
+      photoRef,
+      portraitRef,
+      setState,
+      sheetOneRef,
+      sheetThreeRef,
+      sheetTwoRef,
+      stationeryRef,
+      transitionSection,
+    ]
+  );
 
   const replay = useCallback(() => {
-    ticketRef.current++;
-    activeAnimationsRef.current.forEach(a => {
-      try { a.cancel(); } catch (e) {}
-    });
-    activeAnimationsRef.current = [];
-    renderPose('hidden');
-    if (sceneRef.current) void sceneRef.current.offsetWidth;
-    return move('intro');
-  }, [move, renderPose, sceneRef]);
+    currentSectionRef.current = 'home';
+    return transitionSection('home');
+  }, [transitionSection]);
 
   return {
     renderPose,
     move,
+    animateBookmarks,
+    transitionSection,
     replay,
   };
 }

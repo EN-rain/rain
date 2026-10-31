@@ -1,22 +1,12 @@
 /* Unified Works Clipboard System */
-/* Scatters in background behind folder & papers -> Assembles in center */
+/* Pure GPU Transform Architecture driven by GSAP Master Timeline */
 
 .clipboard-works {
   position: absolute;
   inset: 0;
+  z-index: 3;
   pointer-events: none;
   overflow: visible;
-  transition: z-index 0.3s ease;
-}
-
-.clipboard-works.is-scattered {
-  z-index: 3; /* Behind stationeryRef (z-20) and DeskAccents (z-25) */
-  pointer-events: none;
-}
-
-.clipboard-works.is-assembled {
-  z-index: 35; /* Above folder when assembled in center */
-  pointer-events: auto;
 }
 
 .clipboard-works-layout {
@@ -26,244 +16,145 @@
   overflow: visible;
 }
 
-/* Layer Base & Transition Properties */
+/* Layer Base: Static layout geometry, 100% GPU-composited transforms via GSAP */
 .clipboard-layer {
   position: absolute;
   display: block;
   user-select: none;
   backface-visibility: hidden;
-  transform: translateZ(0);
-  will-change: transform, left, top, width, height, opacity;
-  transition-property: transform, left, top, width, height, opacity;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
 }
 
-/* Individual Motion Profiles (Organic, physics-based delays) */
+/* ============================================================
+   STATIC BASE GEOMETRY (Assembled Center Coordinates)
+   GSAP animates xPercent, yPercent, rotation, and scale
+   ============================================================ */
+
+/* 1. Board Backing */
 .clipboard-layer-board {
-  transition-duration: 0.95s;
-  transition-timing-function: cubic-bezier(0.18, 1, 0.3, 1);
-  transition-delay: 0.04s;
-}
-
-.clipboard-layer-bottom-paper {
-  transition-duration: 1s;
-  transition-timing-function: cubic-bezier(0.2, 1, 0.35, 1);
-  transition-delay: 0.08s;
-}
-
-.clipboard-layer-middle-paper {
-  transition-duration: 1.05s;
-  transition-timing-function: cubic-bezier(0.2, 1, 0.35, 1);
-  transition-delay: 0.14s;
-}
-
-.clipboard-layer-front-paper {
-  transition-duration: 1.1s;
-  transition-timing-function: cubic-bezier(0.2, 1, 0.35, 1);
-  transition-delay: 0.2s;
-}
-
-.clipboard-layer-photo-frame {
-  transition-duration: 0.9s;
-  transition-timing-function: cubic-bezier(0.22, 1.2, 0.5, 1);
-  transition-delay: 0.26s;
-}
-
-.clipboard-layer-small-note {
-  transition-duration: 0.95s;
-  transition-timing-function: cubic-bezier(0.25, 1.18, 0.5, 1);
-  transition-delay: 0.32s;
-}
-
-.clipboard-layer-clip {
-  transition-duration: 0.8s;
-  transition-timing-function: cubic-bezier(0.34, 1.35, 0.64, 1);
-  transition-delay: 0.38s;
-}
-
-/* ============================================================
-   STATE 1: SCATTERED IN THE BACKGROUND (Behind Folder on Desk)
-   ============================================================ */
-
-/* 1. Board Backing */
-.clipboard-works.is-scattered .clipboard-layer-board {
-  left: 38%;
-  top: 36%;
-  width: 58%;
-  height: 68%;
-  transform: rotate(15deg) scale(0.78);
-  opacity: 0.85;
-}
-
-/* 2. Bottom Paper */
-.clipboard-works.is-scattered .clipboard-layer-bottom-paper {
-  left: -22%;
-  top: 15%;
-  width: 36%;
-  height: 52%;
-  transform: rotate(-22deg) scale(0.76);
-  opacity: 0.85;
-}
-
-/* 3. Middle Paper */
-.clipboard-works.is-scattered .clipboard-layer-middle-paper {
-  left: 74%;
-  top: -18%;
-  width: 35%;
-  height: 52%;
-  transform: rotate(24deg) scale(0.75);
-  opacity: 0.85;
-}
-
-/* 4. Front Paper */
-.clipboard-works.is-scattered .clipboard-layer-front-paper {
-  left: -10%;
-  top: 52%;
-  width: 34%;
-  height: 52%;
-  transform: rotate(-15deg) scale(0.76);
-  opacity: 0.88;
-}
-
-/* Inscribed text on front paper and note hidden while scattered */
-.clipboard-works.is-scattered .clipboard-inscribed-content {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* 5. Photo Frame */
-.clipboard-works.is-scattered .clipboard-layer-photo-frame {
-  left: 84%;
-  top: 45%;
-  width: 14%;
-  height: 26%;
-  transform: rotate(30deg) scale(0.85);
-  opacity: 0.9;
-}
-
-/* 6. Small Note */
-.clipboard-works.is-scattered .clipboard-layer-small-note {
-  left: 62%;
-  top: 65%;
-  width: 15%;
-  height: 32%;
-  transform: rotate(-25deg) scale(0.82);
-  opacity: 0.9;
-}
-
-/* 7. Clip */
-.clipboard-works.is-scattered .clipboard-layer-clip {
-  left: 45%;
-  top: -9%;
-  width: 13%;
-  height: 10%;
-  transform: rotate(68deg) scale(0.85);
-  opacity: 0.92;
-}
-
-/* ============================================================
-   STATE 2: ASSEMBLED IN CENTER (Enlarged to match desk mat framing)
-   ============================================================ */
-
-/* 1. Board Backing */
-.clipboard-works.is-assembled .clipboard-layer-board {
   left: 8.8%;
   top: 5.4%;
   width: 82.4%;
   height: 90.6%;
-  transform: rotate(0deg) scale(1);
-  opacity: 1;
 }
 
 /* 2. Bottom Paper */
-.clipboard-works.is-assembled .clipboard-layer-bottom-paper {
+.clipboard-layer-bottom-paper {
   left: 31.35%;
   top: 16.82%;
   width: 56.96%;
   height: 77.28%;
-  transform: rotate(1.4deg) scale(1);
-  opacity: 1;
 }
 
 /* 3. Middle Paper */
-.clipboard-works.is-assembled .clipboard-layer-middle-paper {
+.clipboard-layer-middle-paper {
   left: 32.11%;
   top: 15.55%;
   width: 55.44%;
   height: 77.28%;
-  transform: rotate(-1.1deg) scale(1);
-  opacity: 1;
 }
 
 /* 4. Front Paper */
-.clipboard-works.is-assembled .clipboard-layer-front-paper {
+.clipboard-layer-front-paper {
   left: 32.88%;
   top: 14.28%;
   width: 53.92%;
   height: 77.28%;
-  transform: rotate(0deg) scale(1);
-  opacity: 1;
-}
-
-.clipboard-works.is-assembled .clipboard-inscribed-content {
-  opacity: 1;
-  pointer-events: auto;
-  transition: opacity 0.4s ease 0.3s;
 }
 
 /* 5. Photo Frame */
-.clipboard-works.is-assembled .clipboard-layer-photo-frame {
+.clipboard-layer-photo-frame {
   left: 13.43%;
   top: 19.50%;
   width: 16.33%;
   height: 29.19%;
-  transform: rotate(0deg) scale(1);
-  opacity: 1;
 }
 
 /* 6. Small Note */
-.clipboard-works.is-assembled .clipboard-layer-small-note {
+.clipboard-layer-small-note {
   left: 10.62%;
   top: 49.18%;
   width: 20.89%;
   height: 42.51%;
-  transform: rotate(0deg) scale(1);
-  opacity: 1;
 }
 
 /* 7. Clip */
-.clipboard-works.is-assembled .clipboard-layer-clip {
+.clipboard-layer-clip {
   left: 50.70%;
   top: 4.04%;
   width: 18.29%;
   height: 13.02%;
-  transform: rotate(0deg) scale(1);
-  opacity: 1;
+}
+
+.clipboard-inscribed-content {
+  will-change: opacity;
 }
 
 /* ============================================================
-   CONTROLS OVERLAY
+   IDLE PAPER ORGANIC MOVEMENTS (Active only when settled)
    ============================================================ */
 
-.clipboard-works-controls {
-  position: absolute;
-  top: 16px;
-  left: 24px;
-  right: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  z-index: 50;
-  transition: opacity 0.4s ease 0.35s, transform 0.4s ease 0.35s;
+@keyframes clipboard-idle-float-1 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(1.2px, -3.2px, 0) rotate(0.35deg);
+  }
 }
 
-.clipboard-works.is-scattered .clipboard-works-controls {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-8px);
+@keyframes clipboard-idle-float-2 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(-1.5px, -3.8px, 0) rotate(-0.4deg);
+  }
 }
 
-.clipboard-works.is-assembled .clipboard-works-controls {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
+@keyframes clipboard-idle-float-3 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(1.8px, -2.8px, 0) rotate(0.45deg);
+  }
+}
+
+@keyframes clipboard-idle-float-4 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(-1px, -4.2px, 0) rotate(-0.5deg);
+  }
+}
+
+.clipboard-idle-float-1,
+.clipboard-idle-float-2,
+.clipboard-idle-float-3,
+.clipboard-idle-float-4 {
+  width: 100%;
+  height: 100%;
+}
+
+.clipboard-works[data-settled="true"] .clipboard-idle-float-1 {
+  animation: clipboard-idle-float-1 8.2s ease-in-out 0.3s infinite;
+  will-change: transform;
+}
+
+.clipboard-works[data-settled="true"] .clipboard-idle-float-2 {
+  animation: clipboard-idle-float-2 7.6s ease-in-out 1.1s infinite;
+  will-change: transform;
+}
+
+.clipboard-works[data-settled="true"] .clipboard-idle-float-3 {
+  animation: clipboard-idle-float-3 6.9s ease-in-out 0.2s infinite;
+  will-change: transform;
+}
+
+.clipboard-works[data-settled="true"] .clipboard-idle-float-4 {
+  animation: clipboard-idle-float-4 7.4s ease-in-out 0.7s infinite;
+  will-change: transform;
 }

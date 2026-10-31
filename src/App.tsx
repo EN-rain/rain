@@ -19,6 +19,8 @@ const ALL_AHEAD_OF_TIME_ASSETS = [
   '/assets/building-photo.png',
   '/assets/portrait-card.png',
   '/assets/dark-backing.png',
+  '/assets/edrian-hero.png',
+  '/assets/edrian-about.png',
 
   // Page 1.5: Assembled Dossier Spread & Forensic Cards
   '/assets/page-one-half/01-backing.png',
@@ -62,6 +64,21 @@ const ALL_AHEAD_OF_TIME_ASSETS = [
   '/assets/clipboard/transparent-photo-frame.png',
   '/assets/clipboard/small-note.png',
   '/assets/clipboard/clipboard-clip.png',
+
+  // Contacts: Detective Desk Assets
+  '/assets/detective-desk/detective-desk-scene.png',
+  '/assets/detective-desk/wood.png',
+  '/assets/detective-desk/left-clipped-notebook.png',
+  '/assets/detective-desk/upper-right-papers-and-clip.png',
+  '/assets/detective-desk/right-bottom-combined.png',
+  '/assets/detective-desk/gold-bookmark.png',
+  '/assets/detective-desk/compass-document.png',
+  '/assets/detective-desk/right-paper-scrap.png',
+  '/assets/detective-desk/clean-paper-stack.png',
+  '/assets/detective-desk/closed-detective-journal.png',
+  '/assets/detective-desk/ink-bottle.png',
+  '/assets/detective-desk/sealed-envelope.png',
+  '/assets/detective-desk/fountain-pen.png',
 
   // WebGL 2 Shaders & Noise Textures
   mudNormalUrl,

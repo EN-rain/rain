@@ -19,7 +19,7 @@ export const DeskAccents: React.FC<DeskAccentsProps> = ({
         ref={photoRef}
         src={`${assetsPath}/building-photo.png`}
         alt="Detective evidence photograph"
-        className="absolute left-[calc(970*100%/1376)] top-[calc(480*100%/768)] w-[calc(410*100%/1376)] h-[calc(342*100%/768)] z-[7] object-contain saturate-[0.55] contrast-[0.65] brightness-[1.18] will-change-transform select-none"
+        className="absolute left-[calc(970*100%/1376)] top-[calc(480*100%/768)] w-[calc(410*100%/1376)] h-[calc(342*100%/768)] z-[7] object-contain saturate-[0.55] contrast-[0.65] brightness-[1.18] will-change-transform select-none idle-paper-2"
       />
 
       {/* Suspect / subject portrait card (Note 2 - larger size, shifted to the right) */}
@@ -27,7 +27,7 @@ export const DeskAccents: React.FC<DeskAccentsProps> = ({
         ref={portraitRef}
         src={`${assetsPath}/portrait-card.png`}
         alt="Detective case portrait card"
-        className="absolute left-[calc(1085*100%/1376)] top-[calc(415*100%/768)] w-[calc(330*100%/1376)] h-[calc(393*100%/768)] z-[8] object-contain saturate-[0.8] contrast-[0.66] brightness-[1.04] will-change-transform select-none"
+        className="absolute left-[calc(1085*100%/1376)] top-[calc(415*100%/768)] w-[calc(330*100%/1376)] h-[calc(393*100%/768)] z-[8] object-contain saturate-[0.8] contrast-[0.66] brightness-[1.04] will-change-transform select-none idle-paper-3"
       />
 
       {/* Lens reflection layer kept invisible to prevent ghost bubble displacement */}

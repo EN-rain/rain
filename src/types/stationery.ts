@@ -94,9 +94,10 @@ export interface ScrapbookBoardProps {
 export interface PaperStackProps {
   assetsPath: string;
   paperBundleRef: React.RefObject<HTMLDivElement | null>;
-  sheetOneRef?: React.RefObject<HTMLImageElement | null>;
-  sheetTwoRef?: React.RefObject<HTMLImageElement | null>;
-  sheetThreeRef?: React.RefObject<HTMLImageElement | null>;
+  sheetOneRef?: React.RefObject<HTMLElement | null>;
+  sheetTwoRef?: React.RefObject<HTMLElement | null>;
+  sheetThreeRef?: React.RefObject<HTMLElement | null>;
+  onNavigate?: (section: string) => void;
   children?: React.ReactNode;
 }
 
@@ -106,6 +107,8 @@ export interface BookmarkTabsProps {
   tabTwoRef: React.RefObject<HTMLButtonElement | null>;
   tabThreeRef: React.RefObject<HTMLButtonElement | null>;
   tabFourRef: React.RefObject<HTMLButtonElement | null>;
+  activeBookmark?: string | null;
+  isSubpage?: boolean;
   onSelectBookmark: (paperId: string) => void;
   disabled?: boolean;
 }
