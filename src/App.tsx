@@ -9,6 +9,7 @@ import './styles/vintage-stationery.css';
 // Complete ahead-of-time manifest of all high-res assets across Page 1, Page 1.5, Page 2 Scrapbook & Projects
 const ALL_AHEAD_OF_TIME_ASSETS = [
   // Page 1: Vintage Stationery Desk & Envelope
+  '/assets/white-page-bg.png',
   '/assets/folder-back.png',
   '/assets/folder-front.png',
   '/assets/paper-sheet-1.png',
@@ -21,13 +22,13 @@ const ALL_AHEAD_OF_TIME_ASSETS = [
   '/assets/dark-backing.png',
   '/assets/edrian-hero.png',
   '/assets/edrian-about.png',
+  '/assets/edrian-portrait-new.png',
 
   // Page 1.5: Assembled Dossier Spread & Forensic Cards
   '/assets/page-one-half/01-backing.png',
   '/assets/page-one-half/02-spread.png',
   '/assets/page-one-half/03-large-card.png',
   '/assets/page-one-half/04-black-card-square.png',
-  '/assets/page-one-half/05-small-card.png',
   '/assets/page-one-half/06-paper.png',
 
   // Page 2: Detective Scrapbook Board, Props & Hardware
@@ -64,9 +65,6 @@ const ALL_AHEAD_OF_TIME_ASSETS = [
   '/assets/clipboard/transparent-photo-frame.png',
   '/assets/clipboard/small-note.png',
   '/assets/clipboard/clipboard-clip.png',
-
-  // Contacts: Detective Desk Scene Background
-  '/assets/detective-desk/detective-desk-scene-1672.png',
 
   // WebGL 2 Shaders & Noise Textures
   mudNormalUrl,
@@ -189,9 +187,6 @@ export default function App() {
         />
       )}
 
-      {/* GitHub repo WebGL 2 Section-to-Section Transition Overlay (Page 1 <-> Page 2) */}
-      <SectionScrollTransition />
-
       {/* Primary Scene: Home (Page 1 folder + scattered papers / assembled Page 1.5) & Works (Page 2 ScrapbookBoard) */}
       <div id="home" className="w-full h-full">
         <div className="home-section w-full h-full flex items-center justify-center">
@@ -203,6 +198,10 @@ export default function App() {
           />
         </div>
       </div>
+
+      {/* GitHub repo WebGL 2 Section-to-Section Transition Overlay (Page 1 <-> Page 2) */}
+      <SectionScrollTransition />
     </div>
   );
 }
+

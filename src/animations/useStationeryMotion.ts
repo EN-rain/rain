@@ -32,7 +32,6 @@ const DOSSIER_LAYERS = [
   { selector: '.page-half-black-card', scattered: { xPercent: -210, yPercent: 38, rotation: 34, scale: 0.92 } },
   { selector: '.page-half-large-card', scattered: { xPercent: -2, yPercent: -46, rotation: -20, scale: 0.93 } },
   { selector: '.page-half-paper', scattered: { xPercent: 124, yPercent: -44, rotation: 30, scale: 0.96 } },
-  { selector: '.page-half-small-card', scattered: { xPercent: 485, yPercent: -18, rotation: -42, scale: 1.28 } },
 ] as const;
 
 const CLIPBOARD_LAYERS = [

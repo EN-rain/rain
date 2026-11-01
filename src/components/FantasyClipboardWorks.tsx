@@ -8,6 +8,7 @@ export interface ProjectEntry {
   subtitle: string;
   date: string;
   image: string;
+  icon?: string;
   repoUrl: string;
   techStack: string[];
   description: string;
@@ -22,6 +23,7 @@ export const PROJECTS: ProjectEntry[] = [
     subtitle: 'STUDENT MANAGEMENT WEB, API, AND ANDROID APP',
     date: '2024 – 2025',
     image: '/assets/projects/studentflow.png',
+    icon: '/assets/projects/studentflow-icon.png',
     repoUrl: 'https://github.com/EN-rain/StudentFLow',
     techStack: ['Laravel 12', 'PHP 8.2', 'Blade', 'Sanctum', 'SQLite', 'Dompdf', 'Java 17', 'Retrofit'],
     description:
@@ -39,6 +41,7 @@ export const PROJECTS: ProjectEntry[] = [
     subtitle: 'USED-PHONE MARKETPLACE',
     date: 'June 2026',
     image: '/assets/projects/pockettrade.png',
+    icon: '/assets/projects/pockettrade-icon.png',
     repoUrl: 'https://github.com/EN-rain/PocketTrade',
     techStack: ['Flutter', 'Dart', 'NestJS', 'TypeScript', 'Prisma', 'PostgreSQL', 'React', 'Cloudinary', 'Socket.IO', 'Firebase'],
     description:
@@ -56,6 +59,7 @@ export const PROJECTS: ProjectEntry[] = [
     subtitle: 'STORY-DRIVEN CHEMISTRY LEARNING GAME',
     date: '2024 – 2025',
     image: '/assets/projects/chemquest.png',
+    icon: '/assets/projects/chemquest-icon.png',
     repoUrl: 'https://github.com/EN-rain/ChemQuest',
     techStack: ['Godot 4.6', 'GDScript', 'Android', 'JSON'],
     description:
@@ -73,6 +77,7 @@ export const PROJECTS: ProjectEntry[] = [
     subtitle: 'COMPETITIVE PIXEL TYPING DUEL',
     date: 'May 2026',
     image: '/assets/projects/typeduel-bg.png',
+    icon: '/assets/projects/typeduel-icon.png',
     repoUrl: 'https://github.com/EN-rain/TypeDuel',
     techStack: ['Godot 4.6', 'GDScript', 'Node.js', 'Express', 'Socket.IO', 'WebSockets', 'SQLite'],
     description:
@@ -90,6 +95,7 @@ export const PROJECTS: ProjectEntry[] = [
     subtitle: 'WPF VOICE ASSISTANT + DISCORD BRIDGE',
     date: '2025 – 2026',
     image: '/assets/projects/tsukiai.png',
+    icon: '/assets/projects/tsukiai-icon.jpg',
     repoUrl: 'https://github.com/EN-rain/TsukiAI-Desktop',
     techStack: ['.NET 8', 'WPF', 'C#', 'ASP.NET Core', 'Node.js', 'Discord', 'Chroma', 'VOICEVOX'],
     description:
@@ -107,6 +113,7 @@ export const PROJECTS: ProjectEntry[] = [
     subtitle: 'WEB-TO-LOCAL MCP ARSENAL',
     date: 'July – Oct 2026',
     image: '/assets/projects/auvrynt.png',
+    icon: '/assets/projects/auvrynt-icon.png',
     repoUrl: 'https://github.com/EN-rain/Auvrynt',
     techStack: ['TypeScript', 'React', 'Tailwind CSS', 'Electron', 'Node.js', 'Model Context Protocol (MCP)'],
     description:
@@ -561,9 +568,9 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                 top: '-4.4053%',
               }}
             >
-              {/* Inner project screenshot rotated (-6.93deg) to match exact polaroid cutout */}
+              {/* Polaroid cutout displaying ONLY the full project icon */}
               <div
-                className="absolute overflow-hidden rounded-[2px]"
+                className="absolute overflow-hidden rounded-[2px] flex items-center justify-center"
                 style={{
                   left: '20.15%',
                   top: '13.91%',
@@ -572,16 +579,13 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                   transform: 'rotate(-6.93deg)',
                   transformOrigin: '50% 50%',
                   zIndex: 1,
-                  background: '#1a1916',
+                  background: '#ffffff',
                 }}
               >
                 <img
-                  alt={`${selectedProject.title} photograph`}
-                  src={selectedProject.image}
-                  className="w-full h-full object-cover select-none pointer-events-none transition-all duration-300"
-                  style={{
-                    filter: 'sepia(0.12) contrast(1.05) brightness(0.96)',
-                  }}
+                  alt={`${selectedProject.title} icon`}
+                  src={selectedProject.icon || selectedProject.image}
+                  className="w-full h-full object-contain p-[3%] select-none pointer-events-none transition-all duration-300"
                 />
               </div>
 
@@ -908,22 +912,31 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
           >
             {/* Right Page Header + Big X Close Button */}
             <div className="flex items-start justify-between border-b border-[#3b2a1a]/35 pb-[0.9cqh] shrink-0">
-              <div className="flex flex-col pr-2">
-                <h3
-                  className="m-0 font-extrabold uppercase tracking-[0.14em] text-[#160e07] leading-tight"
-                  style={{
-                    fontFamily: "'Cinzel', 'Playfair Display', Georgia, serif",
-                    fontSize: 'clamp(12px, 2.6cqh, 22px)',
-                  }}
-                >
-                  PROJECT OVERVIEW
-                </h3>
-                <span
-                  className="uppercase tracking-[0.14em] text-[#5c432b] font-bold leading-tight mt-[0.3cqh]"
-                  style={{ fontSize: 'clamp(7.5px, 1.35cqh, 11px)' }}
-                >
-                  {selectedProject.date}
-                </span>
+              <div className="flex items-center gap-2.5 pr-2">
+                {selectedProject.icon && (
+                  <img
+                    src={selectedProject.icon}
+                    alt={`${selectedProject.title} icon`}
+                    className="w-[28px] h-[28px] sm:w-[36px] sm:h-[36px] object-contain rounded-[6px] shadow-sm border border-[#3b2a1a]/25 shrink-0"
+                  />
+                )}
+                <div className="flex flex-col">
+                  <h3
+                    className="m-0 font-extrabold uppercase tracking-[0.14em] text-[#160e07] leading-tight"
+                    style={{
+                      fontFamily: "'Cinzel', 'Playfair Display', Georgia, serif",
+                      fontSize: 'clamp(12px, 2.6cqh, 22px)',
+                    }}
+                  >
+                    {selectedProject.title}
+                  </h3>
+                  <span
+                    className="uppercase tracking-[0.14em] text-[#5c432b] font-bold leading-tight mt-[0.3cqh]"
+                    style={{ fontSize: 'clamp(7.5px, 1.35cqh, 11px)' }}
+                  >
+                    {selectedProject.date}
+                  </span>
+                </div>
               </div>
 
               <button

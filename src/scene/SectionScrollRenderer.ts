@@ -10,10 +10,9 @@ void main() {
 }`;
 
 /**
- * WebGL 2 Section Scroll Transition Shader
- * Ported from https://github.com/EN-rain/web000 (RouteTransitionRenderer.ts)
+ * WebGL 2 Directional Section Scroll Transition Shader
  * Uses mud_normal.jpg directional wavefront + hardware derivative luminance contours (fwidth)
- * + 1.0 <-> 1.3 UV scale warp + pulsing rim glow to transition between sections.
+ * for a smooth, sweeping wipe across the screen without center-pop artifacts.
  */
 const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
@@ -60,17 +59,13 @@ vec2 coverUv(
 void main() {
   vec2 uv = vUv;
   float progress = clamp(uProgress, 0.0, 1.0);
-  float direction = uDirection >= 0.0 ? 1.0 : -1.0;
 
-  float easedProgress = mix(
-    progress * progress * (3.0 - 2.0 * progress),
-    progress,
-    0.25
-  );
+  // Smooth cubic easing
+  float easedProgress = progress * progress * (3.0 - 2.0 * progress);
 
-  // Exact UV zoom from RouteTransitionRenderer.ts (1.0 -> 1.3 on outgoing, 1.3 -> 1.0 on incoming)
-  vec2 currentUv = scaleUv(uv, mix(1.0, 1.3, progress), vec2(0.5));
-  vec2 nextUv = scaleUv(uv, mix(1.3, 1.0, progress), vec2(0.5));
+  // Subtle zoom during transition
+  vec2 currentUv = scaleUv(uv, mix(1.0, 1.04, progress), vec2(0.5));
+  vec2 nextUv = scaleUv(uv, mix(1.04, 1.0, progress), vec2(0.5));
 
   vec2 currentSampleUv = clamp(coverUv(currentUv, uCurrentImageSize, uResolution), 0.001, 0.999);
   vec2 nextSampleUv = clamp(coverUv(nextUv, uNextImageSize, uResolution), 0.001, 0.999);
@@ -78,113 +73,40 @@ void main() {
   vec4 current = texture(tCurrent, currentSampleUv);
   vec4 next = texture(tNext, nextSampleUv);
 
-  // Mud normal directional threshold from RouteTransitionRenderer.ts
-  vec3 mudNormal = texture(tMudNormal, uv).rgb;
-  float mudStrength = mix(
-    0.3,
-    0.6,
-    0.5 + 0.5 * sin(uTime - uv.x * 10.0)
-  );
-  float mudOffset = (mudNormal.r - 0.5) * mudStrength;
+  // Animated mud normal ripple wavefront using uTime
+  vec2 mudUv = uv * 1.6 + vec2(sin(uTime * 1.5 + uv.x * 4.0) * 0.03, cos(uTime * 1.2 + uv.y * 4.0) * 0.03);
+  vec3 mudNormal = texture(tMudNormal, mudUv).rgb;
+  float mudOffset = (mudNormal.g - 0.5) * 0.22 + (mudNormal.r - 0.5) * 0.10;
 
-  float verticalAxis = direction > 0.0 ? uv.y : (1.0 - uv.y);
-  float directionalAxis = direction > 0.0 ? uv.x : (1.0 - uv.x);
-  float centerMix =
-    (1.0 - smoothstep(-0.4, 0.6, abs(uv.x - 0.5))) * 0.5;
-  float threshold = mix(verticalAxis, directionalAxis, centerMix);
-  threshold = threshold * 2.0 - 1.0;
-  threshold = threshold / 1.2 + 0.2 + mudOffset;
-  threshold = clamp(threshold * 0.5 + 0.5, 0.04, 0.96);
-
-  // Map sweep slightly beyond [0, 1] so progress=0 is 100% current and progress=1 is 100% next
-  float sweep = mix(-0.02, 1.02, easedProgress);
+  // Directional sweep from BOTTOM TO TOP along the Y axis (uv.y from 0.0 at bottom to 1.0 at top)
+  float sweepAxis = uv.y;
+  float sweep = mix(-0.25, 1.25, easedProgress);
+  float threshold = sweepAxis + mudOffset;
   float edge = sweep - threshold;
   float edgeDistance = abs(edge);
-  float edgeProximity = 1.0 - smoothstep(0.0, 0.32, edgeDistance);
+  float edgeProximity = 1.0 - smoothstep(0.0, 0.26, edgeDistance);
 
-  // Hardware derivative luminance contour lines (fwidth)
-  vec3 currentEdges = vec3(0.0);
-  vec3 nextEdges = vec3(0.0);
-  if (progress > 0.005 && progress < 0.995) {
-    float currentLuma = dot(current.rgb, vec3(0.299, 0.587, 0.114));
-    currentEdges = vec3(
-      fwidth(currentLuma) *
-      mix(5.0, 10.0, easedProgress) *
-      uCurrentEdgeMultiplier *
-      edgeProximity
-    );
-    float nextLuma = dot(next.rgb, vec3(0.299, 0.587, 0.114));
-    nextEdges = vec3(
-      fwidth(nextLuma) *
-      mix(3.0, 6.0, 1.0 - easedProgress) *
-      uNextEdgeMultiplier *
-      edgeProximity
-    );
-  }
+  // Black curtain: 1.0 ahead of the wave (above), 0.0 behind the wave (below, revealing Page 1 DOM)
+  float antialias = max(fwidth(edge) * 2.5, 0.002);
+  float curtainAlpha = 1.0 - smoothstep(-antialias, antialias, edge);
 
-  float antialias = max(fwidth(edge) * 3.0, 0.002);
-  float blendFactor = smoothstep(-antialias, antialias, edge);
-  float currentEdgeStrength =
-    smoothstep(0.0, 0.5, easedProgress) * edgeProximity;
-  float nextEdgeStrength =
-    smoothstep(0.2, 0.8, 1.0 - easedProgress) * edgeProximity;
+  // Hardware derivative luminance contour lines along moving wave edge
+  float edgeStrength = edgeProximity * smoothstep(0.01, 0.08, progress) * (1.0 - smoothstep(0.92, 0.99, progress));
+  vec3 edgeTint = vec3(1.0) * edgeStrength * 3.5;
 
-  // Tint contour edges with pure crisp white luminance (strictly monochrome black and white)
-  vec3 edgeTintCurrent = vec3(1.0) * currentEdges;
-  vec3 edgeTintNext = vec3(1.0) * nextEdges;
+  // Wavefront rim glow along moving edge
+  float glowFactor = smoothstep(0.0, 0.016, edgeDistance);
+  float glowIntensity = (1.0 - glowFactor) * edgeStrength * 4.2 * uBlurIntensity;
+  vec3 waveGlow = edgeTint + vec3(1.0) * glowIntensity;
 
-  current = mix(
-    current,
-    vec4(edgeTintCurrent, 1.0),
-    clamp(
-      smoothstep(0.0, 0.5, easedProgress) *
-        currentEdgeStrength *
-        uCurrentEdgeMultiplier,
-      0.0,
-      1.0
-    )
-  );
-  next = mix(
-    next,
-    vec4(edgeTintNext, 1.0),
-    clamp(
-      smoothstep(0.2, 0.8, 1.0 - easedProgress) *
-        nextEdgeStrength *
-        uNextEdgeMultiplier,
-      0.0,
-      1.0
-    )
-  );
+  // Output: black curtain ahead of wave, transparent behind wave, with glowing wave line
+  vec3 color = vec3(0.0) + waveGlow;
+  float alpha = clamp(curtainAlpha + edgeStrength + glowIntensity, 0.0, 1.0);
 
-  vec4 outputColor = mix(current, next, blendFactor);
+  // Smooth final fade at the very top
+  alpha *= (1.0 - smoothstep(0.96, 1.0, progress));
 
-  // Enforce pure monochrome luminance so NO purple or chroma appears
-  float monoLuma = dot(outputColor.rgb, vec3(0.299, 0.587, 0.114));
-  vec3 monoColor = vec3(monoLuma);
-
-  float transitionActive =
-    smoothstep(0.01, 0.08, progress) *
-    (1.0 - smoothstep(0.92, 1.0, progress));
-  float glowFactor = smoothstep(0.0, 0.006, edgeDistance);
-  float glowMultiplier = mix(
-    2.5,
-    9.0,
-    0.5 + 0.5 * sin(uTime + uv.x * 10.0)
-  ) * uBlurIntensity;
-  float glowMix = (1.0 - glowFactor) * transitionActive;
-
-  // Pure white wavefront rim glow (strictly white and black, no purple)
-  vec3 litColor = mix(monoColor, vec3(1.0) * glowMultiplier, glowMix);
-  litColor = clamp(litColor, 0.0, 1.0);
-
-  // Energy wavefront & atmosphere transition alpha:
-  // The wavefront beam and glow sweep across the screen, smoothly blending with live DOM sections underneath
-  float waveBandAlpha = edgeProximity * smoothstep(0.005, 0.06, progress) * (1.0 - smoothstep(0.94, 0.995, progress));
-  float transitionBell = sin(progress * 3.14159265);
-  float finalAlpha = clamp(waveBandAlpha * 0.96 + glowMix * 1.15 + pow(transitionBell, 0.85) * 0.88, 0.0, 1.0);
-
-  // Premultiplied alpha output
-  outColor = vec4(litColor * finalAlpha, finalAlpha);
+  outColor = vec4(clamp(color, 0.0, 1.0) * alpha, alpha);
 }`;
 
 export type SectionScrollRenderer = {
@@ -205,85 +127,46 @@ function compileShader(
   source: string
 ): WebGLShader {
   const shader = gl.createShader(type);
-  if (!shader) throw new Error('Unable to create section scroll transition shader.');
-
+  if (!shader) throw new Error('Unable to create shader.');
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
-
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const message = gl.getShaderInfoLog(shader);
+    const info = gl.getShaderInfoLog(shader);
     gl.deleteShader(shader);
-    throw new Error(message ?? 'Unable to compile section scroll transition shader.');
+    throw new Error(info ?? 'Shader compilation failed.');
   }
-
   return shader;
 }
 
-function requiredUniform(
+function safeUniform(
   gl: WebGL2RenderingContext,
   program: WebGLProgram,
   name: string
-): WebGLUniformLocation {
-  const location = gl.getUniformLocation(program, name);
-  if (!location) throw new Error(`Missing section transition uniform: ${name}`);
-  return location;
+): WebGLUniformLocation | null {
+  return gl.getUniformLocation(program, name);
 }
 
-function loadImage(source: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.decoding = 'async';
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Unable to load ${source}`));
-    img.src = source;
+    img.onerror = () => {
+      console.warn(`[WebGL] Image load fallback for: ${src}`);
+      // Create 1x1 neutral fallback so WebGL never crashes
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#8080ff';
+        ctx.fillRect(0, 0, 64, 64);
+      }
+      const fallbackImg = new Image();
+      fallbackImg.onload = () => resolve(fallbackImg);
+      fallbackImg.src = canvas.toDataURL();
+    };
+    img.src = src;
   });
-}
-
-/**
- * Generates high-definition atmospheric textures for each section (from git TextureManager.ts).
- */
-function createSectionAtmosphericCanvas(sectionIndex: number): HTMLCanvasElement {
-  const width = 1600;
-  const height = 1000;
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return canvas;
-
-  if (sectionIndex === 0) {
-    // ── SECTION 0: HOME ATMOSPHERE ──
-    const bgGrad = ctx.createRadialGradient(
-      width * 0.5,
-      height * 0.48,
-      80,
-      width * 0.5,
-      height * 0.48,
-      width * 0.65
-    );
-    bgGrad.addColorStop(0, '#0a0a0a');
-    bgGrad.addColorStop(0.45, '#040404');
-    bgGrad.addColorStop(1, '#000000');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(width * 0.5, height * 0.48, 360, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.strokeRect(width * 0.14, height * 0.2, 110, 110);
-    ctx.strokeRect(width * 0.78, height * 0.62, 85, 85);
-  } else {
-    // ── SECTION 1: CONTACTS ATMOSPHERE (White Background) ──
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  return canvas;
 }
 
 function createGLTexture(
@@ -317,9 +200,37 @@ export async function createSectionScrollRenderer(
   });
   if (!gl) throw new Error('WebGL 2 is unavailable.');
 
-  const mudImg = await loadImage(mudNormalUrl);
-  const section0Canvas = createSectionAtmosphericCanvas(0);
-  const section1Canvas = createSectionAtmosphericCanvas(1);
+  const [mudImg, backingImg] = await Promise.all([
+    loadImage(mudNormalUrl),
+    loadImage('/assets/dark-backing.png?v=3'),
+  ]);
+
+  const width = 1600;
+  const height = 1000;
+
+  // Section 0: Home scene (dark desk backing texture)
+  const section0Canvas = document.createElement('canvas');
+  section0Canvas.width = width;
+  section0Canvas.height = height;
+  const ctx0 = section0Canvas.getContext('2d');
+  if (ctx0) {
+    if (backingImg && backingImg.width > 0) {
+      ctx0.drawImage(backingImg, 0, 0, width, height);
+    } else {
+      ctx0.fillStyle = '#151715';
+      ctx0.fillRect(0, 0, width, height);
+    }
+  }
+
+  // Section 1: Contacts scene (solid black)
+  const section1Canvas = document.createElement('canvas');
+  section1Canvas.width = width;
+  section1Canvas.height = height;
+  const ctx1 = section1Canvas.getContext('2d');
+  if (ctx1) {
+    ctx1.fillStyle = '#000000';
+    ctx1.fillRect(0, 0, width, height);
+  }
 
   const sectionTextures = [
     createGLTexture(gl, section0Canvas, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE),
@@ -353,30 +264,30 @@ export async function createSectionScrollRenderer(
   gl.enableVertexAttribArray(position);
   gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-  const uTCurrent = requiredUniform(gl, program, 'tCurrent');
-  const uTNext = requiredUniform(gl, program, 'tNext');
-  const uTMudNormal = requiredUniform(gl, program, 'tMudNormal');
-  const uProgress = requiredUniform(gl, program, 'uProgress');
-  const uTime = requiredUniform(gl, program, 'uTime');
-  const uResolution = requiredUniform(gl, program, 'uResolution');
-  const uCurrentImageSize = requiredUniform(gl, program, 'uCurrentImageSize');
-  const uNextImageSize = requiredUniform(gl, program, 'uNextImageSize');
-  const uCurrentEdgeMultiplier = requiredUniform(gl, program, 'uCurrentEdgeMultiplier');
-  const uNextEdgeMultiplier = requiredUniform(gl, program, 'uNextEdgeMultiplier');
-  const uDirection = requiredUniform(gl, program, 'uDirection');
-  const uBlurIntensity = requiredUniform(gl, program, 'uBlurIntensity');
+  const uTCurrent = safeUniform(gl, program, 'tCurrent');
+  const uTNext = safeUniform(gl, program, 'tNext');
+  const uTMudNormal = safeUniform(gl, program, 'tMudNormal');
+  const uProgress = safeUniform(gl, program, 'uProgress');
+  const uTime = safeUniform(gl, program, 'uTime');
+  const uResolution = safeUniform(gl, program, 'uResolution');
+  const uCurrentImageSize = safeUniform(gl, program, 'uCurrentImageSize');
+  const uNextImageSize = safeUniform(gl, program, 'uNextImageSize');
+  const uCurrentEdgeMultiplier = safeUniform(gl, program, 'uCurrentEdgeMultiplier');
+  const uNextEdgeMultiplier = safeUniform(gl, program, 'uNextEdgeMultiplier');
+  const uDirection = safeUniform(gl, program, 'uDirection');
+  const uBlurIntensity = safeUniform(gl, program, 'uBlurIntensity');
 
-  gl.uniform1i(uTCurrent, 0);
-  gl.uniform1i(uTNext, 1);
-  gl.uniform1i(uTMudNormal, 2);
-  gl.uniform2f(uCurrentImageSize, 1600, 1000);
-  gl.uniform2f(uNextImageSize, 1600, 1000);
-  gl.uniform1f(uCurrentEdgeMultiplier, 1.15);
-  gl.uniform1f(uNextEdgeMultiplier, 1.15);
-  gl.uniform1f(uBlurIntensity, 1.0);
+  if (uTCurrent) gl.uniform1i(uTCurrent, 0);
+  if (uTNext) gl.uniform1i(uTNext, 1);
+  if (uTMudNormal) gl.uniform1i(uTMudNormal, 2);
+  if (uCurrentImageSize) gl.uniform2f(uCurrentImageSize, 1600, 1000);
+  if (uNextImageSize) gl.uniform2f(uNextImageSize, 1600, 1000);
+  if (uCurrentEdgeMultiplier) gl.uniform1f(uCurrentEdgeMultiplier, 1.15);
+  if (uNextEdgeMultiplier) gl.uniform1f(uNextEdgeMultiplier, 1.15);
+  if (uBlurIntensity) gl.uniform1f(uBlurIntensity, 1.0);
 
   const resize = () => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, Math.round(window.innerWidth * dpr));
     const height = Math.max(1, Math.round(window.innerHeight * dpr));
     if (canvas.width !== width || canvas.height !== height) {
@@ -384,7 +295,7 @@ export async function createSectionScrollRenderer(
       canvas.height = height;
     }
     gl.viewport(0, 0, width, height);
-    gl.uniform2f(uResolution, width, height);
+    if (uResolution) gl.uniform2f(uResolution, width, height);
   };
 
   resize();
@@ -410,16 +321,16 @@ export async function createSectionScrollRenderer(
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, mudTexture);
 
-    gl.uniform1i(uTCurrent, 0);
-    gl.uniform1i(uTNext, 1);
-    gl.uniform1i(uTMudNormal, 2);
+    if (uTCurrent) gl.uniform1i(uTCurrent, 0);
+    if (uTNext) gl.uniform1i(uTNext, 1);
+    if (uTMudNormal) gl.uniform1i(uTMudNormal, 2);
 
-    gl.uniform1f(uProgress, progress);
-    gl.uniform1f(uDirection, direction);
-    gl.uniform1f(uTime, time);
-    gl.uniform1f(uBlurIntensity, 1.0);
-    gl.uniform1f(uCurrentEdgeMultiplier, 1.15);
-    gl.uniform1f(uNextEdgeMultiplier, 1.15);
+    if (uProgress) gl.uniform1f(uProgress, progress);
+    if (uDirection) gl.uniform1f(uDirection, direction);
+    if (uTime) gl.uniform1f(uTime, time);
+    if (uBlurIntensity) gl.uniform1f(uBlurIntensity, 1.0);
+    if (uCurrentEdgeMultiplier) gl.uniform1f(uCurrentEdgeMultiplier, 1.15);
+    if (uNextEdgeMultiplier) gl.uniform1f(uNextEdgeMultiplier, 1.15);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
@@ -452,4 +363,3 @@ export async function createSectionScrollRenderer(
 
   return { draw, resize, dispose };
 }
-

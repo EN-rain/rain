@@ -13,7 +13,7 @@ const DEFAULT_ITEMS: ScrapbookItem[] = [
     frame: {
       id: 'f1',
       image: '/assets/projects/studentflow.png',
-      logo: '/assets/projects/studentflow-logo.png',
+      logo: '/assets/projects/studentflow-icon.png',
       style: { left: '3%', top: '3%', width: '22%', transform: 'rotate(-3deg)' },
     },
     note: {
@@ -34,6 +34,7 @@ const DEFAULT_ITEMS: ScrapbookItem[] = [
     frame: {
       id: 'f2',
       image: '/assets/projects/pockettrade.png',
+      logo: '/assets/projects/pockettrade-icon.png',
       style: { left: '36%', top: '6%', width: '22%', transform: 'rotate(4deg)' },
     },
     note: {
@@ -53,6 +54,7 @@ const DEFAULT_ITEMS: ScrapbookItem[] = [
     frame: {
       id: 'f3',
       image: '/assets/projects/chemquest.png',
+      logo: '/assets/projects/chemquest-icon.png',
       style: { left: '69%', top: '2%', width: '22%', transform: 'rotate(-6deg)' },
     },
     note: {
@@ -73,7 +75,7 @@ const DEFAULT_ITEMS: ScrapbookItem[] = [
     frame: {
       id: 'f4',
       image: '/assets/projects/typeduel-bg.png',
-      logo: '/assets/projects/typeduel-logo.png',
+      logo: '/assets/projects/typeduel-icon.png',
       style: { left: '5%', top: '54%', width: '22%', transform: 'rotate(1deg)' },
     },
     note: {
@@ -93,6 +95,7 @@ const DEFAULT_ITEMS: ScrapbookItem[] = [
     frame: {
       id: 'f5',
       image: '/assets/projects/tsukiai.png',
+      logo: '/assets/projects/tsukiai-icon.jpg',
       style: { left: '37%', top: '56%', width: '22%', transform: 'rotate(-4deg)' },
     },
     note: {
@@ -113,6 +116,7 @@ const DEFAULT_ITEMS: ScrapbookItem[] = [
     frame: {
       id: 'f6',
       image: '/assets/projects/auvrynt.png',
+      logo: '/assets/projects/auvrynt-icon.png',
       imageFit: 'contain',
       style: { left: '69%', top: '53%', width: '22%', transform: 'rotate(3deg)' },
     },

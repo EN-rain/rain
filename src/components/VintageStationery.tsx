@@ -89,17 +89,13 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
       setIsTransitioning(true);
 
       if (targetPage === 2) {
-        if (page === 1 && !showPageOneHalf && !showWorks) {
-          void move('outro');
-        } else if (page === 1) {
-          void animateBookmarks('outro');
-        }
         triggerSectionTransition(
           1,
           2,
           () => {
             setShowPageOneHalf(false);
             setShowWorks(false);
+            renderPose('hidden', { section: 'home' });
             setPage(2);
           },
           () => {
@@ -108,16 +104,23 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
           }
         );
       } else {
-        renderPose('hidden', { section: returnSection });
+        // Stage all desk assets in 'hidden' pose and make Page 1 active in DOM
+        setShowPageOneHalf(false);
+        setShowWorks(false);
+        setActiveBookmark('home');
+        renderPose('hidden', { section: 'home' });
+        setPage(1);
+
+        // Start the full intro animation immediately as the WebGL curtain begins wiping upward
+        requestAnimationFrame(() => {
+          void replay();
+        });
+
         triggerSectionTransition(
           2,
           1,
           () => {
-            setShowPageOneHalf(returnSection === 'about');
-            setShowWorks(returnSection === 'works');
-            setActiveBookmark(returnSection);
-            setPage(1);
-            void transitionSection(returnSection);
+            // Midpoint state check
           },
           () => {
             setIsTransitioning(false);
@@ -126,7 +129,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         );
       }
     },
-    [animateBookmarks, isTransitioning, journalBusy, move, page, renderPose, setPage, showPageOneHalf, showWorks, transitionSection]
+    [isTransitioning, journalBusy, page, renderPose, replay, setPage, transitionSection]
   );
 
   const hasPlayedIntroRef = useRef(false);
@@ -250,8 +253,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
           opacity: isPage1Visible ? 1 : 0,
           visibility: isPage1Visible || isTransitioning ? 'visible' : 'hidden',
           pointerEvents: isPage1Visible && !isTransitioning ? 'auto' : 'none',
-          transition: 'opacity 180ms ease-out',
-        }}
+                  }}
       >
         <div
           ref={sceneRef}
@@ -323,13 +325,12 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
 
       {/* Page 2 Layer: Vintage Typewriter Contact Desk */}
       <div
-        className="absolute inset-0 w-full h-full z-30"
+        className="absolute inset-0 w-full h-full z-[50]"
         style={{
           opacity: isPage2Visible ? 1 : 0,
           visibility: isPage2Visible || isTransitioning ? 'visible' : 'hidden',
           pointerEvents: isPage2Visible && !isTransitioning ? 'auto' : 'none',
-          transition: 'opacity 180ms ease-out',
-        }}
+                  }}
       >
         <VintageContactDesk
           onBack={() => handleSwitchPage(1, 'home')}

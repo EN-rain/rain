@@ -1,100 +1,17 @@
 import React from 'react';
+import { GithubContributionsCard } from './GithubContributionsCard';
 import '../styles/page-one-half.css';
 
 interface PageOneHalfProps {
   assetsPath: string;
   isAssembled?: boolean;
-  onBack: () => void;
-  onNext: () => void;
+  onBack?: () => void;
+  onNext?: () => void;
 }
-
-const SKILL_GROUPS = [
-  {
-    index: '01',
-    label: 'Frontend & Mobile',
-    sub: 'UI & Client Systems',
-    skills: [
-      'React',
-      'TypeScript',
-      'JavaScript',
-      'Tailwind CSS',
-      'HTML5 & CSS3',
-      'Bootstrap',
-      'Blade',
-      'Flutter',
-      'Dart',
-      'Java',
-    ],
-  },
-  {
-    index: '02',
-    label: 'Backend & Data',
-    sub: 'APIs & Persistence',
-    skills: [
-      'Laravel 12',
-      'PHP 8.2',
-      'Node.js',
-      'Express.js',
-      'NestJS',
-      'REST APIs',
-      'Prisma',
-      'Socket.IO',
-      'PostgreSQL',
-      'Supabase',
-      'Firebase',
-      'SQLite',
-      'Redis',
-    ],
-  },
-  {
-    index: '03',
-    label: 'AI, Desktop & Ops',
-    sub: 'Tooling & Security',
-    skills: [
-      '.NET 8 & WPF',
-      'C#',
-      'Godot 4.6',
-      'MCP SDK',
-      'ChromaDB',
-      'VOICEVOX',
-      'Docker',
-      'Git & GitHub',
-      'Vercel & Render',
-      'Cloudinary',
-      'Sanctum & JWT',
-      'RBAC & 2FA',
-    ],
-  },
-];
-
-const EXPERIENCE_HIGHLIGHTS = [
-  {
-    code: '01',
-    title: 'React & 2FA Dashboards',
-    detail: '2 full-stack admin systems with 2FA & RBAC',
-  },
-  {
-    code: '02',
-    title: 'Node.js API Architecture',
-    detail: '15+ REST endpoints & email-to-CSV automation',
-  },
-  {
-    code: '03',
-    title: 'Supabase & PostgreSQL',
-    detail: 'Relational data modeling with Row-Level Security',
-  },
-  {
-    code: '04',
-    title: 'Client Web Production',
-    detail: '4 responsive client sites shipped end-to-end',
-  },
-];
 
 export const PageOneHalf: React.FC<PageOneHalfProps> = ({
   assetsPath,
   isAssembled = false,
-  onBack,
-  onNext,
 }) => {
   return (
     <div
@@ -112,12 +29,12 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
             alt=""
             decoding="async"
             draggable={false}
-            className="page-half-img page-half-idle-backing"
+            className="page-half-img"
           />
         </div>
 
         {/* ============================================================ */}
-        {/* 2. Main Open Two-Page Dossier Spread (02-spread.png)         */}
+        {/* 2. Main Open Dossier Folder Spread (02-spread.png)           */}
         {/* ============================================================ */}
         <div
           className="page-half-layer page-half-spread"
@@ -130,29 +47,6 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
             draggable={false}
             className="page-half-img page-half-idle-spread"
           />
-
-          {/* Left Margin Vertical Classification Index next to black stripe */}
-          <div
-            className="dossier-inscribed-content absolute select-none pointer-events-none flex flex-col justify-between text-[#1f1c18]"
-            style={{
-              left: '8.2%',
-              top: '11%',
-              width: '5.5%',
-              height: '52%',
-              fontFamily: "'IBM Plex Mono', 'Courier Prime', monospace",
-            }}
-          >
-            <div
-              className="uppercase tracking-[0.22em] font-semibold text-[#2b2520]/80"
-              style={{
-                writingMode: 'vertical-rl',
-                transform: 'rotate(180deg)',
-                fontSize: 'clamp(7.5px, 1.25cqh, 11px)',
-              }}
-            >
-              PERSONNEL FILE — EN-2026 · ILOILO, PH
-            </div>
-          </div>
         </div>
 
         {/* ============================================================ */}
@@ -164,69 +58,73 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
             alt=""
             decoding="async"
             draggable={false}
-            className="page-half-img page-half-idle-black-card"
+            className="page-half-img"
           />
         </div>
 
         {/* ============================================================ */}
-        {/* 4. Left Page Taped Picture Frame (03-large-card.png):        */}
-        {/*    Purely a Portrait Picture Inside the Taped Frame          */}
+        {/* 4. Large Archival Evidence Card (03-large-card.png)          */}
+        {/*    Framed Evidence Photo with Tape & GitHub Contributions    */}
         {/* ============================================================ */}
         <div
           className="page-half-layer page-half-large-card"
           style={{ containerType: 'size' }}
         >
           <div className="relative w-full h-full page-half-idle-large-card">
-            {/* Base Picture Frame Artwork */}
-            <img
-              src={`${assetsPath}/page-one-half/03-large-card.png`}
-              alt=""
-              decoding="async"
-              draggable={false}
-              className="page-half-img relative z-[1]"
-            />
-
-            {/* Full-Bleed Portrait Inside the Frame Border (Just a Picture, Zero Text) */}
+            {/* Inset Aperture: Straight rectangular aperture tucked cleanly under the white frame border */}
+            {/* Always solid black backing so when scattered it remains solid black */}
             <div
-              className="dossier-inscribed-content absolute overflow-hidden bg-[#141210] shadow-[inset_0_2px_12px_rgba(0,0,0,0.45)] select-none pointer-events-none"
+              className="absolute bg-[#0d0b09] select-none overflow-hidden rounded-[1px]"
               style={{
-                left: '13.2%',
-                top: '13.3%',
-                width: '76%',
-                height: '75.8%',
-                transform: 'rotate(-1.5deg)',
-                zIndex: 2,
+                left: '11.0%',
+                top: '12.8%',
+                width: '80.6%',
+                height: '78.2%',
+                zIndex: 1,
+                pointerEvents: isAssembled ? 'auto' : 'none',
               }}
             >
-              <img
-                src={`${assetsPath}/edrian-about.png`}
-                alt="Edrian Nieves"
-                decoding="async"
-                draggable={false}
-                className="w-full h-full object-cover object-top select-none pointer-events-none"
+              {/* Inscribed Content: Fades in image and contributions on assemble, fades out to black when scattered */}
+              <div
+                className="dossier-inscribed-content w-full h-full flex flex-col overflow-hidden"
                 style={{
-                  filter: 'sepia(0.12) contrast(1.05) brightness(0.97)',
+                  pointerEvents: isAssembled ? 'auto' : 'none',
                 }}
-              />
+              >
+                {/* Part 1: Portrait Image (Top) - Expands naturally to fill available space */}
+                <div className="relative w-full flex-1 min-h-0 overflow-hidden bg-[#12100e]">
+                  <img
+                    src={`${assetsPath}/edrian-portrait-new.png`}
+                    alt="Edrian Nieves — Developer & Systems Builder"
+                    decoding="async"
+                    draggable={false}
+                    className="w-full h-full object-cover object-[center_8%] select-none pointer-events-none"
+                    style={{
+                      filter: 'contrast(1.05) brightness(0.98)',
+                    }}
+                  />
+                </div>
+
+                {/* Part 2: GitHub Contributions Activity Below (Snug, compact, zero wasted vertical space) */}
+                <div className="relative w-full shrink-0">
+                  <GithubContributionsCard username="EN-rain" />
+                </div>
+              </div>
             </div>
 
-            {/* Top-Left Translucent Tape Strip Restored Over the Photo Corner */}
+            {/* Straightened Frame Artwork Layer with Corner Tape overlaying naturally */}
             <img
-              src={`${assetsPath}/page-one-half/03-large-card.png`}
-              alt=""
+              src={`${assetsPath}/page-one-half/03-large-card.png?v=2`}
+              alt="Archival Evidence Frame"
               decoding="async"
               draggable={false}
-              className="page-half-img absolute inset-0 z-[3] pointer-events-none select-none"
-              style={{
-                clipPath: 'polygon(3.5% 22.3%, 27.5% 9.7%, 32.8% 14.1%, 8.8% 26.8%)',
-                opacity: 0.82,
-              }}
+              className="page-half-img relative z-[2] pointer-events-none"
             />
           </div>
         </div>
 
         {/* ============================================================ */}
-        {/* 5. Right Page Manuscript Sheet (06-paper.png):               */}
+        {/* 5. Manuscript Parchment Sheet (06-paper.png)                 */}
         {/*    High-Craft Editorial Dossier Layout                       */}
         {/* ============================================================ */}
         <div
@@ -247,332 +145,153 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
 
             {/* Inscribed Editorial Dossier on Right Manuscript */}
             <div
-              className="dossier-inscribed-content absolute flex flex-col justify-between text-[#18130e] select-none"
+              className="dossier-inscribed-content absolute flex flex-col justify-start text-[#18130e] select-none"
               style={{
-                left: '9.2%',
-                right: '9.2%',
-                top: '6.6%',
-                bottom: '6.6%',
+                left: '15.5%',
+                right: '15.5%',
+                top: '12%',
+                bottom: '12%',
                 fontFamily: "'Source Serif 4', Georgia, serif",
                 pointerEvents: isAssembled ? 'auto' : 'none',
               }}
             >
-              {/* 1. EDITORIAL MASTHEAD */}
-              <header className="shrink-0">
-                {/* Top Archival Metadata Bar */}
-                <div
-                  className="flex items-center justify-between pb-[0.45cqh] border-b-2 border-[#1b140e]"
-                  style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: 'clamp(6.5px, 1.12cqh, 10px)',
-                  }}
-                >
-                  <span className="uppercase tracking-[0.2em] text-[#7a1c1c] font-semibold">
-                    SECTION I — BIOGRAPHICAL DOSSIER
-                  </span>
-                  <span className="uppercase tracking-[0.16em] text-[#3d2f22] font-medium tabular-nums">
-                    LEON CITY, ILOILO · PH
-                  </span>
-                </div>
-
-                {/* Secondary Thin Hairline Rule + Name & Stamp Block */}
-                <div className="border-t border-[#1b140e]/35 mt-[2px] pt-[0.8cqh] pb-[0.85cqh] border-b border-[#1b140e]/30 flex items-end justify-between gap-[2cqw]">
-                  <div className="min-w-0">
-                    <h2
-                      className="m-0 font-extrabold uppercase tracking-[0.04em] text-[#120d09] leading-[0.95]"
-                      style={{
-                        fontFamily: "'Playfair Display', 'Cinzel', Georgia, serif",
-                        fontSize: 'clamp(18px, 3.85cqh, 34px)',
-                      }}
-                    >
-                      Edrian Nieves
-                    </h2>
-                    <p
-                      className="m-0 italic text-[#3b2c20] font-semibold tracking-[0.01em] mt-[0.35cqh]"
-                      style={{
-                        fontFamily: "'Playfair Display', Georgia, serif",
-                        fontSize: 'clamp(8.5px, 1.55cqh, 13.5px)',
-                      }}
-                    >
-                      Full-Stack Developer &amp; Systems Builder
-                    </p>
-                  </div>
-
-                  {/* Archival Index Stamp */}
-                  <div
-                    className="shrink-0 border border-[#7a1c1c]/55 px-[1.3cqw] py-[0.35cqh] text-right bg-[#7a1c1c]/[0.03]"
+              {/* EDITORIAL MASTHEAD */}
+              <header className="shrink-0 mb-[3cqh]">
+                <div className="pb-[1cqh] border-b border-[#1b140e]/30">
+                  <h2
+                    className="m-0 font-extrabold uppercase tracking-[0.16em] text-[#120d09] leading-[0.95]"
                     style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontFamily: "'Playfair Display', 'Cinzel', Georgia, serif",
+                      fontSize: 'clamp(18px, 4.1cqh, 34px)',
                     }}
                   >
-                    <div
-                      className="uppercase tracking-[0.18em] text-[#7a1c1c] font-bold leading-tight"
-                      style={{ fontSize: 'clamp(6px, 0.98cqh, 8.5px)' }}
-                    >
-                      DOSSIER NO. 01
-                    </div>
-                    <div
-                      className="uppercase tracking-[0.12em] text-[#2b2017] font-semibold leading-tight mt-[0.15cqh]"
-                      style={{ fontSize: 'clamp(6px, 1.02cqh, 9px)' }}
-                    >
-                      FULL-STACK · AI
-                    </div>
-                  </div>
+                    Edrian Nieves
+                  </h2>
+                  <p
+                    className="m-0 italic text-[#3b2c20] font-semibold tracking-[0.05em] mt-[0.6cqh]"
+                    style={{
+                      fontFamily: "'Playfair Display', Georgia, serif",
+                      fontSize: 'clamp(9px, 1.75cqh, 14.5px)',
+                    }}
+                  >
+                    Developer &amp; Systems Builder
+                  </p>
                 </div>
               </header>
 
-              {/* 2. BIOGRAPHICAL PROSE (Editorial Serif with Classic Drop Cap) */}
-              <section className="my-[0.65cqh] shrink-0">
+              {/* BIOGRAPHICAL PROSE (Editorial Serif with Classic Drop Cap) */}
+              <section className="shrink-0">
                 <p
-                  className="m-0 text-[#1e1610] leading-[1.46] font-normal text-justify"
-                  style={{ fontSize: 'clamp(8px, 1.46cqh, 12.8px)' }}
+                  className="m-0 text-[#1e1610] leading-[1.65] font-normal text-justify tracking-[0.015em]"
+                  style={{ fontSize: 'clamp(9px, 1.8cqh, 15px)' }}
                 >
                   <span
-                    className="float-left font-bold text-[#7a1c1c] leading-[0.82] mr-[1.2cqw] mt-[0.15cqh]"
+                    className="float-left font-bold text-[#7a1c1c] leading-[0.82] mr-[1.4cqw] mt-[0.15cqh]"
                     style={{
                       fontFamily: "'Playfair Display', Georgia, serif",
-                      fontSize: 'clamp(22px, 4.1cqh, 36px)',
+                      fontSize: 'clamp(26px, 5.2cqh, 46px)',
                     }}
                   >
                     I
                   </span>
-                  &rsquo;m a Full-Stack Developer based in Leon City, Philippines. My development journey started with curiosity about how digital products work, then grew into a disciplined focus on engineering reliable tools that solve real operational problems. Across web applications, dashboards, automation pipelines, APIs, and mobile experiences, I turn complex ideas into clear, production-ready software from architecture to final build.
+                  &rsquo;m a Developer based in Leon City, Philippines. My development journey started with curiosity about how digital products work, then grew into a disciplined focus on engineering reliable tools that solve real operational problems. Across web applications, dashboards, automation pipelines, APIs, and mobile experiences, I turn complex ideas into clear, production-ready software from architecture to final build.
                 </p>
               </section>
 
-              {/* 3. EXPERIENCE RECORD (Structured 2x2 Deliverable Ledger) */}
-              <section className="border-t border-[#1b140e]/30 pt-[0.75cqh] pb-[0.65cqh] shrink-0">
-                <div className="flex items-baseline justify-between mb-[0.55cqh]">
-                  <div className="flex items-baseline gap-[1.2cqw] min-w-0">
-                    <span
-                      className="uppercase tracking-[0.16em] font-bold text-[#7a1c1c] shrink-0"
-                      style={{
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize: 'clamp(6.5px, 1.12cqh, 9.8px)',
-                      }}
-                    >
-                      FIELD RECORD
-                    </span>
-                    <h3
-                      className="m-0 font-bold text-[#140e09] truncate"
-                      style={{
-                        fontFamily: "'Playfair Display', Georgia, serif",
-                        fontSize: 'clamp(8.5px, 1.55cqh, 13.5px)',
-                      }}
-                    >
-                      Full-Stack Developer Intern —{' '}
-                      <span className="italic font-semibold text-[#3a2b1e]">
-                        BILT IT Solutions
-                      </span>
-                    </h3>
-                  </div>
-                  <span
-                    className="uppercase tracking-[0.14em] font-semibold text-[#7a1c1c] tabular-nums shrink-0"
+              {/* AREAS OF EXPERTISE (Clean Editorial Ledger - NO SLASHES) */}
+              <section className="mt-[2.2cqh] pt-[1.6cqh] border-t border-[#1b140e]/25 shrink-0">
+                <div className="flex items-center justify-between mb-[1cqh]">
+                  <h3
+                    className="m-0 font-extrabold uppercase tracking-[0.18em] text-[#7a1c1c]"
                     style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: 'clamp(6.5px, 1.15cqh, 10px)',
+                      fontFamily: "'Playfair Display', 'Cinzel', Georgia, serif",
+                      fontSize: 'clamp(11px, 2cqh, 16px)',
                     }}
                   >
-                    2025 – 2026
+                    Areas of Expertise
+                  </h3>
+                  <span
+                    className="uppercase tracking-[0.14em] text-[#5a4633] font-semibold text-[clamp(7px,1.05cqh,9.5px)]"
+                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                  >
+                    Core Disciplines
                   </span>
                 </div>
 
-                {/* 2x2 Structured Engineering Deliverables Grid */}
-                <div className="grid grid-cols-2 gap-x-[2.4cqw] gap-y-[0.55cqh] pt-[0.35cqh] border-t border-[#1b140e]/15">
-                  {EXPERIENCE_HIGHLIGHTS.map((item) => (
-                    <div key={item.code} className="flex items-start gap-[0.9cqw] min-w-0">
-                      <span
-                        className="text-[#7a1c1c] font-bold tabular-nums shrink-0 mt-[0.1cqh]"
-                        style={{
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: 'clamp(6.5px, 1.1cqh, 9.5px)',
-                        }}
-                      >
-                        {item.code}
-                      </span>
-                      <div className="min-w-0 leading-[1.28]">
-                        <div
-                          className="font-bold text-[#18120c] truncate"
-                          style={{ fontSize: 'clamp(7.2px, 1.3cqh, 11.2px)' }}
-                        >
-                          {item.title}
-                        </div>
-                        <div
-                          className="text-[#3e2f21] truncate"
-                          style={{ fontSize: 'clamp(6.8px, 1.2cqh, 10.4px)' }}
-                        >
-                          {item.detail}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* 4. TECHNICAL ARSENAL (2-Column Architectural Spec Table) */}
-              <section className="flex-1 flex flex-col justify-between border-t-2 border-b border-[#1b140e]/75 py-[0.65cqh] min-h-0">
-                {/* Section Subheader */}
-                <div
-                  className="flex items-center justify-between pb-[0.4cqh] border-b border-[#1b140e]/20 shrink-0"
-                  style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: 'clamp(6.5px, 1.1cqh, 9.6px)',
-                  }}
-                >
-                  <span className="uppercase tracking-[0.2em] font-bold text-[#18120c]">
-                    SECTION II — TECHNICAL SPECIFICATIONS
-                  </span>
-                  <span className="uppercase tracking-[0.14em] text-[#523f2d]">
-                    3 CORE DOMAINS
-                  </span>
-                </div>
-
-                {/* Structured 2-Column Rows */}
-                <div className="flex-1 flex flex-col justify-evenly divide-y divide-[#1b140e]/15 min-h-0">
-                  {SKILL_GROUPS.map((group) => (
-                    <div
-                      key={group.index}
-                      className="grid grid-cols-12 items-baseline gap-x-[1.8cqw] py-[0.55cqh]"
+                <div className="flex flex-col gap-[0.9cqh]">
+                  {/* Domain 01 */}
+                  <div className="flex items-start gap-[1.2cqw]">
+                    <span
+                      className="font-bold text-[#7a1c1c] text-[clamp(8px,1.25cqh,11px)] shrink-0 mt-[0.1cqh]"
+                      style={{ fontFamily: "'IBM Plex Mono', monospace" }}
                     >
-                      {/* Left Column: Index + Domain Title */}
-                      <div className="col-span-4 pr-[0.8cqw]">
-                        <div className="flex items-baseline gap-[0.7cqw]">
-                          <span
-                            className="font-bold text-[#7a1c1c] tabular-nums shrink-0"
-                            style={{
-                              fontFamily: "'IBM Plex Mono', monospace",
-                              fontSize: 'clamp(7px, 1.22cqh, 10.5px)',
-                            }}
-                          >
-                            {group.index}
-                          </span>
-                          <span
-                            className="font-bold text-[#140e09] tracking-[0.01em] leading-tight"
-                            style={{
-                              fontFamily: "'Playfair Display', Georgia, serif",
-                              fontSize: 'clamp(8px, 1.42cqh, 12.2px)',
-                            }}
-                          >
-                            {group.label}
-                          </span>
-                        </div>
-                        <div
-                          className="uppercase tracking-[0.1em] text-[#5a4633] pl-[2.1cqw] mt-[0.1cqh]"
-                          style={{
-                            fontFamily: "'IBM Plex Mono', monospace",
-                            fontSize: 'clamp(5.8px, 0.96cqh, 8.5px)',
-                          }}
-                        >
-                          {group.sub}
-                        </div>
+                      01.
+                    </span>
+                    <div className="min-w-0">
+                      <div
+                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.35cqh,12px)] tracking-[0.03em]"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                      >
+                        Web &amp; Application Systems
                       </div>
-
-                      {/* Right Column: Clean Unboxed Typographic Spec List */}
-                      <div className="col-span-8">
-                        <p
-                          className="m-0 text-[#221911] leading-[1.42] font-medium"
-                          style={{
-                            fontFamily: "'IBM Plex Mono', monospace",
-                            fontSize: 'clamp(6.8px, 1.22cqh, 10.6px)',
-                          }}
-                        >
-                          {group.skills.map((skill, sIdx) => (
-                            <React.Fragment key={skill}>
-                              <span className="text-[#1a130d] font-medium">{skill}</span>
-                              {sIdx < group.skills.length - 1 && (
-                                <span className="text-[#7a1c1c]/70 mx-[0.55cqw] font-normal">
-                                  /
-                                </span>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </p>
-                      </div>
+                      <p
+                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.18cqh,10.5px)] leading-[1.42] tracking-[0.01em] mt-[0.15cqh]"
+                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
+                      >
+                        Building responsive full-stack web applications, dynamic admin portals, and performant user interfaces with React, TypeScript, Tailwind CSS, and Laravel.
+                      </p>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Domain 02 */}
+                  <div className="flex items-start gap-[1.2cqw]">
+                    <span
+                      className="font-bold text-[#7a1c1c] text-[clamp(8px,1.25cqh,11px)] shrink-0 mt-[0.1cqh]"
+                      style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                    >
+                      02.
+                    </span>
+                    <div className="min-w-0">
+                      <div
+                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.35cqh,12px)] tracking-[0.03em]"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                      >
+                        Backend &amp; API Architecture
+                      </div>
+                      <p
+                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.18cqh,10.5px)] leading-[1.42] tracking-[0.01em] mt-[0.15cqh]"
+                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
+                      >
+                        Engineering reliable RESTful APIs, relational data modeling, secure authentication systems, and automated data pipelines with Node.js, Express, and PostgreSQL.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Domain 03 */}
+                  <div className="flex items-start gap-[1.2cqw]">
+                    <span
+                      className="font-bold text-[#7a1c1c] text-[clamp(8px,1.25cqh,11px)] shrink-0 mt-[0.1cqh]"
+                      style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                    >
+                      03.
+                    </span>
+                    <div className="min-w-0">
+                      <div
+                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.35cqh,12px)] tracking-[0.03em]"
+                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                      >
+                        AI Tooling &amp; Interactive Engines
+                      </div>
+                      <p
+                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.18cqh,10.5px)] leading-[1.42] tracking-[0.01em] mt-[0.15cqh]"
+                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
+                      >
+                        Developing intelligent desktop tooling, Model Context Protocol integrations, automation pipelines, and cross-platform 2D game experiences with Godot and C#.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </section>
-
-              {/* 5. BOTTOM ARCHIVAL FOOTER & NAVIGATION */}
-              <footer
-                className="pt-[0.75cqh] flex items-center justify-between shrink-0"
-                style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={onBack}
-                  className="bg-transparent border-0 p-0 cursor-pointer uppercase tracking-[0.16em] font-semibold text-[#3a2819] hover:text-[#140d07] transition-colors flex items-center gap-[0.6cqw] group"
-                  style={{ fontSize: 'clamp(7px, 1.28cqh, 11px)' }}
-                >
-                  <span className="transition-transform group-hover:-translate-x-0.5">←</span>
-                  <span className="border-b border-[#3a2819]/45 group-hover:border-[#140d07] pb-[1px]">
-                    Return to Home
-                  </span>
-                </button>
-
-                <span
-                  className="uppercase tracking-[0.2em] text-[#5a4633]/80 font-medium tabular-nums"
-                  style={{ fontSize: 'clamp(6px, 1.05cqh, 9px)' }}
-                >
-                  FOLIO 01 · BIO
-                </span>
-
-                <button
-                  type="button"
-                  onClick={onNext}
-                  className="bg-transparent border-0 p-0 cursor-pointer uppercase tracking-[0.16em] font-bold text-[#7a1c1c] hover:text-[#a12323] transition-colors flex items-center gap-[0.6cqw] group"
-                  style={{ fontSize: 'clamp(7px, 1.28cqh, 11px)' }}
-                >
-                  <span className="border-b border-[#7a1c1c]/60 group-hover:border-[#a12323] pb-[1px]">
-                    Inspect Works Clipboard
-                  </span>
-                  <span className="transition-transform group-hover:translate-x-0.5">→</span>
-                </button>
-              </footer>
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================ */}
-        {/* 6. Small Polaroid Photo Frame (05-small-card.png)            */}
-        {/* ============================================================ */}
-        <div
-          className="page-half-layer page-half-small-card"
-          style={{ containerType: 'size' }}
-        >
-          <div className="relative w-full h-full page-half-idle-small-card">
-            <img
-              src={`${assetsPath}/page-one-half/05-small-card.png`}
-              alt=""
-              decoding="async"
-              draggable={false}
-              className="page-half-img relative z-[1]"
-            />
-
-            {/* Inner Polaroid Picture Fitted Inside the White Frame Border */}
-            <div
-              className="dossier-inscribed-content absolute overflow-hidden bg-[#161311] select-none pointer-events-none"
-              style={{
-                left: '12.7%',
-                top: '14.8%',
-                width: '74.6%',
-                height: '68.6%',
-                transform: 'rotate(-14.5deg)',
-                zIndex: 2,
-              }}
-            >
-              <img
-                src={`${assetsPath}/edrian-hero.png`}
-                alt=""
-                decoding="async"
-                draggable={false}
-                className="w-full h-full object-cover object-top select-none pointer-events-none"
-                style={{
-                  filter: 'sepia(0.28) contrast(1.08) brightness(0.94)',
-                }}
-              />
             </div>
           </div>
         </div>
@@ -580,3 +299,5 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
     </div>
   );
 };
+
+export default PageOneHalf;

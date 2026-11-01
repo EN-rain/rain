@@ -79,7 +79,7 @@ export const PaperStack: React.FC<PaperStackProps> = ({
                 className="uppercase tracking-[0.22em] text-[#4a3320] font-bold"
                 style={{ fontSize: 'clamp(8px, 1.35cqh, 12px)' }}
               >
-                EDRIAN NIEVES // FULL-STACK DEVELOPER
+                EDRIAN NIEVES · DEVELOPER
               </span>
               <span
                 className="uppercase tracking-[0.2em] text-[#7a1c1c] font-extrabold"
@@ -110,36 +110,6 @@ export const PaperStack: React.FC<PaperStackProps> = ({
               >
                 Designing and engineering end-to-end web platforms, mobile apps, and AI tools with clean interfaces and reliable architecture.
               </p>
-            </div>
-
-            {/* Subtle Hook Invitation / CTA Strip */}
-            <div className="w-full pt-[0.9cqh] border-t border-[#2b1d10]/25 flex items-center justify-center gap-[2.5cqw] pointer-events-auto">
-              <button
-                type="button"
-                onClick={() => onNavigate?.('works')}
-                className="bg-transparent border-0 p-0 cursor-pointer uppercase tracking-[0.18em] font-extrabold text-[#6e1b1b] hover:text-[#9e2424] underline decoration-[#6e1b1b]/55 underline-offset-4 transition-colors"
-                style={{ fontSize: 'clamp(8.5px, 1.45cqh, 13px)' }}
-              >
-                Explore Selected Works →
-              </button>
-              <span aria-hidden="true" className="text-[#5c432b]/70">·</span>
-              <button
-                type="button"
-                onClick={() => onNavigate?.('about')}
-                className="bg-transparent border-0 p-0 cursor-pointer uppercase tracking-[0.18em] font-extrabold text-[#23170d] hover:text-[#6e1b1b] underline decoration-[#2b1d10]/45 underline-offset-4 transition-colors"
-                style={{ fontSize: 'clamp(8.5px, 1.45cqh, 13px)' }}
-              >
-                Open Dossier
-              </button>
-              <span aria-hidden="true" className="text-[#5c432b]/70">·</span>
-              <button
-                type="button"
-                onClick={() => onNavigate?.('contact')}
-                className="bg-transparent border-0 p-0 cursor-pointer uppercase tracking-[0.18em] font-extrabold text-[#23170d] hover:text-[#6e1b1b] underline decoration-[#2b1d10]/45 underline-offset-4 transition-colors"
-                style={{ fontSize: 'clamp(8.5px, 1.45cqh, 13px)' }}
-              >
-                Dispatch Contact
-              </button>
             </div>
           </div>
         </div>

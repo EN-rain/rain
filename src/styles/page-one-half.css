@@ -79,22 +79,13 @@
   z-index: 4;
 }
 
-/* 5. Paper Memo Sheet (06-paper.png) - Right page bio & technical arsenal */
+/* 5. Paper Memo Sheet (06-paper.png) - Centered on right folder page */
 .page-half-paper {
-  left: 51%;
-  top: 6.5%;
-  width: 39.2%;
-  height: 86.5%;
+  left: 54.2%;
+  top: 6%;
+  width: 35%;
+  height: 85%;
   z-index: 5;
-}
-
-/* 6. Small Polaroid Photo (05-small-card.png) - Corner evidence badge */
-.page-half-small-card {
-  left: 41.9%;
-  top: 63.4%;
-  width: 11.3%;
-  height: 18.4%;
-  z-index: 6;
 }
 
 /* ============================================================
@@ -102,27 +93,36 @@
    ============================================================ */
 
 @keyframes dossier-idle-float-1 {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate3d(0, 0, 0) rotate(0deg);
   }
+
   50% {
     transform: translate3d(1px, -4px, 0) rotate(0.4deg);
   }
 }
 
 @keyframes dossier-idle-float-2 {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate3d(0, 0, 0) rotate(0deg);
   }
+
   50% {
     transform: translate3d(-2px, -3px, 0) rotate(-0.5deg);
   }
 }
 
 @keyframes dossier-idle-float-3 {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate3d(0, 0, 0) rotate(0deg);
   }
+
   50% {
     transform: translate3d(2px, -3.5px, 0) rotate(0.6deg);
   }
@@ -135,11 +135,6 @@
 
 .page-half[data-settled="true"] .page-half-idle-large-card {
   animation: dossier-idle-float-2 8.5s ease-in-out 0.8s infinite;
-  will-change: transform;
-}
-
-.page-half[data-settled="true"] .page-half-idle-small-card {
-  animation: dossier-idle-float-3 6.8s ease-in-out 0.4s infinite;
   will-change: transform;
 }
 

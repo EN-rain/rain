@@ -1,21 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { YumekaMascot } from './YumekaMascot';
 
 interface VintageContactDeskProps {
   onBack?: () => void;
   onNavigateSection?: (section: 'home' | 'about' | 'works') => void;
   className?: string;
   active?: boolean;
+  assetsPath?: string;
 }
 
 export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
   onBack,
   className = '',
   active = true,
+  assetsPath = '/assets',
 }) => {
   useEffect(() => {
     if (!active) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (
+        e.key === 'Escape' ||
+        e.key === 'ArrowUp' ||
+        e.key === 'ArrowLeft' ||
+        e.key === 'PageUp'
+      ) {
+        e.preventDefault();
         onBack?.();
       }
     };
@@ -25,31 +34,79 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 w-full h-full overflow-hidden select-none bg-[#1c100a] ${className}`}
+      className={`fixed inset-0 w-full h-full overflow-hidden select-none bg-white ${className}`}
       style={{
         pointerEvents: active ? 'auto' : 'none',
       }}
     >
-      {/* Fullscreen Detective Desk Scene */}
-      <img
-        src="/assets/detective-desk/detective-desk-scene-1672.png"
-        alt="Vintage detective desk"
-        draggable={false}
-        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
-      />
+      <style>{`
+        @keyframes bookmarkSlideInPopup {
+          0% {
+            transform: translate3d(-110%, 0, 0) scale(0.92);
+            opacity: 0;
+          }
+          62% {
+            transform: translate3d(14px, 0, 0) scale(1.05);
+            opacity: 1;
+          }
+          82% {
+            transform: translate3d(-3px, 0, 0) scale(0.99);
+          }
+          100% {
+            transform: translate3d(0, 0, 0) scale(1);
+            opacity: 1;
+          }
+        }
+        .bookmark-slide-popup {
+          animation: bookmarkSlideInPopup 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+      `}</style>
 
-      {/* Subtle Back Button */}
-      {onBack && (
+      {/* Return Bookmark Tab in Top Left - clipped at screen edge with slide-in popup animation */}
+      <nav
+        aria-label="Return Navigation Bookmark"
+        className={`fixed top-6 sm:top-8 md:top-10 left-0 z-50 pointer-events-auto ${
+          active ? 'bookmark-slide-popup' : 'opacity-0 -translate-x-full pointer-events-none'
+        }`}
+      >
         <button
           type="button"
           onClick={onBack}
-          aria-label="Return to previous section"
-          className="absolute top-6 left-6 z-20 px-3.5 py-1.5 bg-[#1e1008]/85 hover:bg-[#341b0d] text-[#f4dfba] border border-[#f4dfba]/30 rounded text-[11px] font-extrabold tracking-[0.16em] uppercase cursor-pointer backdrop-blur-xs transition-all shadow-[0_4px_16px_rgba(0,0,0,0.6)] flex items-center gap-2"
+          disabled={!active}
+          aria-label="Return to portfolio"
+          className="group relative -left-8 sm:-left-10 md:-left-12 w-[210px] sm:w-[240px] md:w-[270px] h-[52px] sm:h-[60px] md:h-[66px] border-0 p-0 bg-transparent cursor-pointer will-change-transform select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e8cf92]"
         >
-          <span>←</span>
-          <span>Return</span>
+          {/* Inner tab with interactive hover popup slide */}
+          <div className="relative w-full h-full transition-all duration-200 ease-out will-change-transform group-hover:translate-x-3.5 group-hover:scale-[1.03] active:scale-95 active:translate-x-1">
+            {/* Torn Parchment Tab Texture */}
+            <img
+              src={`${assetsPath}/label-tab.png`}
+              alt=""
+              decoding="async"
+              className="w-full h-full object-fill pointer-events-none brightness-[0.92] contrast-[1.05] drop-shadow-[3px_6px_14px_rgba(0,0,0,0.7)] group-hover:brightness-105 group-hover:drop-shadow-[5px_8px_18px_rgba(0,0,0,0.9)]"
+            />
+
+            {/* Typewriter Stamped Text positioned on the visible protruding section */}
+            <span
+              className="absolute inset-y-0 right-0 w-[78%] flex items-center justify-center pr-3 sm:pr-4 gap-2 font-bold uppercase select-none pointer-events-none transition-all duration-200 text-[0.88rem] sm:text-[1rem] md:text-[1.08rem] tracking-[0.2em] text-[#241a12] group-hover:tracking-[0.24em] group-hover:text-[#0b0704]"
+              style={{
+                fontFamily: "'Special Elite', 'Courier Prime', monospace, serif",
+                textShadow: '0 0 1px rgba(34, 26, 18, 0.4)',
+              }}
+            >
+              <span className="text-[#3a2012] font-black text-sm sm:text-base transition-transform duration-200 group-hover:-translate-x-1">←</span>
+              <span>Return</span>
+            </span>
+          </div>
         </button>
-      )}
+      </nav>
+
+      {/* 3D VRM Mascot: Yumeka - Pure model only, no background, no UI */}
+      <div
+        className="fixed bottom-0 right-2 sm:right-6 md:right-10 z-40 pointer-events-none w-[360px] sm:w-[440px] md:w-[520px] h-[520px] sm:h-[620px] md:h-[720px]"
+      >
+        <YumekaMascot active={active} className="w-full h-full" />
+      </div>
     </div>
   );
 };

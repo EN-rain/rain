@@ -122,7 +122,7 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
                   aria-hidden="true"
                   className={`inline-block shrink-0 rounded-full transition-all duration-300 ${
                     isActive
-                      ? 'w-2.5 h-2.5 bg-[#9e2222] border border-[#f2d694] shadow-[0_0_8px_rgba(175,34,34,0.9)] scale-100 opacity-100'
+                      ? 'w-2.5 h-2.5 bg-[#3a2012] border border-[#b8955a] shadow-[0_0_6px_rgba(58,32,18,0.75)] scale-100 opacity-100'
                       : 'w-1.5 h-1.5 bg-[#4a3728]/40 scale-75 opacity-0 group-hover:opacity-60'
                   }`}
                 />
@@ -132,7 +132,7 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
                   {/* Stamped Ink Underline on Active Bookmark */}
                   <span
                     aria-hidden="true"
-                    className={`absolute -bottom-1 left-0 right-0 h-[2px] bg-[#8c1d1d] rounded-full transition-all duration-300 origin-left ${
+                    className={`absolute -bottom-1 left-0 right-0 h-[2px] bg-[#3a2012] rounded-full transition-all duration-300 origin-left ${
                       isActive ? 'scale-x-100 opacity-95' : 'scale-x-0 opacity-0'
                     }`}
                   />
