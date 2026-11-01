@@ -752,9 +752,9 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
             containerType: 'size',
           }}
         >
-          {/* Open Manila Folder Texture (4th attached image) */}
+          {/* Open Manila Folder Texture */}
           <img
-            src="/assets/aistudio/image_ded2db51.png"
+            src="/assets/scrapbook/case-folder-open.png"
             alt="Project dossier folder"
             draggable={false}
             decoding="async"
