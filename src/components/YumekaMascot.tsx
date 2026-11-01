@@ -79,6 +79,11 @@ export const YumekaMascot: React.FC<YumekaMascotProps> = ({
     fillLight.position.set(-1.5, 1.5, 1.5);
     scene.add(fillLight);
 
+    // Look target for native VRM eye gaze tracking
+    const lookTarget = new THREE.Object3D();
+    scene.add(lookTarget);
+    lookTarget.position.set(0, 1.15, 2.0);
+
     // Track mouse coordinates for interactive subtle lookAt
     const handleMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -148,6 +153,11 @@ export const YumekaMascot: React.FC<YumekaMascotProps> = ({
         vrm.scene.position.set(0, 0, 0);
         scene.add(vrm.scene);
 
+        // Connect native lookAt gaze tracker
+        if (vrm.lookAt) {
+          vrm.lookAt.target = lookTarget;
+        }
+
         // If animation clip is already loaded, apply it
         if (clipRef.current) {
           applyAnimation(vrm, clipRef.current);
@@ -182,23 +192,14 @@ export const YumekaMascot: React.FC<YumekaMascotProps> = ({
         mixer.update(delta);
       }
 
+      // Update look target position for natural gaze tracking
+      lookTarget.position.set(
+        mouseSmoothRef.current.x * 0.8,
+        1.15 - mouseSmoothRef.current.y * 0.5,
+        2.0
+      );
+
       if (vrm) {
-        // Natural subtle mouse-tracking look overlay
-        if (vrm.humanoid) {
-          const neck = vrm.humanoid.getNormalizedBoneNode('neck');
-          const head = vrm.humanoid.getNormalizedBoneNode('head');
-
-          if (neck && head) {
-            const lookX = mouseSmoothRef.current.x * 0.22;
-            const lookY = -mouseSmoothRef.current.y * 0.16;
-
-            neck.rotation.y += lookX * 0.35;
-            neck.rotation.x += lookY * 0.35;
-            head.rotation.y += lookX * 0.35;
-            head.rotation.x += lookY * 0.35;
-          }
-        }
-
         // Natural eye blinking
         blinkTimerRef.current += delta;
         if (!isBlinkingRef.current && blinkTimerRef.current > nextBlinkIntervalRef.current) {
