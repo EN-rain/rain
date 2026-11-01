@@ -198,9 +198,9 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
                 </p>
               </section>
 
-              {/* AREAS OF EXPERTISE (Clean Editorial Ledger - NO SLASHES) */}
-              <section className="mt-[2.2cqh] pt-[1.6cqh] border-t border-[#1b140e]/25 shrink-0">
-                <div className="flex items-center justify-between mb-[1cqh]">
+              {/* INVENTORY / DEVELOPER'S TOOLKIT (Typewritten Evidence List - NO SLASHES) */}
+              <section className="mt-[2cqh] pt-[1.4cqh] border-t border-[#1b140e]/25 shrink-0">
+                <div className="flex items-center justify-between mb-[0.6cqh]">
                   <h3
                     className="m-0 font-extrabold uppercase tracking-[0.18em] text-[#7a1c1c]"
                     style={{
@@ -208,87 +208,71 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
                       fontSize: 'clamp(11px, 2cqh, 16px)',
                     }}
                   >
-                    Areas of Expertise
+                    INVENTORY
                   </h3>
                   <span
                     className="uppercase tracking-[0.14em] text-[#5a4633] font-semibold text-[clamp(7px,1.05cqh,9.5px)]"
-                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                    style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
                   >
-                    Core Disciplines
+                    Developer&rsquo;s Toolkit
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-[0.9cqh]">
-                  {/* Domain 01 */}
-                  <div className="flex items-start gap-[1.2cqw]">
-                    <span
-                      className="font-bold text-[#7a1c1c] text-[clamp(8px,1.25cqh,11px)] shrink-0 mt-[0.1cqh]"
-                      style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-                    >
-                      01.
-                    </span>
-                    <div className="min-w-0">
-                      <div
-                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.35cqh,12px)] tracking-[0.03em]"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        Web &amp; Application Systems
-                      </div>
-                      <p
-                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.18cqh,10.5px)] leading-[1.42] tracking-[0.01em] mt-[0.15cqh]"
-                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
-                      >
-                        Building responsive full-stack web applications, dynamic admin portals, and performant user interfaces with React, TypeScript, Tailwind CSS, and Laravel.
-                      </p>
+                <p
+                  className="m-0 mb-[1cqh] text-[#3d2f23] text-[clamp(7.5px,1.15cqh,10.5px)] leading-[1.4] tracking-[0.01em]"
+                  style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
+                >
+                  Technical inventory containing programming languages, databases, interfaces, and development tools styled as an evidence list.
+                </p>
+
+                {/* Typewritten Evidence List */}
+                <div
+                  className="flex flex-col gap-[0.55cqh] bg-[#1a140f]/[0.035] p-[1.1cqw] rounded border border-[#1b140e]/20"
+                  style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                >
+                  {/* JS */}
+                  <div className="flex items-baseline justify-between text-[clamp(7.5px,1.18cqh,11px)] border-b border-[#1b140e]/12 pb-[0.35cqh]">
+                    <div className="flex items-baseline gap-[1cqw]">
+                      <span className="font-bold text-[#7a1c1c] tracking-[0.08em]">01. JS</span>
+                      <span className="text-[#1a140e] font-semibold">JavaScript</span>
                     </div>
+                    <span className="text-[#4a3a2a] text-[clamp(7px,1.02cqh,9.5px)]">Modern ES6+, Web Engines, Node.js Runtimes</span>
                   </div>
 
-                  {/* Domain 02 */}
-                  <div className="flex items-start gap-[1.2cqw]">
-                    <span
-                      className="font-bold text-[#7a1c1c] text-[clamp(8px,1.25cqh,11px)] shrink-0 mt-[0.1cqh]"
-                      style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-                    >
-                      02.
-                    </span>
-                    <div className="min-w-0">
-                      <div
-                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.35cqh,12px)] tracking-[0.03em]"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        Backend &amp; API Architecture
-                      </div>
-                      <p
-                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.18cqh,10.5px)] leading-[1.42] tracking-[0.01em] mt-[0.15cqh]"
-                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
-                      >
-                        Engineering reliable RESTful APIs, relational data modeling, secure authentication systems, and automated data pipelines with Node.js, Express, and PostgreSQL.
-                      </p>
+                  {/* TS */}
+                  <div className="flex items-baseline justify-between text-[clamp(7.5px,1.18cqh,11px)] border-b border-[#1b140e]/12 pb-[0.35cqh]">
+                    <div className="flex items-baseline gap-[1cqw]">
+                      <span className="font-bold text-[#7a1c1c] tracking-[0.08em]">02. TS</span>
+                      <span className="text-[#1a140e] font-semibold">TypeScript</span>
                     </div>
+                    <span className="text-[#4a3a2a] text-[clamp(7px,1.02cqh,9.5px)]">Strict Type Systems, Interfaces, Scalable Architecture</span>
                   </div>
 
-                  {/* Domain 03 */}
-                  <div className="flex items-start gap-[1.2cqw]">
-                    <span
-                      className="font-bold text-[#7a1c1c] text-[clamp(8px,1.25cqh,11px)] shrink-0 mt-[0.1cqh]"
-                      style={{ fontFamily: "'IBM Plex Mono', monospace" }}
-                    >
-                      03.
-                    </span>
-                    <div className="min-w-0">
-                      <div
-                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.35cqh,12px)] tracking-[0.03em]"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        AI Tooling &amp; Interactive Engines
-                      </div>
-                      <p
-                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.18cqh,10.5px)] leading-[1.42] tracking-[0.01em] mt-[0.15cqh]"
-                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
-                      >
-                        Developing intelligent desktop tooling, Model Context Protocol integrations, automation pipelines, and cross-platform 2D game experiences with Godot and C#.
-                      </p>
+                  {/* SQL */}
+                  <div className="flex items-baseline justify-between text-[clamp(7.5px,1.18cqh,11px)] border-b border-[#1b140e]/12 pb-[0.35cqh]">
+                    <div className="flex items-baseline gap-[1cqw]">
+                      <span className="font-bold text-[#7a1c1c] tracking-[0.08em]">03. SQL</span>
+                      <span className="text-[#1a140e] font-semibold">Databases</span>
                     </div>
+                    <span className="text-[#4a3a2a] text-[clamp(7px,1.02cqh,9.5px)]">PostgreSQL, Relational Modeling, Query Optimization</span>
+                  </div>
+
+                  {/* API */}
+                  <div className="flex items-baseline justify-between text-[clamp(7.5px,1.18cqh,11px)] border-b border-[#1b140e]/12 pb-[0.35cqh]">
+                    <div className="flex items-baseline gap-[1cqw]">
+                      <span className="font-bold text-[#7a1c1c] tracking-[0.08em]">04. API</span>
+                      <span className="text-[#1a140e] font-semibold">Interfaces</span>
+                    </div>
+                    <span className="text-[#4a3a2a] text-[clamp(7px,1.02cqh,9.5px)]">REST Services, Token Authentication, Endpoints</span>
+                  </div>
+
+                  {/* GIT */}
+                  <div className="flex items-baseline justify-between text-[clamp(7.5px,1.18cqh,11px)]">
+                    <div className="flex items-baseline gap-[1cqw]">
+                      <span className="font-bold text-[#7a1c1c] tracking-[0.08em]">05. GIT</span>
+                      <span className="text-[#1a140e] font-semibold">Version Control</span>
+                    </div>
+                    <span className="text-[#4a3a2a] text-[clamp(7px,1.02cqh,9.5px)]">Branching Strategies, Release Pipelines, Commit Logs</span>
                   </div>
                 </div>
               </section>
