@@ -86,6 +86,28 @@ class RetroSoundEngine {
     }
   }
 
+  playPaperRustle() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(340, now);
+      osc.frequency.exponentialRampToValueAtTime(130, now + 0.14);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } catch {
+      // AudioContext failure safety
+    }
+  }
+
   dispose() {
     if (this.ctx) {
       try {
@@ -230,6 +252,116 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       return new THREE.CanvasTexture(c);
     }
 
+    function createPaperPlaneTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d')!;
+
+      // Aged Airmail Parchment Base
+      ctx.fillStyle = '#f6f1e6';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Fine fiber grain
+      for (let i = 0; i < 2200; i++) {
+        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(60, 48, 30, 0.04)' : 'rgba(255, 255, 255, 0.08)';
+        ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+      }
+
+      // Airmail border stripes on leading wing edge
+      const stripeW = 22;
+      for (let x = 0; x < 512; x += 36) {
+        // Crimson chevron
+        ctx.fillStyle = '#b82828';
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + 18, 0);
+        ctx.lineTo(x + 8, stripeW);
+        ctx.lineTo(x - 10, stripeW);
+        ctx.closePath();
+        ctx.fill();
+
+        // Navy chevron
+        ctx.fillStyle = '#203a74';
+        ctx.beginPath();
+        ctx.moveTo(x + 18, 0);
+        ctx.lineTo(x + 36, 0);
+        ctx.lineTo(x + 26, stripeW);
+        ctx.lineTo(x + 8, stripeW);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Airmail stamped seal on upper wing
+      ctx.strokeStyle = '#9c2424';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(185, 210, 142, 50);
+      ctx.font = 'bold 15px "Courier Prime", monospace';
+      ctx.fillStyle = '#9c2424';
+      ctx.textAlign = 'center';
+      ctx.fillText('FIELD MAIL', 256, 233);
+      ctx.font = '10px "Courier Prime", monospace';
+      ctx.fillText('PAR AVION · 1983', 256, 248);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    function createPaperAirplaneGeo(): THREE.BufferGeometry {
+      const geo = new THREE.BufferGeometry();
+
+      // Folded origami dart landmark points (facing -Z forward, +Y up, +X right)
+      const nose = [0, 0.008, -0.22];
+      const tailCenter = [0, 0.006, 0.18];
+      const keelFront = [0, -0.024, -0.08];
+      const keelBack = [0, -0.052, 0.16];
+      const lCrease = [-0.026, -0.012, 0.17];
+      const rCrease = [0.026, -0.012, 0.17];
+      const lWingTip = [-0.175, 0.026, 0.16];
+      const rWingTip = [0.175, 0.026, 0.16];
+      const lWinglet = [-0.182, 0.062, 0.155];
+      const rWinglet = [0.182, 0.062, 0.155];
+
+      const positions: number[] = [];
+      const uvs: number[] = [];
+
+      function addTri(
+        p1: number[], uv1: [number, number],
+        p2: number[], uv2: [number, number],
+        p3: number[], uv3: [number, number]
+      ) {
+        positions.push(...p1, ...p2, ...p3);
+        uvs.push(...uv1, ...uv2, ...uv3);
+        // Double-sided backface
+        positions.push(...p1, ...p3, ...p2);
+        uvs.push(...uv1, ...uv3, ...uv2);
+      }
+
+      // Left & Right Wings (Top main surfaces)
+      addTri(nose, [0.5, 0.05], lCrease, [0.44, 0.85], lWingTip, [0.05, 0.85]);
+      addTri(nose, [0.5, 0.05], rWingTip, [0.95, 0.85], rCrease, [0.56, 0.85]);
+
+      // Left & Right Center Creases
+      addTri(nose, [0.5, 0.05], tailCenter, [0.5, 0.88], lCrease, [0.44, 0.85]);
+      addTri(nose, [0.5, 0.05], rCrease, [0.56, 0.85], tailCenter, [0.5, 0.88]);
+
+      // Keel (Underbelly fuselage)
+      addTri(nose, [0.5, 0.05], keelFront, [0.48, 0.45], lCrease, [0.44, 0.85]);
+      addTri(keelFront, [0.48, 0.45], keelBack, [0.48, 0.85], lCrease, [0.44, 0.85]);
+      addTri(nose, [0.5, 0.05], rCrease, [0.56, 0.85], keelFront, [0.52, 0.45]);
+      addTri(keelFront, [0.52, 0.45], rCrease, [0.56, 0.85], keelBack, [0.52, 0.85]);
+
+      // Winglet stabilizers on outer tips
+      addTri(lWingTip, [0.05, 0.85], nose, [0.5, 0.05], lWinglet, [0.02, 0.82]);
+      addTri(rWingTip, [0.95, 0.85], rWinglet, [0.98, 0.82], nose, [0.5, 0.05]);
+
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geo.computeVertexNormals();
+      return geo;
+    }
+
     // Interactive CRT Screen Canvas
     const crtCanvas = document.createElement('canvas');
     crtCanvas.width = 1024;
@@ -308,6 +440,14 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       setFocus(FORM_ORDER[(i + dir + FORM_ORDER.length) % FORM_ORDER.length]);
     }
 
+    const planeState = {
+      mode: 'entrance' as 'entrance' | 'landed' | 'loop' | 'deliver' | 'dispatched',
+      time: 0,
+    };
+
+    let launchPlaneLoop = () => {};
+    let launchPlaneDelivery = () => {};
+
     function clearForm() {
       const ts = terminalState;
       ts.fields = { name: '', email: '', subject: '', message: '' };
@@ -321,6 +461,10 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     function resetForm() {
       clearForm();
       terminalState.status = '';
+      if (planeState.mode === 'dispatched') {
+        planeState.mode = 'entrance';
+        planeState.time = 0;
+      }
       renderCRTScreen();
     }
 
@@ -341,7 +485,8 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       ts.statusKind = '';
       ts.focus = 'new';
       sfx.playCRTBeep(1040, 0.08);
-      showToast('MESSAGE SENT', 'Thank you! Your letter has been dispatched.');
+      launchPlaneDelivery();
+      showToast('MESSAGE DISPATCHED', 'Your airmail letter has taken flight to Edrian Nieves.');
       renderCRTScreen();
     }
 
@@ -2013,6 +2158,89 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     noteMesh.receiveShadow = true;
     scene.add(noteMesh);
 
+    // Origami Airmail Paper Airplane
+    const planeTex = createPaperPlaneTexture();
+    const planeGeo = createPaperAirplaneGeo();
+    const planeMat = new THREE.MeshStandardMaterial({
+      map: planeTex,
+      roughness: 0.68,
+      metalness: 0.02,
+      side: THREE.DoubleSide,
+      shadowSide: THREE.DoubleSide,
+    });
+    const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+    planeMesh.castShadow = true;
+    planeMesh.receiveShadow = true;
+    planeMesh.name = 'PAPER_PLANE';
+
+    const planeGroup = new THREE.Group();
+    planeGroup.name = 'PAPER_PLANE_GROUP';
+    planeGroup.add(planeMesh);
+    scene.add(planeGroup);
+
+    // Flight Path Curves
+    // 1. Entrance Flight (swoops in, circles the room, and lands on desk between keyboard and monitor)
+    const entranceFlightPoints = [
+      new THREE.Vector3(3.6, 3.8, -1.8),     // High right entry above room
+      new THREE.Vector3(2.4, 2.7, -0.9),     // Gliding past the lamp shade
+      new THREE.Vector3(1.2, 1.7, -0.1),     // Sweeping through golden volumetric beam
+      new THREE.Vector3(-0.15, 1.25, 0.45),  // Crossing desk in front of CRT
+      new THREE.Vector3(-1.5, 1.65, 0.25),   // Banking turn around CRT
+      new THREE.Vector3(-2.3, 2.45, -0.7),   // Climbing banking turn past tower
+      new THREE.Vector3(-1.7, 3.05, -1.9),   // Cresting along back wall
+      new THREE.Vector3(0.8, 2.7, -1.6),     // Gliding across rear room
+      new THREE.Vector3(2.7, 2.1, -0.2),     // Wide banking turn around lamp
+      new THREE.Vector3(2.2, 1.4, 1.35),     // Turning toward front desk runway
+      new THREE.Vector3(1.1, 0.72, 1.3),     // Gliding along keyboard front edge
+      new THREE.Vector3(0.24, 0.22, 0.98),   // Short final approach
+      new THREE.Vector3(-0.05, 0.048, 0.80), // Flairing nose up before touchdown
+      new THREE.Vector3(-0.16, 0.019, 0.70)  // Settled touchdown between keyboard & monitor
+    ];
+    const entranceCurve = new THREE.CatmullRomCurve3(entranceFlightPoints, false, 'centripetal', 0.5);
+
+    // 2. Loop Flight (taking off from desk, circling around room, landing back down)
+    const loopFlightPoints = [
+      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
+      new THREE.Vector3(-0.10, 0.28, 0.45),  // Lift off & climb
+      new THREE.Vector3(0.40, 0.95, 0.10),   // Ascending toward volumetric beam
+      new THREE.Vector3(1.80, 1.85, 0.20),   // Banking right around lamp
+      new THREE.Vector3(2.50, 2.30, -0.80),  // High bank past wall
+      new THREE.Vector3(0.60, 2.60, -1.70),  // High back circuit
+      new THREE.Vector3(-1.60, 2.20, -1.10), // Swooping down past PC tower
+      new THREE.Vector3(-1.40, 1.35, 0.15),  // Sweeping low around CRT
+      new THREE.Vector3(0.30, 0.75, 1.10),   // Aligning keyboard runway
+      new THREE.Vector3(0.12, 0.18, 0.92),   // Final flair
+      new THREE.Vector3(-0.16, 0.019, 0.70)  // Touchdown between keyboard & monitor
+    ];
+    const loopCurve = new THREE.CatmullRomCurve3(loopFlightPoints, false, 'centripetal', 0.5);
+
+    // 3. Delivery Flight (launches from desk, accelerates through the beam, flies off into distance)
+    const deliveryFlightPoints = [
+      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
+      new THREE.Vector3(-0.12, 0.16, 0.42),  // Rapid lift off
+      new THREE.Vector3(-0.04, 0.65, 0.08),  // Steep climb
+      new THREE.Vector3(0.42, 1.60, -0.42),  // Climbing into golden beam
+      new THREE.Vector3(1.35, 2.70, -1.15),  // Banking past gooseneck
+      new THREE.Vector3(2.60, 3.80, -1.95),  // High exit trajectory
+      new THREE.Vector3(4.50, 5.20, -2.90)   // Disappearing into night
+    ];
+    const deliveryCurve = new THREE.CatmullRomCurve3(deliveryFlightPoints, false, 'centripetal', 0.5);
+
+    launchPlaneLoop = () => {
+      planeGroup.visible = true;
+      planeState.mode = 'loop';
+      planeState.time = 0;
+      sfx.playPaperRustle();
+      showToast('RECONNAISSANCE FLIGHT', 'Paper airplane taking off on a room circuit...');
+    };
+
+    launchPlaneDelivery = () => {
+      planeGroup.visible = true;
+      planeState.mode = 'deliver';
+      planeState.time = 0;
+      sfx.playPaperRustle();
+    };
+
     // Lighting
     const ambientLight = new THREE.AmbientLight(0x28221b, 0.72);
     scene.add(ambientLight);
@@ -2138,6 +2366,13 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
           terminalState.hoveredItem = -1;
           renderCRTScreen();
         }
+        if (planeState.mode === 'landed') {
+          const planeHits = raycaster.intersectObject(planeMesh);
+          if (planeHits.length > 0) {
+            document.body.style.cursor = 'pointer';
+            return;
+          }
+        }
         document.body.style.cursor = 'default';
       }
     }
@@ -2150,6 +2385,13 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       const hits = raycaster.intersectObjects(scene.children, true);
       if (hits.length === 0) return;
       const hitObj = hits[0].object;
+
+      if (hitObj.name === 'PAPER_PLANE' || hitObj.parent?.name === 'PAPER_PLANE_GROUP') {
+        if (planeState.mode === 'landed') {
+          launchPlaneLoop();
+          return;
+        }
+      }
 
       if (hitObj.name === 'CRT_SCREEN') {
         if (terminalState.hoveredItem !== -1) {
@@ -2313,6 +2555,61 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       const targetHoverBoost = terminalState.hoveredItem !== -1 ? 1.0 : 0.0;
       crtShaderUniforms.uHoverBoost.value += (targetHoverBoost - crtShaderUniforms.uHoverBoost.value) * 0.12;
 
+      // Paper Airplane Flight Dynamics
+      if (planeState.mode === 'entrance' || planeState.mode === 'loop' || planeState.mode === 'deliver') {
+        const activeCurve = planeState.mode === 'deliver'
+          ? deliveryCurve
+          : (planeState.mode === 'loop' ? loopCurve : entranceCurve);
+        const duration = planeState.mode === 'deliver' ? 3.8 : (planeState.mode === 'loop' ? 6.2 : 7.4);
+
+        planeState.time += 0.016;
+        const t = Math.min(1.0, planeState.time / duration);
+
+        let easeT: number;
+        if (planeState.mode === 'deliver') {
+          easeT = t * t;
+        } else {
+          // Graceful cruising speed with soft flair before touchdown
+          easeT = t < 0.86 ? (t / 0.86) * 0.86 : 0.86 + Math.sin(((t - 0.86) / 0.14) * Math.PI * 0.5) * 0.14;
+        }
+
+        const pt = activeCurve.getPointAt(easeT);
+        const tangent = activeCurve.getTangentAt(easeT).normalize();
+
+        planeGroup.position.copy(pt);
+
+        // Heading: look along path
+        const lookTarget = pt.clone().add(tangent);
+        planeGroup.lookAt(lookTarget);
+
+        // Aerodynamic banking roll into curves
+        const dt = 0.01;
+        const tNext = activeCurve.getTangentAt(Math.min(1.0, easeT + dt)).normalize();
+        const turnRate = (tNext.x - tangent.x) / dt;
+        const targetRoll = THREE.MathUtils.clamp(-turnRate * 0.35, -0.75, 0.75);
+
+        // Subtle airflow turbulence (diminishes as plane touches down)
+        const speedFactor = 1.0 - Math.pow(easeT, 2);
+        const flutter = Math.sin(planeState.time * 9.5) * 0.028 * speedFactor;
+        const pitchFlutter = Math.sin(planeState.time * 7.5 + 1.2) * 0.014 * speedFactor;
+
+        planeMesh.rotation.z = targetRoll + flutter;
+        planeMesh.rotation.x = pitchFlutter;
+
+        if (t >= 1.0) {
+          if (planeState.mode === 'deliver') {
+            planeGroup.visible = false;
+            planeState.mode = 'dispatched';
+          } else {
+            planeState.mode = 'landed';
+            planeGroup.position.set(-0.16, 0.019, 0.70);
+            planeGroup.rotation.set(0.03, 0.24, 0.07);
+            planeMesh.rotation.set(0, 0, 0);
+            sfx.playPaperRustle();
+          }
+        }
+      }
+
       if (lampVolumetricCone) {
         lampVolumetricCone.material.uniforms.uTime.value = elapsed;
       }
@@ -2366,6 +2663,9 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       wallTex.dispose();
       lightWoodTex.dispose();
       crtTexture.dispose();
+      planeGeo.dispose();
+      planeMat.dispose();
+      planeTex.dispose();
       renderer.dispose();
 
       if (container.contains(renderer.domElement)) {
@@ -2407,3 +2707,4 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
 };
 
 export default FieldMailTerminal;
+
