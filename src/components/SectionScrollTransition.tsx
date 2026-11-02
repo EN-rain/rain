@@ -635,6 +635,33 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       const drawOrder = orderByDepth(drawList, vw * 0.5, vh * 0.5, fov);
 
+      // ── MASKING: Cut out paper silhouette from solid black backdrop ──
+      if (pFlight <= 0.001) {
+        ctx.save();
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, vw, vh);
+
+        ctx.globalCompositeOperation = 'destination-out';
+        for (let i = 0; i < drawList.length; i++) {
+          const pts = drawList[i].pts;
+          if (!pts || pts.length < 3) continue;
+          ctx.beginPath();
+          ctx.moveTo(pts[0][0], pts[0][1]);
+          for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      } else {
+        const slideY = vh * (1.0 - smoothstep(0, 1, pFlight));
+        if (slideY > 1) {
+          ctx.save();
+          ctx.fillStyle = '#0b0a08';
+          ctx.fillRect(0, 0, vw, slideY);
+          ctx.restore();
+        }
+      }
+
       // ── FOLDED FLAPS & 3D AIRPLANE FACETS (TEXTURED WITH LINED PAPER, NO FADE IN FADE OUT) ──
       const shadeStrength = smoothstep(0.01, 0.08, p);
       const creaseProg: Record<number, number> = { 1: pStep5, 2: pStep3, 4: pStep2 };
