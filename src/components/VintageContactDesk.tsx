@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { YumekaMascot } from './YumekaMascot';
+import React, { useEffect } from 'react';
 
 interface VintageContactDeskProps {
   onBack?: () => void;
@@ -28,13 +27,23 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
         onBack?.();
       }
     };
+    const handleWindowMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'CONTACT_DESK_ESCAPE') {
+        onBack?.();
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('message', handleWindowMessage);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('message', handleWindowMessage);
+    };
   }, [active, onBack]);
 
   return (
     <div
-      className={`fixed inset-0 w-full h-full overflow-hidden select-none bg-white ${className}`}
+      className={`fixed inset-0 w-full h-full overflow-hidden select-none bg-[#0b0a08] ${className}`}
       style={{
         pointerEvents: active ? 'auto' : 'none',
       }}
@@ -101,12 +110,15 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
         </button>
       </nav>
 
-      {/* 3D VRM Mascot: Yumeka - Pure model only, no background, no UI */}
-      <div
-        className="fixed bottom-0 right-2 sm:right-6 md:right-10 z-40 pointer-events-none w-[360px] sm:w-[440px] md:w-[520px] h-[520px] sm:h-[620px] md:h-[720px]"
-      >
-        <YumekaMascot active={active} className="w-full h-full" />
-      </div>
+      {/* Interactive 3D Field Mail CRT Terminal Desk */}
+      {active && (
+        <iframe
+          src="/contact-terminal.html"
+          title="Field Mail Terminal"
+          className="absolute inset-0 w-full h-full border-0 z-0 bg-[#0b0a08]"
+          allow="autoplay"
+        />
+      )}
     </div>
   );
 };

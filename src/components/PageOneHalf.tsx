@@ -198,9 +198,10 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
                 </p>
               </section>
 
-              {/* INVENTORY — DEVELOPER'S TOOLKIT (Editorial Archival Ledger - NO SLASHES) */}
-              <section className="mt-[2cqh] pt-[1.5cqh] border-t border-[#1b140e]/25 shrink-0">
-                <div className="flex items-baseline justify-between mb-[1.1cqh]">
+              {/* INVENTORY — DEVELOPER'S TOOLKIT (Authentic Typewritten Evidence Ledger - NO SLASHES) */}
+              <section className="mt-[1.8cqh] pt-[1.2cqh] border-t border-[#1b140e]/25 shrink-0">
+                {/* Header Row */}
+                <div className="flex items-baseline justify-between mb-[0.4cqh]">
                   <h3
                     className="m-0 font-extrabold uppercase tracking-[0.2em] text-[#7a1c1c]"
                     style={{
@@ -218,124 +219,224 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-[0.75cqh]">
-                  {/* JS */}
-                  <div className="flex items-start gap-[1.6cqw]">
-                    <span
-                      className="font-bold text-[#7a1c1c] text-[clamp(8.5px,1.28cqh,11.5px)] tracking-[0.08em] shrink-0 mt-[0.05cqh]"
-                      style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace", width: '2.6rem' }}
-                    >
-                      [JS]
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.32cqh,12px)] tracking-[0.02em]"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        JavaScript
-                      </div>
-                      <p
-                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.15cqh,10.5px)] leading-[1.4] tracking-[0.01em] mt-[0.1cqh]"
-                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
-                      >
-                        Modern ES6+, reactive front-end engines, event-driven architectures, and Node.js backend runtimes.
-                      </p>
-                    </div>
+                {/* Subtitle Description */}
+                <p
+                  className="m-0 mb-[0.8cqh] text-[#3d2f23] text-[clamp(7.2px,1.1cqh,10px)] leading-[1.38] tracking-[0.01em]"
+                  style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
+                >
+                  Technical inventory containing programming languages, databases, interfaces, and development tools styled as an evidence list.
+                </p>
+
+                {/* Evidence Ledger (Authentic Ruled Ledger — Zero modern box styling) */}
+                <div className="border-t border-b border-[#1b140e]/20 bg-[#1a140f]/[0.025] px-[1cqw] py-[0.4cqh]">
+                  {/* Ledger Column Headings */}
+                  <div
+                    className="flex items-center justify-between text-[clamp(6.5px,0.95cqh,8.5px)] uppercase tracking-[0.14em] text-[#6b543e] font-bold pb-[0.3cqh] border-b border-[#1b140e]/15 mb-[0.35cqh]"
+                    style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                  >
+                    <span>REF · TAG</span>
+                    <span>SPECIFICATION &amp; EVIDENCE RECORD</span>
                   </div>
 
-                  {/* TS */}
-                  <div className="flex items-start gap-[1.6cqw]">
-                    <span
-                      className="font-bold text-[#7a1c1c] text-[clamp(8.5px,1.28cqh,11.5px)] tracking-[0.08em] shrink-0 mt-[0.05cqh]"
-                      style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace", width: '2.6rem' }}
-                    >
-                      [TS]
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.32cqh,12px)] tracking-[0.02em]"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        TypeScript
+                  <div className="flex flex-col">
+                    {/* 01. JS */}
+                    <div className="flex items-start gap-[1.5cqw] py-[0.45cqh] border-b border-[#1b140e]/10">
+                      <div className="shrink-0 flex items-center gap-[0.4cqw] mt-[0.05cqh]" style={{ width: '4.4rem' }}>
+                        <span
+                          className="font-bold text-[#5a4633] text-[clamp(7.8px,1.15cqh,10.5px)] tracking-[0.04em]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          01.
+                        </span>
+                        <span
+                          className="font-bold text-[#7a1c1c] text-[clamp(7.5px,1.1cqh,10px)] tracking-[0.08em] px-[0.35rem] py-[0.04rem] bg-[#7a1c1c]/[0.08] border border-[#7a1c1c]/25 rounded-[1px]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          JS
+                        </span>
                       </div>
-                      <p
-                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.15cqh,10.5px)] leading-[1.4] tracking-[0.01em] mt-[0.1cqh]"
-                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
-                      >
-                        Strict type systems, contract-first interface modeling, refactoring safety, and full-stack scalability.
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-[1cqw]">
+                          <span
+                            className="font-bold text-[#140e09] text-[clamp(8.5px,1.3cqh,11.5px)] tracking-[0.015em]"
+                            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                          >
+                            JavaScript
+                          </span>
+                          <span
+                            className="text-[clamp(6.8px,0.95cqh,8.8px)] uppercase tracking-[0.12em] text-[#826b55] font-semibold shrink-0"
+                            style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                          >
+                            Core Engine
+                          </span>
+                        </div>
+                        <p
+                          className="m-0 text-[#3a2c20] text-[clamp(7.2px,1.1cqh,10px)] leading-[1.35] tracking-[0.01em] mt-[0.1cqh]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          Modern ES6+, Web Engines, Node.js Runtimes
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* SQL */}
-                  <div className="flex items-start gap-[1.6cqw]">
-                    <span
-                      className="font-bold text-[#7a1c1c] text-[clamp(8.5px,1.28cqh,11.5px)] tracking-[0.08em] shrink-0 mt-[0.05cqh]"
-                      style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace", width: '2.6rem' }}
-                    >
-                      [SQL]
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.32cqh,12px)] tracking-[0.02em]"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        Relational Databases
+                    {/* 02. TS */}
+                    <div className="flex items-start gap-[1.5cqw] py-[0.45cqh] border-b border-[#1b140e]/10">
+                      <div className="shrink-0 flex items-center gap-[0.4cqw] mt-[0.05cqh]" style={{ width: '4.4rem' }}>
+                        <span
+                          className="font-bold text-[#5a4633] text-[clamp(7.8px,1.15cqh,10.5px)] tracking-[0.04em]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          02.
+                        </span>
+                        <span
+                          className="font-bold text-[#7a1c1c] text-[clamp(7.5px,1.1cqh,10px)] tracking-[0.08em] px-[0.35rem] py-[0.04rem] bg-[#7a1c1c]/[0.08] border border-[#7a1c1c]/25 rounded-[1px]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          TS
+                        </span>
                       </div>
-                      <p
-                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.15cqh,10.5px)] leading-[1.4] tracking-[0.01em] mt-[0.1cqh]"
-                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
-                      >
-                        PostgreSQL, structured relational data modeling, query optimization, and schema migration integrity.
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-[1cqw]">
+                          <span
+                            className="font-bold text-[#140e09] text-[clamp(8.5px,1.3cqh,11.5px)] tracking-[0.015em]"
+                            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                          >
+                            TypeScript
+                          </span>
+                          <span
+                            className="text-[clamp(6.8px,0.95cqh,8.8px)] uppercase tracking-[0.12em] text-[#826b55] font-semibold shrink-0"
+                            style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                          >
+                            Type System
+                          </span>
+                        </div>
+                        <p
+                          className="m-0 text-[#3a2c20] text-[clamp(7.2px,1.1cqh,10px)] leading-[1.35] tracking-[0.01em] mt-[0.1cqh]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          Strict Type Systems, Interfaces, Scalable Architecture
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* API */}
-                  <div className="flex items-start gap-[1.6cqw]">
-                    <span
-                      className="font-bold text-[#7a1c1c] text-[clamp(8.5px,1.28cqh,11.5px)] tracking-[0.08em] shrink-0 mt-[0.05cqh]"
-                      style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace", width: '2.6rem' }}
-                    >
-                      [API]
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.32cqh,12px)] tracking-[0.02em]"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        Service &amp; Endpoint Architecture
+                    {/* 03. SQL */}
+                    <div className="flex items-start gap-[1.5cqw] py-[0.45cqh] border-b border-[#1b140e]/10">
+                      <div className="shrink-0 flex items-center gap-[0.4cqw] mt-[0.05cqh]" style={{ width: '4.4rem' }}>
+                        <span
+                          className="font-bold text-[#5a4633] text-[clamp(7.8px,1.15cqh,10.5px)] tracking-[0.04em]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          03.
+                        </span>
+                        <span
+                          className="font-bold text-[#7a1c1c] text-[clamp(7.5px,1.1cqh,10px)] tracking-[0.08em] px-[0.35rem] py-[0.04rem] bg-[#7a1c1c]/[0.08] border border-[#7a1c1c]/25 rounded-[1px]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          SQL
+                        </span>
                       </div>
-                      <p
-                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.15cqh,10.5px)] leading-[1.4] tracking-[0.01em] mt-[0.1cqh]"
-                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
-                      >
-                        RESTful service design, secure token authentication, webhook integration, and automated data pipelines.
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-[1cqw]">
+                          <span
+                            className="font-bold text-[#140e09] text-[clamp(8.5px,1.3cqh,11.5px)] tracking-[0.015em]"
+                            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                          >
+                            Databases
+                          </span>
+                          <span
+                            className="text-[clamp(6.8px,0.95cqh,8.8px)] uppercase tracking-[0.12em] text-[#826b55] font-semibold shrink-0"
+                            style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                          >
+                            Relational
+                          </span>
+                        </div>
+                        <p
+                          className="m-0 text-[#3a2c20] text-[clamp(7.2px,1.1cqh,10px)] leading-[1.35] tracking-[0.01em] mt-[0.1cqh]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          PostgreSQL, Relational Modeling, Query Optimization
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* GIT */}
-                  <div className="flex items-start gap-[1.6cqw]">
-                    <span
-                      className="font-bold text-[#7a1c1c] text-[clamp(8.5px,1.28cqh,11.5px)] tracking-[0.08em] shrink-0 mt-[0.05cqh]"
-                      style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace", width: '2.6rem' }}
-                    >
-                      [GIT]
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="font-bold text-[#140e09] text-[clamp(8.5px,1.32cqh,12px)] tracking-[0.02em]"
-                        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                      >
-                        Version Control &amp; Release Discipline
+                    {/* 04. API */}
+                    <div className="flex items-start gap-[1.5cqw] py-[0.45cqh] border-b border-[#1b140e]/10">
+                      <div className="shrink-0 flex items-center gap-[0.4cqw] mt-[0.05cqh]" style={{ width: '4.4rem' }}>
+                        <span
+                          className="font-bold text-[#5a4633] text-[clamp(7.8px,1.15cqh,10.5px)] tracking-[0.04em]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          04.
+                        </span>
+                        <span
+                          className="font-bold text-[#7a1c1c] text-[clamp(7.5px,1.1cqh,10px)] tracking-[0.08em] px-[0.35rem] py-[0.04rem] bg-[#7a1c1c]/[0.08] border border-[#7a1c1c]/25 rounded-[1px]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          API
+                        </span>
                       </div>
-                      <p
-                        className="m-0 text-[#2b2016]/90 text-[clamp(7.5px,1.15cqh,10.5px)] leading-[1.4] tracking-[0.01em] mt-[0.1cqh]"
-                        style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
-                      >
-                        Structured branching strategies, merge conflict resolution, clean commit histories, and deployment automation.
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-[1cqw]">
+                          <span
+                            className="font-bold text-[#140e09] text-[clamp(8.5px,1.3cqh,11.5px)] tracking-[0.015em]"
+                            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                          >
+                            Interfaces
+                          </span>
+                          <span
+                            className="text-[clamp(6.8px,0.95cqh,8.8px)] uppercase tracking-[0.12em] text-[#826b55] font-semibold shrink-0"
+                            style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                          >
+                            Endpoints
+                          </span>
+                        </div>
+                        <p
+                          className="m-0 text-[#3a2c20] text-[clamp(7.2px,1.1cqh,10px)] leading-[1.35] tracking-[0.01em] mt-[0.1cqh]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          REST Services, Token Authentication, Endpoints
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 05. GIT */}
+                    <div className="flex items-start gap-[1.5cqw] py-[0.45cqh]">
+                      <div className="shrink-0 flex items-center gap-[0.4cqw] mt-[0.05cqh]" style={{ width: '4.4rem' }}>
+                        <span
+                          className="font-bold text-[#5a4633] text-[clamp(7.8px,1.15cqh,10.5px)] tracking-[0.04em]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          05.
+                        </span>
+                        <span
+                          className="font-bold text-[#7a1c1c] text-[clamp(7.5px,1.1cqh,10px)] tracking-[0.08em] px-[0.35rem] py-[0.04rem] bg-[#7a1c1c]/[0.08] border border-[#7a1c1c]/25 rounded-[1px]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          GIT
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-[1cqw]">
+                          <span
+                            className="font-bold text-[#140e09] text-[clamp(8.5px,1.3cqh,11.5px)] tracking-[0.015em]"
+                            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                          >
+                            Version Control
+                          </span>
+                          <span
+                            className="text-[clamp(6.8px,0.95cqh,8.8px)] uppercase tracking-[0.12em] text-[#826b55] font-semibold shrink-0"
+                            style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                          >
+                            Pipelines
+                          </span>
+                        </div>
+                        <p
+                          className="m-0 text-[#3a2c20] text-[clamp(7.2px,1.1cqh,10px)] leading-[1.35] tracking-[0.01em] mt-[0.1cqh]"
+                          style={{ fontFamily: "'Courier Prime', 'Special Elite', monospace" }}
+                        >
+                          Branching Strategies, Release Pipelines, Commit Logs
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
