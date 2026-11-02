@@ -4,6 +4,7 @@ import * as THREE from 'three';
 interface FieldMailTerminalProps {
   onBack?: () => void;
   active?: boolean;
+  isTransitioning?: boolean;
 }
 
 // Synthesized Retro Audio Engine
@@ -123,6 +124,7 @@ class RetroSoundEngine {
 export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
   onBack,
   active = true,
+  isTransitioning = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [toast, setToast] = useState<{ title: string; body: string; visible: boolean }>({
@@ -517,7 +519,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     }
 
     const planeState = {
-      mode: 'entrance' as 'entrance' | 'landed' | 'loop' | 'deliver' | 'dispatched',
+      mode: (isTransitioning ? 'entrance' : 'landed') as 'entrance' | 'landed' | 'loop' | 'deliver' | 'dispatched',
       time: 0,
     };
 
@@ -879,9 +881,14 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     const focusedCamSpherical = { radius: 4.15, theta: 0.26, phi: 1.39 };
     const focusedCamTarget = new THREE.Vector3(-0.55, 1.48, -0.15);
 
-    const camSpherical = { ...defaultCamSpherical };
+    // If entering via transition, camera starts high above desk looking down, descending as desktop slides in
+    const camSpherical = isTransitioning
+      ? { radius: 8.6, theta: 0.38, phi: 0.98 }
+      : { ...defaultCamSpherical };
     let targetSpherical = { ...defaultCamSpherical };
-    const currentLookAt = defaultCamTarget.clone();
+    const currentLookAt = isTransitioning
+      ? new THREE.Vector3(-0.18, 0.45, 0.22)
+      : defaultCamTarget.clone();
     const targetLookAt = defaultCamTarget.clone();
 
     let isFocusedOnCRT = false;
@@ -2254,6 +2261,9 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     const planeGroup = new THREE.Group();
     planeGroup.name = 'PAPER_PLANE_GROUP';
     planeGroup.add(planeMesh);
+    planeGroup.position.set(-0.14, 0.015, 0.68);
+    planeGroup.rotation.set(0.02, 0.22, 0.06);
+    planeGroup.visible = !isTransitioning;
     scene.add(planeGroup);
 
     // Flight Path Curves
@@ -2627,11 +2637,20 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       crtShaderUniforms.uHoverBoost.value += (targetHoverBoost - crtShaderUniforms.uHoverBoost.value) * 0.12;
 
       // Paper Airplane Flight Dynamics
-      if (planeState.mode === 'entrance' || planeState.mode === 'loop' || planeState.mode === 'deliver') {
-        const activeCurve = planeState.mode === 'deliver'
-          ? deliveryCurve
-          : (planeState.mode === 'loop' ? loopCurve : entranceCurve);
-        const duration = planeState.mode === 'deliver' ? 3.8 : (planeState.mode === 'loop' ? 6.2 : 7.4);
+      if (isTransitioning) {
+        // While SectionScrollTransition is executing its soaring overhead flight, resting plane awaits touchdown
+        planeGroup.visible = false;
+      } else if (planeState.mode === 'entrance') {
+        // On transition completion, resting plane appears seamlessly at landing spot
+        planeGroup.visible = true;
+        planeState.mode = 'landed';
+        planeGroup.position.set(-0.14, 0.015, 0.68);
+        planeGroup.rotation.set(0.02, 0.22, 0.06);
+        planeMesh.rotation.set(0, 0, 0);
+      } else if (planeState.mode === 'loop' || planeState.mode === 'deliver') {
+        planeGroup.visible = true;
+        const activeCurve = planeState.mode === 'deliver' ? deliveryCurve : loopCurve;
+        const duration = planeState.mode === 'deliver' ? 3.8 : 6.2;
 
         planeState.time += 0.016;
         const t = Math.min(1.0, planeState.time / duration);

@@ -119,3 +119,19 @@
   animation: paper-idle-float-3 8.4s ease-in-out 1.2s infinite;
   will-change: transform;
 }
+
+
+/* Physical 3D Desktop Slide-In: NO FADE IN FADE OUT */
+@keyframes slideUp3DDesktop {
+  0% {
+    transform: translate3d(0, 100%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0%, 0);
+  }
+}
+
+.slide-up-3d-desktop {
+  animation: slideUp3DDesktop 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}

@@ -323,19 +323,22 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         </div>
       </div>
 
-      {/* Page 2 Layer: Vintage Typewriter Contact Desk */}
+      {/* Page 2 Layer: Vintage Typewriter Contact Desk (Physical Slide-In, NO FADE IN FADE OUT) */}
       <div
-        className="absolute inset-0 w-full h-full z-[50]"
+        className={`absolute inset-0 w-full h-full z-[50] ${
+          isTransitioning && page === 2 ? 'slide-up-3d-desktop' : ''
+        }`}
         style={{
-          opacity: isPage2Visible ? 1 : 0,
+          opacity: 1,
           visibility: isPage2Visible || isTransitioning ? 'visible' : 'hidden',
           pointerEvents: isPage2Visible && !isTransitioning ? 'auto' : 'none',
-                  }}
+        }}
       >
         <VintageContactDesk
           onBack={() => handleSwitchPage(1, 'home')}
           onNavigateSection={(sec) => handleSwitchPage(1, sec)}
-          active={isPage2Visible && !isTransitioning}
+          active={isPage2Visible}
+          isTransitioning={isTransitioning}
         />
       </div>
 

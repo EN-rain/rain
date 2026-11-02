@@ -515,10 +515,34 @@ export const SectionScrollTransition: React.FC = memo(() => {
       const yaw0 = lerp(-0.22 * smoothstep(0.34, 0.50, p), 0.5, pStep6Open);
       const pitch0 = lerp(-0.14 * smoothstep(0.02, 0.25, p), -0.4, pStep6Open);
       const tz0 = -smoothstep(0.01, 0.45, p) * 200;
-      const headingW = smoothstep(0.06, 0.28, pFlight);
-      const bankRoll = Math.sin(uFly * Math.PI) * (20 * DEG);
-      const targetPitch = lerp(pitch0, -0.05, uFly);
-      const targetYaw = lerp(yaw0, 0.06, uFly);
+      // Two-phase soaring flight above the 3D desktop:
+      // Phase 1 (uFly 0.0 -> 0.50): Swoops LEFT TO RIGHT across the upper sky
+      // Phase 2 (uFly 0.50 -> 1.0): Banks and swoops RIGHT TO LEFT while descending down towards the desk
+      const deskLandingX = vw * 0.48;
+      const deskLandingY = vh * 0.71;
+
+      let flightTargetX = vw * 0.5;
+      let flightTargetY = vh * 0.5;
+      let bankRoll = 0;
+
+      if (uFly < 0.50) {
+        const p1 = uFly / 0.50;
+        const e1 = smoothstep(0, 1, p1);
+        // Phase 1: LEFT TO RIGHT
+        flightTargetX = lerp(vw * 0.28, vw * 0.80, e1);
+        flightTargetY = lerp(vh * 0.26, vh * 0.42, Math.sin(e1 * Math.PI * 0.5));
+        bankRoll = Math.sin(e1 * Math.PI) * (28 * DEG);
+      } else {
+        const p2 = (uFly - 0.50) / 0.50;
+        const e2 = smoothstep(0, 1, p2);
+        // Phase 2: RIGHT TO LEFT
+        flightTargetX = lerp(vw * 0.80, deskLandingX, e2);
+        flightTargetY = lerp(vh * 0.42, deskLandingY, e2);
+        bankRoll = -Math.sin(e2 * Math.PI) * (26 * DEG);
+      }
+
+      const targetPitch = lerp(pitch0, -0.04, uFly);
+      const targetYaw = lerp(yaw0, 0.04, uFly);
 
       interface TransformParams {
         S: number;
@@ -534,7 +558,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       const cur: TransformParams = {
         S,
-        roll: roll0 + bankRoll - (1 - uFly) * headingW * (15 * DEG),
+        roll: roll0 + bankRoll,
         yaw: targetYaw,
         pitch: targetPitch,
         spin,
@@ -574,16 +598,9 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       if (pFlight > 0) {
         const nose: V3 = [0, yOff, 0];
-        const n0 = proj(nose, rest).screen;
         const nn = proj(nose, cur);
-        // Start left, swoop left-to-right across screen while descending towards desk area (vh * 0.71)
-        // Never goes over CRT screen, lands between keyboard and monitor
-        const deskLandingX = vw * 0.48;
-        const deskLandingY = vh * 0.71;
-        const targetX = lerp(n0[0] - vw * 0.08, deskLandingX, uFly) + Math.sin(uFly * Math.PI) * (vw * 0.22);
-        const targetY = lerp(n0[1], deskLandingY, uFly);
-        cur.Tx = (targetX - nn.screen[0]) / nn.scale;
-        cur.Ty = (targetY - nn.screen[1]) / nn.scale;
+        cur.Tx = (flightTargetX - nn.screen[0]) / nn.scale;
+        cur.Ty = (flightTargetY - nn.screen[1]) / nn.scale;
       }
       const globalTx = cur.Tx, globalTy = cur.Ty;
 
@@ -626,27 +643,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       const drawOrder = orderByDepth(drawList, vw * 0.5, vh * 0.5, fov);
 
-      // ── MASKING: Cut out paper silhouette from dark backdrop, fading out as flight commences ──
-      const bgAlpha = Math.max(0, 1.0 - smoothstep(0.0, 0.35, pFlight));
-      if (bgAlpha > 0.005) {
-        ctx.save();
-        ctx.fillStyle = `rgba(0, 0, 0, ${bgAlpha})`;
-        ctx.fillRect(0, 0, vw, vh);
-
-        ctx.globalCompositeOperation = 'destination-out';
-        for (let i = 0; i < drawList.length; i++) {
-          const pts = drawList[i].pts;
-          if (!pts || pts.length < 3) continue;
-          ctx.beginPath();
-          ctx.moveTo(pts[0][0], pts[0][1]);
-          for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
-          ctx.closePath();
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-
-      // ── FOLDED FLAPS & 3D AIRPLANE FACETS (TEXTURED WITH LINED PAPER) ──
+      // ── FOLDED FLAPS & 3D AIRPLANE FACETS (TEXTURED WITH LINED PAPER, NO FADE IN FADE OUT) ──
       const shadeStrength = smoothstep(0.01, 0.08, p);
       const creaseProg: Record<number, number> = { 1: pStep5, 2: pStep3, 4: pStep2 };
       function edgeAlpha(kind: any) {
@@ -767,8 +764,8 @@ export const SectionScrollTransition: React.FC = memo(() => {
         webglCanvas.style.display = 'none';
 
         const FOLD_DURATION = 1500;   // 1.5s for clean, distinct step-by-step folds
-        const FLIGHT_DURATION = 1500; // 1.5s for graceful left-to-right downward flight to desk
-        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 3.0s
+        const FLIGHT_DURATION = 1800; // 1.8s for sweeping left-to-right, right-to-left descent as 3D desktop slides in
+        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 3.3s
 
         const stepAirplane = (now: number) => {
           const elapsed = now - animStartTime;

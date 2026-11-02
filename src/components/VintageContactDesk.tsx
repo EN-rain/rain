@@ -7,6 +7,7 @@ interface VintageContactDeskProps {
   className?: string;
   active?: boolean;
   assetsPath?: string;
+  isTransitioning?: boolean;
 }
 
 export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
@@ -14,6 +15,7 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
   className = '',
   active = true,
   assetsPath = '/assets',
+  isTransitioning = false,
 }) => {
   useEffect(() => {
     if (!active) return;
@@ -106,7 +108,7 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
 
       {/* Interactive 3D Field Mail CRT Terminal Desk (Native React Component) */}
       {active && (
-        <FieldMailTerminal onBack={onBack} active={active} />
+        <FieldMailTerminal onBack={onBack} active={active} isTransitioning={isTransitioning} />
       )}
     </div>
   );
