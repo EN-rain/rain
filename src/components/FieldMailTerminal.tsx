@@ -252,92 +252,186 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       return new THREE.CanvasTexture(c);
     }
 
-    function createPaperPlaneTexture() {
-      const c = document.createElement('canvas');
-      c.width = 512;
-      c.height = 512;
-      const ctx = c.getContext('2d')!;
+    const DEG = Math.PI / 180;
+    function clampVal(v: number, a: number, b: number): number {
+      return Math.max(a, Math.min(b, v));
+    }
+    function lerpVal(a: number, b: number, t: number): number {
+      return a + (b - a) * t;
+    }
+    type V3 = [number, number, number];
+    type V2 = [number, number];
 
-      // Aged cream/manila stationery parchment base
-      ctx.fillStyle = '#f5f0e4';
-      ctx.fillRect(0, 0, 512, 512);
-
-      // Fine fiber grain & aged texture
-      for (let i = 0; i < 3200; i++) {
-        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(70, 55, 35, 0.035)' : 'rgba(255, 255, 255, 0.07)';
-        ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
-      }
-
-      // Soft paper edge gradient
-      const grad = ctx.createRadialGradient(256, 256, 160, 256, 256, 340);
-      grad.addColorStop(0, 'rgba(0,0,0,0)');
-      grad.addColorStop(1, 'rgba(60, 45, 25, 0.06)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 512, 512);
-
-      // Central spine fold shading
-      ctx.fillStyle = 'rgba(40, 30, 18, 0.08)';
-      ctx.fillRect(254, 0, 4, 512);
-
-      // Faint archival typewriter serial on inner wing fold
-      ctx.font = '12px "Courier Prime", monospace';
-      ctx.fillStyle = 'rgba(45, 35, 22, 0.35)';
-      ctx.textAlign = 'center';
-      ctx.fillText('REF. 1983 - FIELD MEMO', 256, 320);
-
-      const tex = new THREE.CanvasTexture(c);
-      tex.anisotropy = 4;
-      return tex;
+    function rotAroundAxis(p: V3, a: V3, b: V3, theta: number): V3 {
+      if (Math.abs(theta) < 1e-6) return [p[0], p[1], p[2]];
+      const ux0 = b[0] - a[0], uy0 = b[1] - a[1], uz0 = b[2] - a[2];
+      const len = Math.hypot(ux0, uy0, uz0);
+      if (len < 1e-8) return [p[0], p[1], p[2]];
+      const ux = ux0 / len, uy = uy0 / len, uz = uz0 / len;
+      const px = p[0] - a[0], py = p[1] - a[1], pz = p[2] - a[2];
+      const c = Math.cos(theta), s = Math.sin(theta);
+      const dot = ux * px + uy * py + uz * pz;
+      const cx = uy * pz - uz * py, cy = uz * px - ux * pz, cz = ux * py - uy * px;
+      return [
+        px * c + cx * s + ux * dot * (1 - c) + a[0],
+        py * c + cy * s + uy * dot * (1 - c) + a[1],
+        pz * c + cz * s + uz * dot * (1 - c) + a[2],
+      ];
     }
 
-    function createPaperAirplaneGeo(): THREE.BufferGeometry {
-      const geo = new THREE.BufferGeometry();
+    function clipKeep(poly: V2[], f: (q: V2) => number): V2[] {
+      const out: V2[] = [];
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i], b = poly[(i + 1) % poly.length];
+        const fa = f(a), fb = f(b);
+        if (fa >= 0) out.push(a);
+        if ((fa >= 0) !== (fb >= 0)) {
+          const t = fa / (fa - fb);
+          out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+        }
+      }
+      return out;
+    }
 
-      // Folded origami dart landmark points (facing -Z forward, +Y up, +X right)
-      // Refined scale: length ~0.26, wingspan ~0.18, height ~0.035
-      const nose = [0, 0.005, -0.15];
-      const tailCenter = [0, 0.004, 0.12];
-      const keelFront = [0, -0.016, -0.05];
-      const keelBack = [0, -0.035, 0.11];
-      const lCrease = [-0.018, -0.008, 0.115];
-      const rCrease = [0.018, -0.008, 0.115];
-      const lWingTip = [-0.125, 0.018, 0.11];
-      const rWingTip = [0.125, 0.018, 0.11];
-      const lWinglet = [-0.130, 0.042, 0.105];
-      const rWinglet = [0.130, 0.042, 0.105];
+    function hingeIdx(poly: V2[], ang: number, W: number, H: number): [number, number] {
+      const sn = Math.sin(ang), cs = Math.cos(ang);
+      const t = Math.min(sn > 1e-9 ? W / sn : Infinity, cs > 1e-9 ? H / cs : Infinity);
+      const target: V2[] = [[0, 0], [t * sn, t * cs]];
+      const res = target.map((tp) => {
+        let bi = -1, bd = Infinity;
+        for (let k = 0; k < poly.length; k++) {
+          const dd = Math.hypot(poly[k][0] - tp[0], poly[k][1] - tp[1]);
+          if (dd < bd) { bd = dd; bi = k; }
+        }
+        return bd < 1e-4 * W ? bi : -1;
+      });
+      return [res[0], res[1]];
+    }
+
+    const CELL_OPS: number[][] = [[], [5], [3, 5], [3], [2, 3], [2, 3, 5], [2, 5], [2]];
+
+    interface CellData {
+      poly: V2[];
+      ops: number[];
+      ha: [number, number];
+      hb: [number, number];
+    }
+
+    function buildCells(W: number, H: number): CellData[] {
+      const cells: CellData[] = [];
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 16, b = ((i + 1) * Math.PI) / 16;
+        let poly: V2[] = [[0, 0], [W, 0], [W, H], [0, H]];
+        poly = clipKeep(poly, (q) => q[0] * Math.cos(a) - q[1] * Math.sin(a));
+        poly = clipKeep(poly, (q) => -(q[0] * Math.cos(b) - q[1] * Math.sin(b)));
+        cells.push({
+          poly,
+          ops: CELL_OPS[i],
+          ha: hingeIdx(poly, a, W, H),
+          hb: hingeIdx(poly, b, W, H),
+        });
+      }
+      return cells;
+    }
+
+    // Exact origami paper airplane geometry identical to SectionScrollTransition
+    function createFoldingPaperAirplaneGeo(): THREE.BufferGeometry {
+      const H = 0.36;
+      const W = H * 0.35;
+      const y2 = W * (1 + Math.SQRT2);
+      const xWing = H * Math.tan(Math.PI / 16);
+      const d = 0.003;
+      const pStep2 = 1.0, pStep3 = 1.0, pStep4 = 1.0, pStep5 = 1.0, pStep6Open = 1.0;
+      const tuckAngle = -Math.PI;
+      const theta5 = (lerpVal(0, 176, pStep5) - lerpVal(0, 100, pStep6Open)) * DEG;
+      const yOff = -H * 0.5;
+
+      const FOLDS: Record<number, { ex: number; ey: number; h: number; ang: number }> = {
+        2: { ex: W, ey: W, h: 0.5 * d, ang: pStep2 * Math.PI },
+        3: { ex: W, ey: y2, h: 1.5 * d, ang: pStep3 * Math.PI },
+        5: { ex: xWing, ey: H, h: 3.5 * d, ang: theta5 },
+      };
+
+      function foldPoint(v: V3, k: number, s: number): V3 {
+        const f = FOLDS[k];
+        return rotAroundAxis(v, [0, yOff, f.h], [s * f.ex, f.ey + yOff, f.h], -s * f.ang);
+      }
+
+      function spinePoint(v: V3, s: number): V3 {
+        if (s === 1) return v;
+        return rotAroundAxis(v, [0, yOff, -0.5 * d], [0, H + yOff, -0.5 * d], tuckAngle);
+      }
+
+      const cells = buildCells(W, H);
+      const rawFacets: { verts: V3[]; uvs: V2[] }[] = [];
+
+      [1, -1].forEach((s) => {
+        cells.forEach((c) => {
+          let verts = c.poly.map((q) => [s * q[0], q[1] + yOff, 0] as V3);
+          const uvs: V2[] = c.poly.map((q) => {
+            const xSheet = s * q[0];
+            const ySheet = q[1];
+            const u = clampVal(ySheet / H, 0, 1);
+            const v = clampVal((xSheet + W) / (2 * W), 0, 1);
+            return [u, v];
+          });
+          c.ops.forEach((k) => {
+            verts = verts.map((v) => foldPoint(v, k, s));
+          });
+          verts = verts.map((v) => spinePoint(v, s));
+          if (s === -1) {
+            verts = verts.map((v) => [-v[0], v[1], v[2]] as V3);
+          }
+          rawFacets.push({ verts, uvs });
+        });
+      });
+
+      const nCell = cells.length;
+      function addStrip(
+        fa: { verts: V3[]; uvs: V2[] },
+        ia: [number, number],
+        fb: { verts: V3[]; uvs: V2[] },
+        ib: [number, number]
+      ) {
+        if (ia[0] < 0 || ia[1] < 0 || ib[0] < 0 || ib[1] < 0) return;
+        const q: V3[] = [fa.verts[ia[0]], fa.verts[ia[1]], fb.verts[ib[1]], fb.verts[ib[0]]];
+        const uvs: V2[] = [fa.uvs[ia[0]], fa.uvs[ia[1]], fb.uvs[ib[1]], fb.uvs[ib[0]]];
+        const g = Math.max(
+          Math.hypot(q[0][0] - q[3][0], q[0][1] - q[3][1], q[0][2] - q[3][2]),
+          Math.hypot(q[1][0] - q[2][0], q[1][2] - q[2][2])
+        );
+        if (g < 0.001) return;
+        rawFacets.push({ verts: q, uvs });
+      }
+
+      for (let hf = 0; hf < 2; hf++) {
+        for (let i = 0; i < nCell - 1; i++) {
+          addStrip(rawFacets[hf * nCell + i], cells[i].hb, rawFacets[hf * nCell + i + 1], cells[i + 1].ha);
+        }
+      }
+      addStrip(rawFacets[0], cells[0].ha, rawFacets[nCell], cells[0].ha);
+
+      let minZ = Infinity;
+      rawFacets.forEach((f) => f.verts.forEach((v) => { minZ = Math.min(minZ, v[2]); }));
 
       const positions: number[] = [];
       const uvs: number[] = [];
 
-      function addTri(
-        p1: number[], uv1: [number, number],
-        p2: number[], uv2: [number, number],
-        p3: number[], uv3: [number, number]
-      ) {
-        positions.push(...p1, ...p2, ...p3);
-        uvs.push(...uv1, ...uv2, ...uv3);
-        positions.push(...p1, ...p3, ...p2);
-        uvs.push(...uv1, ...uv3, ...uv2);
-      }
+      rawFacets.forEach((facet) => {
+        const v = facet.verts;
+        const uv = facet.uvs;
+        if (v.length < 3) return;
+        for (let j = 1; j < v.length - 1; j++) {
+          const triIndices = [0, j, j + 1];
+          triIndices.forEach((idx) => {
+            // Forward is -Z, Y is up (above desk), X is right
+            positions.push(v[idx][0], v[idx][2] - minZ, v[idx][1]);
+            uvs.push(uv[idx][0], uv[idx][1]);
+          });
+        }
+      });
 
-      // Left & Right Wings (Top main surfaces)
-      addTri(nose, [0.5, 0.05], lCrease, [0.44, 0.85], lWingTip, [0.05, 0.85]);
-      addTri(nose, [0.5, 0.05], rWingTip, [0.95, 0.85], rCrease, [0.56, 0.85]);
-
-      // Left & Right Center Creases
-      addTri(nose, [0.5, 0.05], tailCenter, [0.5, 0.88], lCrease, [0.44, 0.85]);
-      addTri(nose, [0.5, 0.05], rCrease, [0.56, 0.85], tailCenter, [0.5, 0.88]);
-
-      // Keel (Underbelly fuselage)
-      addTri(nose, [0.5, 0.05], keelFront, [0.48, 0.45], lCrease, [0.44, 0.85]);
-      addTri(keelFront, [0.48, 0.45], keelBack, [0.48, 0.85], lCrease, [0.44, 0.85]);
-      addTri(nose, [0.5, 0.05], rCrease, [0.56, 0.85], keelFront, [0.52, 0.45]);
-      addTri(keelFront, [0.52, 0.45], rCrease, [0.56, 0.85], keelBack, [0.52, 0.85]);
-
-      // Winglet stabilizers on outer tips
-      addTri(lWingTip, [0.05, 0.85], nose, [0.5, 0.05], lWinglet, [0.02, 0.82]);
-      addTri(rWingTip, [0.95, 0.85], rWinglet, [0.98, 0.82], nose, [0.5, 0.05]);
-
+      const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       geo.computeVertexNormals();
@@ -2140,9 +2234,11 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     noteMesh.receiveShadow = true;
     scene.add(noteMesh);
 
-    // Origami Airmail Paper Airplane
-    const planeTex = createPaperPlaneTexture();
-    const planeGeo = createPaperAirplaneGeo();
+    // Origami Airmail Paper Airplane (Exact match to SectionScrollTransition)
+    const planeTexLoader = new THREE.TextureLoader();
+    const planeTex = planeTexLoader.load('/assets/white-page-bg.png');
+    planeTex.anisotropy = 4;
+    const planeGeo = createFoldingPaperAirplaneGeo();
     const planeMat = new THREE.MeshStandardMaterial({
       map: planeTex,
       roughness: 0.68,
@@ -2161,18 +2257,18 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     scene.add(planeGroup);
 
     // Flight Path Curves
-    // 1. Entrance Flight (Starts high on LEFT, glides left-to-right while descending in foreground, reaches desk below)
-    // Crucially never passes in front of or over the CRT screen (z stays in foreground >= 0.68, y descends cleanly)
+    // 1. Entrance Flight (Starts on LEFT, glides left-to-right while descending in foreground, reaches desk below)
+    // Never passes over the CRT screen: stays below CRT screen center (y <= 0.72) and in foreground (z >= 0.68)
     const entranceFlightPoints = [
-      new THREE.Vector3(-3.4, 2.6, 3.8),     // High left entry in camera view
-      new THREE.Vector3(-2.2, 2.0, 3.2),     // Descending glide across foreground (well in front of CRT)
-      new THREE.Vector3(-0.9, 1.4, 2.6),     // Continuing left-to-right descent below screen level
-      new THREE.Vector3(0.5, 0.9, 2.0),      // Crossing center-right in front of keyboard
-      new THREE.Vector3(1.6, 0.52, 1.45),    // Gliding down to right desk flank
-      new THREE.Vector3(1.25, 0.26, 1.05),   // Curving gently inward toward desk runway
-      new THREE.Vector3(0.4, 0.11, 0.82),    // Short final approach
-      new THREE.Vector3(-0.05, 0.028, 0.72), // Soft flair touchdown
-      new THREE.Vector3(-0.14, 0.015, 0.68)  // Gentle settle between keyboard & monitor
+      new THREE.Vector3(-3.2, 0.72, 2.6),    // Far left foreground (well below and left of CRT)
+      new THREE.Vector3(-2.1, 0.56, 2.2),    // Gliding left-to-right descending
+      new THREE.Vector3(-0.9, 0.42, 1.8),    // Passing center-left below CRT screen bezel
+      new THREE.Vector3(0.4, 0.30, 1.5),     // Cruising past center-right in front of keyboard
+      new THREE.Vector3(1.3, 0.22, 1.25),    // Right desk flank glide
+      new THREE.Vector3(1.0, 0.14, 0.98),    // Banking curve towards runway
+      new THREE.Vector3(0.35, 0.065, 0.82),  // Short final approach
+      new THREE.Vector3(-0.06, 0.026, 0.72), // Soft flair
+      new THREE.Vector3(-0.14, 0.015, 0.68)  // Settle between keyboard & monitor
     ];
     const entranceCurve = new THREE.CatmullRomCurve3(entranceFlightPoints, false, 'centripetal', 0.5);
 

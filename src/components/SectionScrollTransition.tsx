@@ -393,16 +393,15 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       if (pFlight >= 0.999) {
         shadow.style.opacity = '0';
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, vw, vh);
+        ctx.clearRect(0, 0, vw, vh);
         return;
       }
 
-      const anti = smoothstep(0, 0.16, pFlight) * (1 - smoothstep(0.16, 0.30, pFlight));
-      const tFly = clamp((pFlight - 0.14) / 0.86, 0, 1);
-      const uFly = Math.pow(tFly, 1.7);
-      const flightScale = lerp(1, 0.05, smoothstep(0.12, 0.8, pFlight)) * (1 - 0.06 * anti);
-      const spin = Math.PI * 2 * smoothstep(0.30, 0.80, pFlight);
+      const tFly = clamp(pFlight, 0, 1);
+      const uFly = smoothstep(0, 1, tFly);
+      // Gentle glide scale down to desk resting size (~0.28)
+      const flightScale = lerp(1, 0.28, smoothstep(0.04, 0.92, pFlight));
+      const spin = 0;
 
       const H = Math.min(vw * 0.82, vh * 1.17);
       const W = H * 0.35;
@@ -516,9 +515,10 @@ export const SectionScrollTransition: React.FC = memo(() => {
       const yaw0 = lerp(-0.22 * smoothstep(0.34, 0.50, p), 0.5, pStep6Open);
       const pitch0 = lerp(-0.14 * smoothstep(0.02, 0.25, p), -0.4, pStep6Open);
       const tz0 = -smoothstep(0.01, 0.45, p) * 200;
-      const headingW = smoothstep(0.14, 0.32, pFlight);
-      const pathDx = -0.85 * vw, pathY = 0.2;
-      const heading = headingW * (Math.atan2(vh * (pathY * 0.9 * Math.PI * Math.cos(0.9 * Math.PI * uFly) - uFly), pathDx) - Math.PI);
+      const headingW = smoothstep(0.06, 0.28, pFlight);
+      const bankRoll = Math.sin(uFly * Math.PI) * (20 * DEG);
+      const targetPitch = lerp(pitch0, -0.05, uFly);
+      const targetYaw = lerp(yaw0, 0.06, uFly);
 
       interface TransformParams {
         S: number;
@@ -534,9 +534,9 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       const cur: TransformParams = {
         S,
-        roll: roll0 + heading,
-        yaw: yaw0,
-        pitch: pitch0 + 0.28 * anti - 0.2 * smoothstep(0.5, 1, pFlight),
+        roll: roll0 + bankRoll - (1 - uFly) * headingW * (15 * DEG),
+        yaw: targetYaw,
+        pitch: targetPitch,
         spin,
         shiftX,
         Tx: 0,
@@ -576,8 +576,12 @@ export const SectionScrollTransition: React.FC = memo(() => {
         const nose: V3 = [0, yOff, 0];
         const n0 = proj(nose, rest).screen;
         const nn = proj(nose, cur);
-        const targetX = n0[0] + vw * 0.05 * anti + uFly * pathDx;
-        const targetY = n0[1] + vh * (pathY * Math.sin(0.9 * Math.PI * uFly) - 0.5 * uFly * uFly);
+        // Start left, swoop left-to-right across screen while descending towards desk area (vh * 0.71)
+        // Never goes over CRT screen, lands between keyboard and monitor
+        const deskLandingX = vw * 0.48;
+        const deskLandingY = vh * 0.71;
+        const targetX = lerp(n0[0] - vw * 0.08, deskLandingX, uFly) + Math.sin(uFly * Math.PI) * (vw * 0.22);
+        const targetY = lerp(n0[1], deskLandingY, uFly);
         cur.Tx = (targetX - nn.screen[0]) / nn.scale;
         cur.Ty = (targetY - nn.screen[1]) / nn.scale;
       }
@@ -622,22 +626,25 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       const drawOrder = orderByDepth(drawList, vw * 0.5, vh * 0.5, fov);
 
-      // ── MASKING: Cut out paper silhouette from solid black backdrop ──
-      ctx.save();
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, vw, vh);
+      // ── MASKING: Cut out paper silhouette from dark backdrop, fading out as flight commences ──
+      const bgAlpha = Math.max(0, 1.0 - smoothstep(0.0, 0.35, pFlight));
+      if (bgAlpha > 0.005) {
+        ctx.save();
+        ctx.fillStyle = `rgba(0, 0, 0, ${bgAlpha})`;
+        ctx.fillRect(0, 0, vw, vh);
 
-      ctx.globalCompositeOperation = 'destination-out';
-      for (let i = 0; i < drawList.length; i++) {
-        const pts = drawList[i].pts;
-        if (!pts || pts.length < 3) continue;
-        ctx.beginPath();
-        ctx.moveTo(pts[0][0], pts[0][1]);
-        for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
-        ctx.closePath();
-        ctx.fill();
+        ctx.globalCompositeOperation = 'destination-out';
+        for (let i = 0; i < drawList.length; i++) {
+          const pts = drawList[i].pts;
+          if (!pts || pts.length < 3) continue;
+          ctx.beginPath();
+          ctx.moveTo(pts[0][0], pts[0][1]);
+          for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
       }
-      ctx.restore();
 
       // ── FOLDED FLAPS & 3D AIRPLANE FACETS (TEXTURED WITH LINED PAPER) ──
       const shadeStrength = smoothstep(0.01, 0.08, p);
@@ -760,8 +767,8 @@ export const SectionScrollTransition: React.FC = memo(() => {
         webglCanvas.style.display = 'none';
 
         const FOLD_DURATION = 1500;   // 1.5s for clean, distinct step-by-step folds
-        const FLIGHT_DURATION = 900;  // 0.9s for soaring take-off and whoosh off screen
-        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 2.4s
+        const FLIGHT_DURATION = 1500; // 1.5s for graceful left-to-right downward flight to desk
+        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 3.0s
 
         const stepAirplane = (now: number) => {
           const elapsed = now - animStartTime;
@@ -776,15 +783,16 @@ export const SectionScrollTransition: React.FC = memo(() => {
           } else {
             pFold = 0.78;
             const tFlight = Math.min(1, (elapsed - FOLD_DURATION) / FLIGHT_DURATION);
-            flight = Math.pow(tFlight, 1.35);
+            flight = Math.pow(tFlight, 1.15);
+
+            // Mount the 3D desk view underneath right as flight begins
+            if (!midSwapDone) {
+              midSwapDone = true;
+              pendingMidSwap?.();
+            }
           }
 
           renderAirplane(pFold, flight);
-
-          if (flight >= 0.70 && !midSwapDone) {
-            midSwapDone = true;
-            pendingMidSwap?.();
-          }
 
           if (elapsed < TOTAL_DURATION) {
             animRafId = requestAnimationFrame(stepAirplane);
