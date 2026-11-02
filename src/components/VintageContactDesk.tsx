@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { FieldMailTerminal } from './FieldMailTerminal';
 
 interface VintageContactDeskProps {
   onBack?: () => void;
@@ -27,17 +28,10 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
         onBack?.();
       }
     };
-    const handleWindowMessage = (e: MessageEvent) => {
-      if (e.data?.type === 'CONTACT_DESK_ESCAPE') {
-        onBack?.();
-      }
-    };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('message', handleWindowMessage);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('message', handleWindowMessage);
     };
   }, [active, onBack]);
 
@@ -110,14 +104,9 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
         </button>
       </nav>
 
-      {/* Interactive 3D Field Mail CRT Terminal Desk */}
+      {/* Interactive 3D Field Mail CRT Terminal Desk (Native React Component) */}
       {active && (
-        <iframe
-          src="/contact-terminal.html"
-          title="Field Mail Terminal"
-          className="absolute inset-0 w-full h-full border-0 z-0 bg-[#0b0a08]"
-          allow="autoplay"
-        />
+        <FieldMailTerminal onBack={onBack} active={active} />
       )}
     </div>
   );
