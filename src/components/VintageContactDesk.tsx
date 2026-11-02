@@ -17,14 +17,6 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
   assetsPath = '/assets',
   isTransitioning = false,
 }) => {
-  const [hasMountedTerminal, setHasMountedTerminal] = React.useState(false);
-
-  useEffect(() => {
-    if (active) {
-      setHasMountedTerminal(true);
-    }
-  }, [active]);
-
   useEffect(() => {
     if (!active) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -114,8 +106,8 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
         </button>
       </nav>
 
-      {/* Interactive 3D Field Mail CRT Terminal Desk (Native React Component, kept warm once mounted) */}
-      {(active || hasMountedTerminal) && (
+      {/* Interactive 3D Field Mail CRT Terminal Desk (Native React Component) */}
+      {active && (
         <FieldMailTerminal onBack={onBack} active={active} isTransitioning={isTransitioning} />
       )}
     </div>

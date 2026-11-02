@@ -397,10 +397,8 @@ export const SectionScrollTransition: React.FC = memo(() => {
         return;
       }
 
-      const tFly = clamp(pFlight, 0, 1);
-      const uFly = smoothstep(0, 1, tFly);
-      // Gentle glide scale down to desk resting size (~0.28)
-      const flightScale = lerp(1, 0.28, smoothstep(0.04, 0.92, pFlight));
+      // Smooth flight scaling down to the natural resting size of the plane on the desk
+      const flightScale = lerp(1, 0.32, smoothstep(0.04, 0.95, pFlight));
       const spin = 0;
 
       const H = Math.min(vw * 0.82, vh * 1.17);
@@ -515,6 +513,19 @@ export const SectionScrollTransition: React.FC = memo(() => {
       const yaw0 = lerp(-0.22 * smoothstep(0.34, 0.50, p), 0.5, pStep6Open);
       const pitch0 = lerp(-0.14 * smoothstep(0.02, 0.25, p), -0.4, pStep6Open);
       const tz0 = -smoothstep(0.01, 0.45, p) * 200;
+
+      interface TransformParams {
+        S: number;
+        roll: number;
+        yaw: number;
+        pitch: number;
+        spin: number;
+        shiftX: number;
+        Tx: number;
+        Ty: number;
+        Tz: number;
+      }
+
       const rest: TransformParams = {
         S: S / flightScale,
         roll: roll0,
@@ -546,36 +557,32 @@ export const SectionScrollTransition: React.FC = memo(() => {
       const nose: V3 = [0, yOff, 0];
       const n0 = proj(nose, rest).screen;
 
-      // Two-phase soaring flight above the 3D desktop with exact C2 continuity:
-      // Starts precisely at fold position n0 with zero initial jump, swoops LEFT TO RIGHT, then RIGHT TO LEFT down to desk
+      // ── FLIGHT PATH: 2X LEFT-TO-RIGHT DESCENT TO 3D DESK BELOW ──
+      // The plane never goes over the top of the screen; it descends steadily downwards.
+      // Sweeps LEFT TO RIGHT 2 times while descending to settle between the keyboard and CRT monitor.
       const startX = n0[0];
       const startY = n0[1];
-      const deskLandingX = vw * 0.48;
-      const deskLandingY = vh * 0.71;
+      const deskLandingX = vw * 0.485;
+      const deskLandingY = vh * 0.72;
 
-      const u = smoothstep(0, 1, clamp(pFlight, 0, 1));
-      const baseLinearX = lerp(startX, deskLandingX, u);
-      const swingX = vw * (Math.sin(u * Math.PI) * 0.28 - Math.sin(u * Math.PI * 2) * 0.12);
-      const flightTargetX = baseLinearX + swingX;
-      const flightTargetY = lerp(startY, deskLandingY, Math.pow(u, 1.25));
+      const u = clamp(pFlight, 0, 1);
+      // Steady downward descent towards the desk view below
+      const flightTargetY = lerp(startY, deskLandingY, Math.pow(u, 1.15));
 
-      const turnVel = Math.cos(u * Math.PI) * 0.28 - Math.cos(u * Math.PI * 2) * 0.24;
-      const bankRoll = clamp(turnVel * 55, -28, 28) * Math.sin(u * Math.PI) * DEG;
+      // 2 complete Left-to-Right oscillation passes:
+      // Pass 1: sweeps from left to right (u ~ 0.0 to 0.48)
+      // Pass 2: banks back left then sweeps left to right down into desk landing spot (u ~ 0.48 to 1.0)
+      const u2 = u * Math.PI * 4;
+      const sweepEnvelope = Math.sin(u * Math.PI) * (1.0 - 0.30 * u);
+      const sweepX = -Math.sin(u2) * (vw * 0.25) * sweepEnvelope;
+      const flightTargetX = lerp(startX, deskLandingX, u) + sweepX;
 
-      const targetPitch = lerp(pitch0, -0.05, u) + Math.sin(u * Math.PI * 2) * (5 * DEG);
-      const targetYaw = lerp(yaw0, 0.04, u);
+      // Realistic aerodynamics: bank roll corresponds to horizontal sweep rate
+      const turnRate = -Math.cos(u2) * 4 * Math.PI * (vw * 0.25) * sweepEnvelope;
+      const bankRoll = clamp((turnRate / vw) * 7.5, -0.42, 0.42) * (1.0 - Math.pow(u, 2.5));
 
-      interface TransformParams {
-        S: number;
-        roll: number;
-        yaw: number;
-        pitch: number;
-        spin: number;
-        shiftX: number;
-        Tx: number;
-        Ty: number;
-        Tz: number;
-      }
+      const targetPitch = lerp(pitch0, -0.05, u) + Math.sin(u * Math.PI) * 0.035;
+      const targetYaw = lerp(yaw0, 0.05, u);
 
       const cur: TransformParams = {
         S,
@@ -635,7 +642,8 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       const drawOrder = orderByDepth(drawList, vw * 0.5, vh * 0.5, fov);
 
-      // ── MASKING: Cut out paper silhouette from solid black backdrop ──
+      // ── MASKING: Cut out paper silhouette from dark backdrop during initial folding only ──
+      // During flight, canvas remains completely transparent so 3D desk objects below are 100% visible
       if (pFlight <= 0.001) {
         ctx.save();
         ctx.fillStyle = '#000000';
@@ -652,17 +660,9 @@ export const SectionScrollTransition: React.FC = memo(() => {
           ctx.fill();
         }
         ctx.restore();
-      } else {
-        const slideY = vh * (1.0 - smoothstep(0, 1, pFlight));
-        if (slideY > 1) {
-          ctx.save();
-          ctx.fillStyle = '#0b0a08';
-          ctx.fillRect(0, 0, vw, slideY);
-          ctx.restore();
-        }
       }
 
-      // ── FOLDED FLAPS & 3D AIRPLANE FACETS (TEXTURED WITH LINED PAPER, NO FADE IN FADE OUT) ──
+      // ── FOLDED FLAPS & 3D AIRPLANE FACETS (TEXTURED WITH LINED PAPER) ──
       const shadeStrength = smoothstep(0.01, 0.08, p);
       const creaseProg: Record<number, number> = { 1: pStep5, 2: pStep3, 4: pStep2 };
       function edgeAlpha(kind: any) {
@@ -783,8 +783,8 @@ export const SectionScrollTransition: React.FC = memo(() => {
         webglCanvas.style.display = 'none';
 
         const FOLD_DURATION = 1500;   // 1.5s for clean, distinct step-by-step folds
-        const FLIGHT_DURATION = 1800; // 1.8s for sweeping left-to-right, right-to-left descent as 3D desktop slides in
-        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 3.3s
+        const FLIGHT_DURATION = 2200; // 2.2s for 2x left-to-right descent to desk
+        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 3.7s
 
         const stepAirplane = (now: number) => {
           const elapsed = now - animStartTime;
@@ -799,9 +799,9 @@ export const SectionScrollTransition: React.FC = memo(() => {
           } else {
             pFold = 0.78;
             const tFlight = Math.min(1, (elapsed - FOLD_DURATION) / FLIGHT_DURATION);
-            flight = Math.pow(tFlight, 1.15);
+            flight = smoothstep(0, 1, tFlight);
 
-            // Mount the 3D desk view underneath right as flight begins
+            // Immediately activate 3D scene below right when the fold is complete
             if (!midSwapDone) {
               midSwapDone = true;
               pendingMidSwap?.();

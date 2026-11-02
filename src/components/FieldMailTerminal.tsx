@@ -127,6 +127,11 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
   isTransitioning = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isTransitioningRef = useRef(isTransitioning);
+  useEffect(() => {
+    isTransitioningRef.current = isTransitioning;
+  }, [isTransitioning]);
+
   const [toast, setToast] = useState<{ title: string; body: string; visible: boolean }>({
     title: '',
     body: '',
@@ -254,186 +259,58 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       return new THREE.CanvasTexture(c);
     }
 
-    const DEG = Math.PI / 180;
-    function clampVal(v: number, a: number, b: number): number {
-      return Math.max(a, Math.min(b, v));
-    }
-    function lerpVal(a: number, b: number, t: number): number {
-      return a + (b - a) * t;
-    }
-    type V3 = [number, number, number];
-    type V2 = [number, number];
-
-    function rotAroundAxis(p: V3, a: V3, b: V3, theta: number): V3 {
-      if (Math.abs(theta) < 1e-6) return [p[0], p[1], p[2]];
-      const ux0 = b[0] - a[0], uy0 = b[1] - a[1], uz0 = b[2] - a[2];
-      const len = Math.hypot(ux0, uy0, uz0);
-      if (len < 1e-8) return [p[0], p[1], p[2]];
-      const ux = ux0 / len, uy = uy0 / len, uz = uz0 / len;
-      const px = p[0] - a[0], py = p[1] - a[1], pz = p[2] - a[2];
-      const c = Math.cos(theta), s = Math.sin(theta);
-      const dot = ux * px + uy * py + uz * pz;
-      const cx = uy * pz - uz * py, cy = uz * px - ux * pz, cz = ux * py - uy * px;
-      return [
-        px * c + cx * s + ux * dot * (1 - c) + a[0],
-        py * c + cy * s + uy * dot * (1 - c) + a[1],
-        pz * c + cz * s + uz * dot * (1 - c) + a[2],
-      ];
+    function createPaperPlaneTexture() {
+      // Use identical lined notebook paper texture as the origami fold transition (/assets/white-page-bg.png)
+      const loader = new THREE.TextureLoader();
+      const tex = loader.load('/assets/white-page-bg.png');
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.anisotropy = 4;
+      return tex;
     }
 
-    function clipKeep(poly: V2[], f: (q: V2) => number): V2[] {
-      const out: V2[] = [];
-      for (let i = 0; i < poly.length; i++) {
-        const a = poly[i], b = poly[(i + 1) % poly.length];
-        const fa = f(a), fb = f(b);
-        if (fa >= 0) out.push(a);
-        if ((fa >= 0) !== (fb >= 0)) {
-          const t = fa / (fa - fb);
-          out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
-        }
-      }
-      return out;
-    }
+    function createPaperAirplaneGeo(): THREE.BufferGeometry {
+      const geo = new THREE.BufferGeometry();
 
-    function hingeIdx(poly: V2[], ang: number, W: number, H: number): [number, number] {
-      const sn = Math.sin(ang), cs = Math.cos(ang);
-      const t = Math.min(sn > 1e-9 ? W / sn : Infinity, cs > 1e-9 ? H / cs : Infinity);
-      const target: V2[] = [[0, 0], [t * sn, t * cs]];
-      const res = target.map((tp) => {
-        let bi = -1, bd = Infinity;
-        for (let k = 0; k < poly.length; k++) {
-          const dd = Math.hypot(poly[k][0] - tp[0], poly[k][1] - tp[1]);
-          if (dd < bd) { bd = dd; bi = k; }
-        }
-        return bd < 1e-4 * W ? bi : -1;
-      });
-      return [res[0], res[1]];
-    }
-
-    const CELL_OPS: number[][] = [[], [5], [3, 5], [3], [2, 3], [2, 3, 5], [2, 5], [2]];
-
-    interface CellData {
-      poly: V2[];
-      ops: number[];
-      ha: [number, number];
-      hb: [number, number];
-    }
-
-    function buildCells(W: number, H: number): CellData[] {
-      const cells: CellData[] = [];
-      for (let i = 0; i < 8; i++) {
-        const a = (i * Math.PI) / 16, b = ((i + 1) * Math.PI) / 16;
-        let poly: V2[] = [[0, 0], [W, 0], [W, H], [0, H]];
-        poly = clipKeep(poly, (q) => q[0] * Math.cos(a) - q[1] * Math.sin(a));
-        poly = clipKeep(poly, (q) => -(q[0] * Math.cos(b) - q[1] * Math.sin(b)));
-        cells.push({
-          poly,
-          ops: CELL_OPS[i],
-          ha: hingeIdx(poly, a, W, H),
-          hb: hingeIdx(poly, b, W, H),
-        });
-      }
-      return cells;
-    }
-
-    // Exact origami paper airplane geometry identical to SectionScrollTransition
-    function createFoldingPaperAirplaneGeo(): THREE.BufferGeometry {
-      const H = 0.36;
-      const W = H * 0.35;
-      const y2 = W * (1 + Math.SQRT2);
-      const xWing = H * Math.tan(Math.PI / 16);
-      const d = 0.003;
-      const pStep2 = 1.0, pStep3 = 1.0, pStep4 = 1.0, pStep5 = 1.0, pStep6Open = 1.0;
-      const tuckAngle = -Math.PI;
-      const theta5 = (lerpVal(0, 176, pStep5) - lerpVal(0, 100, pStep6Open)) * DEG;
-      const yOff = -H * 0.5;
-
-      const FOLDS: Record<number, { ex: number; ey: number; h: number; ang: number }> = {
-        2: { ex: W, ey: W, h: 0.5 * d, ang: pStep2 * Math.PI },
-        3: { ex: W, ey: y2, h: 1.5 * d, ang: pStep3 * Math.PI },
-        5: { ex: xWing, ey: H, h: 3.5 * d, ang: theta5 },
-      };
-
-      function foldPoint(v: V3, k: number, s: number): V3 {
-        const f = FOLDS[k];
-        return rotAroundAxis(v, [0, yOff, f.h], [s * f.ex, f.ey + yOff, f.h], -s * f.ang);
-      }
-
-      function spinePoint(v: V3, s: number): V3 {
-        if (s === 1) return v;
-        return rotAroundAxis(v, [0, yOff, -0.5 * d], [0, H + yOff, -0.5 * d], tuckAngle);
-      }
-
-      const cells = buildCells(W, H);
-      const rawFacets: { verts: V3[]; uvs: V2[] }[] = [];
-
-      [1, -1].forEach((s) => {
-        cells.forEach((c) => {
-          let verts = c.poly.map((q) => [s * q[0], q[1] + yOff, 0] as V3);
-          const uvs: V2[] = c.poly.map((q) => {
-            const xSheet = s * q[0];
-            const ySheet = q[1];
-            const u = clampVal(ySheet / H, 0, 1);
-            const v = clampVal((xSheet + W) / (2 * W), 0, 1);
-            return [u, v];
-          });
-          c.ops.forEach((k) => {
-            verts = verts.map((v) => foldPoint(v, k, s));
-          });
-          verts = verts.map((v) => spinePoint(v, s));
-          if (s === -1) {
-            verts = verts.map((v) => [-v[0], v[1], v[2]] as V3);
-          }
-          rawFacets.push({ verts, uvs });
-        });
-      });
-
-      const nCell = cells.length;
-      function addStrip(
-        fa: { verts: V3[]; uvs: V2[] },
-        ia: [number, number],
-        fb: { verts: V3[]; uvs: V2[] },
-        ib: [number, number]
-      ) {
-        if (ia[0] < 0 || ia[1] < 0 || ib[0] < 0 || ib[1] < 0) return;
-        const q: V3[] = [fa.verts[ia[0]], fa.verts[ia[1]], fb.verts[ib[1]], fb.verts[ib[0]]];
-        const uvs: V2[] = [fa.uvs[ia[0]], fa.uvs[ia[1]], fb.uvs[ib[1]], fb.uvs[ib[0]]];
-        const g = Math.max(
-          Math.hypot(q[0][0] - q[3][0], q[0][1] - q[3][1], q[0][2] - q[3][2]),
-          Math.hypot(q[1][0] - q[2][0], q[1][2] - q[2][2])
-        );
-        if (g < 0.001) return;
-        rawFacets.push({ verts: q, uvs });
-      }
-
-      for (let hf = 0; hf < 2; hf++) {
-        for (let i = 0; i < nCell - 1; i++) {
-          addStrip(rawFacets[hf * nCell + i], cells[i].hb, rawFacets[hf * nCell + i + 1], cells[i + 1].ha);
-        }
-      }
-      addStrip(rawFacets[0], cells[0].ha, rawFacets[nCell], cells[0].ha);
-
-      let minZ = Infinity;
-      rawFacets.forEach((f) => f.verts.forEach((v) => { minZ = Math.min(minZ, v[2]); }));
+      // Folded origami dart landmark points matching SectionScrollTransition (facing -Z forward, +Y up, +X right)
+      const nose = [0, 0.008, -0.22];
+      const tailCenter = [0, 0.006, 0.18];
+      const keelFront = [0, -0.024, -0.08];
+      const keelBack = [0, -0.052, 0.16];
+      const lCrease = [-0.026, -0.012, 0.17];
+      const rCrease = [0.026, -0.012, 0.17];
+      const lWingTip = [-0.175, 0.022, 0.16];
+      const rWingTip = [0.175, 0.022, 0.16];
 
       const positions: number[] = [];
       const uvs: number[] = [];
 
-      rawFacets.forEach((facet) => {
-        const v = facet.verts;
-        const uv = facet.uvs;
-        if (v.length < 3) return;
-        for (let j = 1; j < v.length - 1; j++) {
-          const triIndices = [0, j, j + 1];
-          triIndices.forEach((idx) => {
-            // Forward is -Z, Y is up (above desk), X is right
-            positions.push(v[idx][0], v[idx][2] - minZ, v[idx][1]);
-            uvs.push(uv[idx][0], uv[idx][1]);
-          });
-        }
-      });
+      function addTri(
+        p1: number[], uv1: [number, number],
+        p2: number[], uv2: [number, number],
+        p3: number[], uv3: [number, number]
+      ) {
+        positions.push(...p1, ...p2, ...p3);
+        uvs.push(...uv1, ...uv2, ...uv3);
+        // Double-sided backface for realistic paper thickness/light bounce
+        positions.push(...p1, ...p3, ...p2);
+        uvs.push(...uv1, ...uv3, ...uv2);
+      }
 
-      const geo = new THREE.BufferGeometry();
+      // Left & Right Wings (Top main surfaces)
+      addTri(nose, [0.5, 0.05], lCrease, [0.44, 0.85], lWingTip, [0.08, 0.85]);
+      addTri(nose, [0.5, 0.05], rWingTip, [0.92, 0.85], rCrease, [0.56, 0.85]);
+
+      // Left & Right Center Creases
+      addTri(nose, [0.5, 0.05], tailCenter, [0.5, 0.88], lCrease, [0.44, 0.85]);
+      addTri(nose, [0.5, 0.05], rCrease, [0.56, 0.85], tailCenter, [0.5, 0.88]);
+
+      // Keel (Underbelly fuselage)
+      addTri(nose, [0.5, 0.05], keelFront, [0.48, 0.45], lCrease, [0.44, 0.85]);
+      addTri(keelFront, [0.48, 0.45], keelBack, [0.48, 0.85], lCrease, [0.44, 0.85]);
+      addTri(nose, [0.5, 0.05], rCrease, [0.56, 0.85], keelFront, [0.52, 0.45]);
+      addTri(keelFront, [0.52, 0.45], rCrease, [0.56, 0.85], keelBack, [0.52, 0.85]);
+
       geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       geo.computeVertexNormals();
@@ -519,7 +396,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     }
 
     const planeState = {
-      mode: (isTransitioning ? 'entrance' : 'landed') as 'entrance' | 'landed' | 'loop' | 'deliver' | 'dispatched',
+      mode: 'entrance' as 'entrance' | 'landed' | 'loop' | 'deliver' | 'dispatched',
       time: 0,
     };
 
@@ -881,13 +758,13 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     const focusedCamSpherical = { radius: 4.15, theta: 0.26, phi: 1.39 };
     const focusedCamTarget = new THREE.Vector3(-0.55, 1.48, -0.15);
 
-    // If entering via transition, camera starts high above desk looking down, descending as desktop slides in
+    // If entering via transition, camera starts elevated looking down at 3D desk objects below
     const camSpherical = isTransitioning
-      ? { radius: 8.6, theta: 0.38, phi: 0.98 }
+      ? { radius: 9.8, theta: 0.38, phi: 0.85 }
       : { ...defaultCamSpherical };
     let targetSpherical = { ...defaultCamSpherical };
     const currentLookAt = isTransitioning
-      ? new THREE.Vector3(-0.18, 0.45, 0.22)
+      ? new THREE.Vector3(-0.18, 0.60, 0.40)
       : defaultCamTarget.clone();
     const targetLookAt = defaultCamTarget.clone();
 
@@ -2241,14 +2118,12 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     noteMesh.receiveShadow = true;
     scene.add(noteMesh);
 
-    // Origami Airmail Paper Airplane (Exact match to SectionScrollTransition)
-    const planeTexLoader = new THREE.TextureLoader();
-    const planeTex = planeTexLoader.load('/assets/white-page-bg.png');
-    planeTex.anisotropy = 4;
-    const planeGeo = createFoldingPaperAirplaneGeo();
+    // Origami Lined Paper Airplane (identical texture and folded geometry as transition)
+    const planeTex = createPaperPlaneTexture();
+    const planeGeo = createPaperAirplaneGeo();
     const planeMat = new THREE.MeshStandardMaterial({
       map: planeTex,
-      roughness: 0.68,
+      roughness: 0.72,
       metalness: 0.02,
       side: THREE.DoubleSide,
       shadowSide: THREE.DoubleSide,
@@ -2261,49 +2136,56 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     const planeGroup = new THREE.Group();
     planeGroup.name = 'PAPER_PLANE_GROUP';
     planeGroup.add(planeMesh);
-    planeGroup.position.set(-0.14, 0.015, 0.68);
-    planeGroup.rotation.set(0.02, 0.22, 0.06);
+    planeGroup.position.set(-0.16, 0.019, 0.70);
+    planeGroup.rotation.set(0.03, 0.24, 0.07);
     planeGroup.visible = !isTransitioning;
     scene.add(planeGroup);
 
     // Flight Path Curves
-    // 1. Entrance Flight (Starts on LEFT, glides left-to-right while descending in foreground, reaches desk below)
-    // Never passes over the CRT screen: stays below CRT screen center (y <= 0.72) and in foreground (z >= 0.68)
+    // 1. Entrance Flight (swoops in, circles the room, and lands on desk between keyboard and monitor)
     const entranceFlightPoints = [
-      new THREE.Vector3(-3.2, 0.72, 2.6),    // Far left foreground (well below and left of CRT)
-      new THREE.Vector3(-2.1, 0.56, 2.2),    // Gliding left-to-right descending
-      new THREE.Vector3(-0.9, 0.42, 1.8),    // Passing center-left below CRT screen bezel
-      new THREE.Vector3(0.4, 0.30, 1.5),     // Cruising past center-right in front of keyboard
-      new THREE.Vector3(1.3, 0.22, 1.25),    // Right desk flank glide
-      new THREE.Vector3(1.0, 0.14, 0.98),    // Banking curve towards runway
-      new THREE.Vector3(0.35, 0.065, 0.82),  // Short final approach
-      new THREE.Vector3(-0.06, 0.026, 0.72), // Soft flair
-      new THREE.Vector3(-0.14, 0.015, 0.68)  // Settle between keyboard & monitor
+      new THREE.Vector3(3.6, 3.8, -1.8),     // High right entry above room
+      new THREE.Vector3(2.4, 2.7, -0.9),     // Gliding past the lamp shade
+      new THREE.Vector3(1.2, 1.7, -0.1),     // Sweeping through golden volumetric beam
+      new THREE.Vector3(-0.15, 1.25, 0.45),  // Crossing desk in front of CRT
+      new THREE.Vector3(-1.5, 1.65, 0.25),   // Banking turn around CRT
+      new THREE.Vector3(-2.3, 2.45, -0.7),   // Climbing banking turn past tower
+      new THREE.Vector3(-1.7, 3.05, -1.9),   // Cresting along back wall
+      new THREE.Vector3(0.8, 2.7, -1.6),     // Gliding across rear room
+      new THREE.Vector3(2.7, 2.1, -0.2),     // Wide banking turn around lamp
+      new THREE.Vector3(2.2, 1.4, 1.35),     // Turning toward front desk runway
+      new THREE.Vector3(1.1, 0.72, 1.3),     // Gliding along keyboard front edge
+      new THREE.Vector3(0.24, 0.22, 0.98),   // Short final approach
+      new THREE.Vector3(-0.05, 0.048, 0.80), // Flairing nose up before touchdown
+      new THREE.Vector3(-0.16, 0.019, 0.70)  // Settled touchdown between keyboard & monitor
     ];
     const entranceCurve = new THREE.CatmullRomCurve3(entranceFlightPoints, false, 'centripetal', 0.5);
 
-    // 2. Loop Flight (taking off from desk, quick low sweep to right and back)
+    // 2. Loop Flight (taking off from desk, circling around room, landing back down)
     const loopFlightPoints = [
-      new THREE.Vector3(-0.14, 0.015, 0.68), // On desk
-      new THREE.Vector3(0.2, 0.22, 0.85),    // Lift off to right
-      new THREE.Vector3(1.1, 0.65, 1.3),     // Climbing right
-      new THREE.Vector3(1.8, 1.15, 1.6),     // Arc to right
-      new THREE.Vector3(0.8, 1.05, 2.4),     // Swooping around foreground
-      new THREE.Vector3(-1.2, 0.85, 2.2),    // Low left turn (well below CRT)
-      new THREE.Vector3(-0.8, 0.45, 1.4),    // Turning back right
-      new THREE.Vector3(0.1, 0.12, 0.85),    // Aligning final approach
-      new THREE.Vector3(-0.14, 0.015, 0.68)  // Touchdown between keyboard & monitor
+      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
+      new THREE.Vector3(-0.10, 0.28, 0.45),  // Lift off & climb
+      new THREE.Vector3(0.40, 0.95, 0.10),   // Ascending toward volumetric beam
+      new THREE.Vector3(1.80, 1.85, 0.20),   // Banking right around lamp
+      new THREE.Vector3(2.50, 2.30, -0.80),  // High bank past wall
+      new THREE.Vector3(0.60, 2.60, -1.70),  // High back circuit
+      new THREE.Vector3(-1.60, 2.20, -1.10), // Swooping down past PC tower
+      new THREE.Vector3(-1.40, 1.35, 0.15),  // Sweeping low around CRT
+      new THREE.Vector3(0.30, 0.75, 1.10),   // Aligning keyboard runway
+      new THREE.Vector3(0.12, 0.18, 0.92),   // Final flair
+      new THREE.Vector3(-0.16, 0.019, 0.70)  // Touchdown between keyboard & monitor
     ];
     const loopCurve = new THREE.CatmullRomCurve3(loopFlightPoints, false, 'centripetal', 0.5);
 
-    // 3. Delivery Flight (launches from desk, accelerates to right and into distance)
+    // 3. Delivery Flight (launches from desk, accelerates through the beam, flies off into distance)
     const deliveryFlightPoints = [
-      new THREE.Vector3(-0.14, 0.015, 0.68), // On desk
-      new THREE.Vector3(0.2, 0.18, 0.55),    // Rapid lift off
-      new THREE.Vector3(0.9, 0.65, 0.35),    // Climbing rightward
-      new THREE.Vector3(1.8, 1.35, 0.10),    // Through volumetric light beam
-      new THREE.Vector3(2.8, 2.20, -0.40),   // Banking high right
-      new THREE.Vector3(4.2, 3.40, -1.20)    // Flying away
+      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
+      new THREE.Vector3(-0.12, 0.16, 0.42),  // Rapid lift off
+      new THREE.Vector3(-0.04, 0.65, 0.08),  // Steep climb
+      new THREE.Vector3(0.42, 1.60, -0.42),  // Climbing into golden beam
+      new THREE.Vector3(1.35, 2.70, -1.15),  // Banking past gooseneck
+      new THREE.Vector3(2.60, 3.80, -1.95),  // High exit trajectory
+      new THREE.Vector3(4.50, 5.20, -2.90)   // Disappearing into night
     ];
     const deliveryCurve = new THREE.CatmullRomCurve3(deliveryFlightPoints, false, 'centripetal', 0.5);
 
@@ -2361,10 +2243,11 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     let prevPointerPos = { x: 0, y: 0 };
 
     function updateCameraPosition() {
-      camSpherical.radius += (targetSpherical.radius - camSpherical.radius) * 0.08;
-      camSpherical.theta += (targetSpherical.theta - camSpherical.theta) * 0.08;
-      camSpherical.phi += (targetSpherical.phi - camSpherical.phi) * 0.08;
-      currentLookAt.lerp(targetLookAt, 0.08);
+      const lerpSpeed = isTransitioningRef.current ? 0.038 : 0.08;
+      camSpherical.radius += (targetSpherical.radius - camSpherical.radius) * lerpSpeed;
+      camSpherical.theta += (targetSpherical.theta - camSpherical.theta) * lerpSpeed;
+      camSpherical.phi += (targetSpherical.phi - camSpherical.phi) * lerpSpeed;
+      currentLookAt.lerp(targetLookAt, lerpSpeed);
 
       const r = camSpherical.radius;
       const sinPhi = Math.sin(camSpherical.phi);
@@ -2636,19 +2519,18 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       const targetHoverBoost = terminalState.hoveredItem !== -1 ? 1.0 : 0.0;
       crtShaderUniforms.uHoverBoost.value += (targetHoverBoost - crtShaderUniforms.uHoverBoost.value) * 0.12;
 
-      // Paper Airplane Flight Dynamics
-      if (isTransitioning) {
-        // While SectionScrollTransition is executing its soaring overhead flight, resting plane awaits touchdown
+      // Paper Airplane Dynamics on the Desk
+      if (isTransitioningRef.current) {
+        // While SectionScrollTransition performs its 2x left-to-right descent overhead, desk plane remains hidden
         planeGroup.visible = false;
-      } else if (planeState.mode === 'entrance') {
-        // On transition completion, resting plane appears seamlessly at landing spot
-        planeGroup.visible = true;
+      } else if (planeState.mode === 'entrance' || planeState.mode === 'landed') {
+        // Once transition completes, plane rests seamlessly between keyboard and CRT monitor
         planeState.mode = 'landed';
-        planeGroup.position.set(-0.14, 0.015, 0.68);
-        planeGroup.rotation.set(0.02, 0.22, 0.06);
+        planeGroup.visible = true;
+        planeGroup.position.set(-0.16, 0.019, 0.70);
+        planeGroup.rotation.set(0.03, 0.24, 0.07);
         planeMesh.rotation.set(0, 0, 0);
       } else if (planeState.mode === 'loop' || planeState.mode === 'deliver') {
-        planeGroup.visible = true;
         const activeCurve = planeState.mode === 'deliver' ? deliveryCurve : loopCurve;
         const duration = planeState.mode === 'deliver' ? 3.8 : 6.2;
 
@@ -2692,8 +2574,8 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
             planeState.mode = 'dispatched';
           } else {
             planeState.mode = 'landed';
-            planeGroup.position.set(-0.14, 0.015, 0.68);
-            planeGroup.rotation.set(0.02, 0.22, 0.06);
+            planeGroup.position.set(-0.16, 0.019, 0.70);
+            planeGroup.rotation.set(0.03, 0.24, 0.07);
             planeMesh.rotation.set(0, 0, 0);
             sfx.playPaperRustle();
           }
