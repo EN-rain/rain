@@ -783,37 +783,18 @@ export const SectionScrollTransition: React.FC = memo(() => {
         webglCanvas.style.display = 'none';
 
         const FOLD_DURATION = 1500;   // 1.5s for clean, distinct step-by-step folds
-        const FLIGHT_DURATION = 2200; // 2.2s for 2x left-to-right descent to desk
-        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 3.7s
 
         const stepAirplane = (now: number) => {
           const elapsed = now - animStartTime;
 
-          let pFold = 0;
-          let flight = 0;
-
           if (elapsed < FOLD_DURATION) {
             const t = elapsed / FOLD_DURATION;
-            pFold = t * 0.78;
-            flight = 0;
-          } else {
-            pFold = 0.78;
-            const tFlight = Math.min(1, (elapsed - FOLD_DURATION) / FLIGHT_DURATION);
-            flight = smoothstep(0, 1, tFlight);
-
-            // Immediately activate 3D scene below right when the fold is complete
-            if (!midSwapDone) {
-              midSwapDone = true;
-              pendingMidSwap?.();
-            }
-          }
-
-          renderAirplane(pFold, flight);
-
-          if (elapsed < TOTAL_DURATION) {
+            const pFold = t * 0.78;
+            renderAirplane(pFold, 0);
             animRafId = requestAnimationFrame(stepAirplane);
           } else {
-            renderAirplane(0.78, 1.0);
+            renderAirplane(0.78, 0);
+            // Fold is complete! Hand off to 3D scene below where 3D plane performs illuminated descent
             if (!midSwapDone) {
               midSwapDone = true;
               pendingMidSwap?.();

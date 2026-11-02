@@ -335,7 +335,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         <VintageContactDesk
           onBack={() => handleSwitchPage(1, 'home')}
           onNavigateSection={(sec) => handleSwitchPage(1, sec)}
-          active={isPage2Visible}
+          active={isPage2Visible || isTransitioning}
           isTransitioning={isTransitioning}
         />
       </div>

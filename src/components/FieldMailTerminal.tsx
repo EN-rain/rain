@@ -127,9 +127,13 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
   isTransitioning = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const resetEntranceFlightRef = useRef<(() => void) | null>(null);
   const isTransitioningRef = useRef(isTransitioning);
   useEffect(() => {
     isTransitioningRef.current = isTransitioning;
+    if (isTransitioning) {
+      resetEntranceFlightRef.current?.();
+    }
   }, [isTransitioning]);
 
   const [toast, setToast] = useState<{ title: string; body: string; visible: boolean }>({
@@ -260,12 +264,52 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     }
 
     function createPaperPlaneTexture() {
-      // Use identical lined notebook paper texture as the origami fold transition (/assets/white-page-bg.png)
-      const loader = new THREE.TextureLoader();
-      const tex = loader.load('/assets/white-page-bg.png');
+      // Crisp vintage lined notebook paper texture (matching /assets/white-page-bg.png)
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 512;
+      const ctx = c.getContext('2d')!;
+
+      // Aged ivory paper tone
+      ctx.fillStyle = '#faf6ec';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Fine horizontal notebook ruling lines
+      ctx.strokeStyle = 'rgba(75, 100, 145, 0.24)';
+      ctx.lineWidth = 1.2;
+      for (let y = 26; y < 512; y += 22) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(512, y);
+        ctx.stroke();
+      }
+
+      // Left margin line
+      ctx.strokeStyle = 'rgba(180, 50, 50, 0.28)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(54, 0);
+      ctx.lineTo(54, 512);
+      ctx.stroke();
+
+      // Subtle organic paper fibers
+      for (let i = 0; i < 2400; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(60, 48, 30, 0.035)' : 'rgba(255, 255, 255, 0.08)';
+        ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+      }
+
+      const tex = new THREE.CanvasTexture(c);
       tex.wrapS = THREE.ClampToEdgeWrapping;
       tex.wrapT = THREE.ClampToEdgeWrapping;
       tex.anisotropy = 4;
+
+      const img = new Image();
+      img.src = '/assets/white-page-bg.png';
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, 512, 512);
+        tex.needsUpdate = true;
+      };
+
       return tex;
     }
 
@@ -2136,34 +2180,34 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     const planeGroup = new THREE.Group();
     planeGroup.name = 'PAPER_PLANE_GROUP';
     planeGroup.add(planeMesh);
-    planeGroup.position.set(-0.16, 0.019, 0.70);
-    planeGroup.rotation.set(0.03, 0.24, 0.07);
-    planeGroup.visible = !isTransitioning;
+    planeGroup.position.set(-0.16, 0.052, 0.70);
+    planeGroup.rotation.set(0.0, 0.22, 0.05);
+    planeGroup.visible = true;
     scene.add(planeGroup);
 
     // Flight Path Curves
-    // 1. Entrance Flight (swoops in, circles the room, and lands on desk between keyboard and monitor)
+    // 1. Entrance Flight: 2X Left-to-Right Downward Descent into Desk Runway
     const entranceFlightPoints = [
-      new THREE.Vector3(3.6, 3.8, -1.8),     // High right entry above room
-      new THREE.Vector3(2.4, 2.7, -0.9),     // Gliding past the lamp shade
-      new THREE.Vector3(1.2, 1.7, -0.1),     // Sweeping through golden volumetric beam
-      new THREE.Vector3(-0.15, 1.25, 0.45),  // Crossing desk in front of CRT
-      new THREE.Vector3(-1.5, 1.65, 0.25),   // Banking turn around CRT
-      new THREE.Vector3(-2.3, 2.45, -0.7),   // Climbing banking turn past tower
-      new THREE.Vector3(-1.7, 3.05, -1.9),   // Cresting along back wall
-      new THREE.Vector3(0.8, 2.7, -1.6),     // Gliding across rear room
-      new THREE.Vector3(2.7, 2.1, -0.2),     // Wide banking turn around lamp
-      new THREE.Vector3(2.2, 1.4, 1.35),     // Turning toward front desk runway
-      new THREE.Vector3(1.1, 0.72, 1.3),     // Gliding along keyboard front edge
-      new THREE.Vector3(0.24, 0.22, 0.98),   // Short final approach
-      new THREE.Vector3(-0.05, 0.048, 0.80), // Flairing nose up before touchdown
-      new THREE.Vector3(-0.16, 0.019, 0.70)  // Settled touchdown between keyboard & monitor
+      new THREE.Vector3(0.10, 2.30, 0.25),   // Fold apex above desk in front of CRT
+      new THREE.Vector3(-1.35, 1.95, 0.40),  // Banking left
+      // Pass 1: LEFT TO RIGHT through lamp beam
+      new THREE.Vector3(-0.45, 1.60, 0.55),  // Sweeping left-to-right
+      new THREE.Vector3(0.85, 1.30, 0.70),   // Crossing directly through warm golden lamp spotlight!
+      new THREE.Vector3(1.65, 1.05, 0.85),   // Cresting right
+      // Bank turn back left
+      new THREE.Vector3(1.15, 0.82, 1.05),
+      new THREE.Vector3(-0.25, 0.62, 0.95),  // Banking left
+      new THREE.Vector3(-1.10, 0.45, 0.82),  // Left turnaround
+      // Pass 2: LEFT TO RIGHT descent into desk runway
+      new THREE.Vector3(-0.65, 0.28, 0.76),  // Sweeping left-to-right towards desk runway
+      new THREE.Vector3(-0.35, 0.12, 0.72),  // Nose flair before touchdown
+      new THREE.Vector3(-0.16, 0.052, 0.70)  // Settles stably on desk between keyboard & CRT monitor
     ];
     const entranceCurve = new THREE.CatmullRomCurve3(entranceFlightPoints, false, 'centripetal', 0.5);
 
     // 2. Loop Flight (taking off from desk, circling around room, landing back down)
     const loopFlightPoints = [
-      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
+      new THREE.Vector3(-0.16, 0.052, 0.70), // On desk
       new THREE.Vector3(-0.10, 0.28, 0.45),  // Lift off & climb
       new THREE.Vector3(0.40, 0.95, 0.10),   // Ascending toward volumetric beam
       new THREE.Vector3(1.80, 1.85, 0.20),   // Banking right around lamp
@@ -2173,13 +2217,13 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       new THREE.Vector3(-1.40, 1.35, 0.15),  // Sweeping low around CRT
       new THREE.Vector3(0.30, 0.75, 1.10),   // Aligning keyboard runway
       new THREE.Vector3(0.12, 0.18, 0.92),   // Final flair
-      new THREE.Vector3(-0.16, 0.019, 0.70)  // Touchdown between keyboard & monitor
+      new THREE.Vector3(-0.16, 0.052, 0.70)  // Touchdown between keyboard & monitor
     ];
     const loopCurve = new THREE.CatmullRomCurve3(loopFlightPoints, false, 'centripetal', 0.5);
 
     // 3. Delivery Flight (launches from desk, accelerates through the beam, flies off into distance)
     const deliveryFlightPoints = [
-      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
+      new THREE.Vector3(-0.16, 0.052, 0.70), // On desk
       new THREE.Vector3(-0.12, 0.16, 0.42),  // Rapid lift off
       new THREE.Vector3(-0.04, 0.65, 0.08),  // Steep climb
       new THREE.Vector3(0.42, 1.60, -0.42),  // Climbing into golden beam
@@ -2204,26 +2248,39 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       sfx.playPaperRustle();
     };
 
+    resetEntranceFlightRef.current = () => {
+      planeState.mode = 'entrance';
+      planeState.time = 0;
+      planeGroup.visible = true;
+      camSpherical.radius = 9.6;
+      camSpherical.phi = 0.85;
+      camSpherical.theta = 0.38;
+      currentLookAt.set(-0.18, 0.60, 0.40);
+    };
+
     // Lighting
     const ambientLight = new THREE.AmbientLight(0x28221b, 0.72);
     scene.add(ambientLight);
 
-    const lampSpotLight = new THREE.SpotLight(0xffb85c, 5.4);
+    const lampSpotLight = new THREE.SpotLight(0xffb85c, 6.2);
     lampSpotLight.position.set(0, -0.32, 0);
-    lampSpotLight.target.position.set(0, -3.2, 0);
-    lampSpotLight.angle = Math.PI / 2.85;
-    lampSpotLight.penumbra = 0.62;
-    lampSpotLight.decay = 1.45;
-    lampSpotLight.distance = 12;
+    lampSpotLight.angle = Math.PI / 2.3;
+    lampSpotLight.penumbra = 0.52;
+    lampSpotLight.decay = 1.35;
+    lampSpotLight.distance = 14;
     lampSpotLight.castShadow = true;
     lampSpotLight.shadow.mapSize.width = 2048;
     lampSpotLight.shadow.mapSize.height = 2048;
     lampSpotLight.shadow.bias = -0.0004;
-    lampHeadGroup.add(lampSpotLight);
-    lampHeadGroup.add(lampSpotLight.target);
 
-    const lampFillLight = new THREE.PointLight(0xffaa44, 1.65, 6.5, 1.8);
-    lampFillLight.position.set(0, -0.52, 0);
+    const lampSpotTarget = new THREE.Object3D();
+    lampSpotTarget.position.set(0.12, 0.05, 1.10);
+    scene.add(lampSpotTarget);
+    lampSpotLight.target = lampSpotTarget;
+    lampHeadGroup.add(lampSpotLight);
+
+    const lampFillLight = new THREE.PointLight(0xffaa44, 2.2, 7.5, 1.4);
+    lampFillLight.position.set(0, -0.48, 0);
     lampHeadGroup.add(lampFillLight);
 
     scene.updateMatrixWorld(true);
@@ -2243,7 +2300,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     let prevPointerPos = { x: 0, y: 0 };
 
     function updateCameraPosition() {
-      const lerpSpeed = isTransitioningRef.current ? 0.038 : 0.08;
+      const lerpSpeed = planeState.mode === 'entrance' ? 0.034 : 0.08;
       camSpherical.radius += (targetSpherical.radius - camSpherical.radius) * lerpSpeed;
       camSpherical.theta += (targetSpherical.theta - camSpherical.theta) * lerpSpeed;
       camSpherical.phi += (targetSpherical.phi - camSpherical.phi) * lerpSpeed;
@@ -2519,20 +2576,12 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       const targetHoverBoost = terminalState.hoveredItem !== -1 ? 1.0 : 0.0;
       crtShaderUniforms.uHoverBoost.value += (targetHoverBoost - crtShaderUniforms.uHoverBoost.value) * 0.12;
 
-      // Paper Airplane Dynamics on the Desk
-      if (isTransitioningRef.current) {
-        // While SectionScrollTransition performs its 2x left-to-right descent overhead, desk plane remains hidden
-        planeGroup.visible = false;
-      } else if (planeState.mode === 'entrance' || planeState.mode === 'landed') {
-        // Once transition completes, plane rests seamlessly between keyboard and CRT monitor
-        planeState.mode = 'landed';
-        planeGroup.visible = true;
-        planeGroup.position.set(-0.16, 0.019, 0.70);
-        planeGroup.rotation.set(0.03, 0.24, 0.07);
-        planeMesh.rotation.set(0, 0, 0);
-      } else if (planeState.mode === 'loop' || planeState.mode === 'deliver') {
-        const activeCurve = planeState.mode === 'deliver' ? deliveryCurve : loopCurve;
-        const duration = planeState.mode === 'deliver' ? 3.8 : 6.2;
+      // Paper Airplane Dynamics in 3D Scene
+      if (planeState.mode === 'entrance' || planeState.mode === 'loop' || planeState.mode === 'deliver') {
+        const activeCurve = planeState.mode === 'deliver'
+          ? deliveryCurve
+          : (planeState.mode === 'loop' ? loopCurve : entranceCurve);
+        const duration = planeState.mode === 'deliver' ? 3.8 : (planeState.mode === 'loop' ? 6.2 : 2.4);
 
         planeState.time += 0.016;
         const t = Math.min(1.0, planeState.time / duration);
@@ -2540,8 +2589,10 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
         let easeT: number;
         if (planeState.mode === 'deliver') {
           easeT = t * t;
+        } else if (planeState.mode === 'entrance') {
+          // Graceful sinusoidal progress with smooth flair into touchdown
+          easeT = Math.sin(t * Math.PI * 0.5);
         } else {
-          // Graceful cruising speed with soft flair before touchdown
           easeT = t < 0.86 ? (t / 0.86) * 0.86 : 0.86 + Math.sin(((t - 0.86) / 0.14) * Math.PI * 0.5) * 0.14;
         }
 
@@ -2549,6 +2600,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
         const tangent = activeCurve.getTangentAt(easeT).normalize();
 
         planeGroup.position.copy(pt);
+        planeGroup.visible = true;
 
         // Heading: look along path
         const lookTarget = pt.clone().add(tangent);
@@ -2574,12 +2626,18 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
             planeState.mode = 'dispatched';
           } else {
             planeState.mode = 'landed';
-            planeGroup.position.set(-0.16, 0.019, 0.70);
-            planeGroup.rotation.set(0.03, 0.24, 0.07);
+            planeGroup.position.set(-0.16, 0.052, 0.70);
+            planeGroup.rotation.set(0.0, 0.22, 0.05);
             planeMesh.rotation.set(0, 0, 0);
+            planeGroup.visible = true;
             sfx.playPaperRustle();
           }
         }
+      } else if (planeState.mode === 'landed') {
+        planeGroup.visible = true;
+        planeGroup.position.set(-0.16, 0.052, 0.70);
+        planeGroup.rotation.set(0.0, 0.22, 0.05);
+        planeMesh.rotation.set(0, 0, 0);
       }
 
       if (lampVolumetricCone) {
@@ -2643,6 +2701,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+      resetEntranceFlightRef.current = null;
     };
   }, [active, onBack, showToast]);
 
