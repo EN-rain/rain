@@ -258,50 +258,32 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       c.height = 512;
       const ctx = c.getContext('2d')!;
 
-      // Aged Airmail Parchment Base
-      ctx.fillStyle = '#f6f1e6';
+      // Aged cream/manila stationery parchment base
+      ctx.fillStyle = '#f5f0e4';
       ctx.fillRect(0, 0, 512, 512);
 
-      // Fine fiber grain
-      for (let i = 0; i < 2200; i++) {
-        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(60, 48, 30, 0.04)' : 'rgba(255, 255, 255, 0.08)';
+      // Fine fiber grain & aged texture
+      for (let i = 0; i < 3200; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(70, 55, 35, 0.035)' : 'rgba(255, 255, 255, 0.07)';
         ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
       }
 
-      // Airmail border stripes on leading wing edge
-      const stripeW = 22;
-      for (let x = 0; x < 512; x += 36) {
-        // Crimson chevron
-        ctx.fillStyle = '#b82828';
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x + 18, 0);
-        ctx.lineTo(x + 8, stripeW);
-        ctx.lineTo(x - 10, stripeW);
-        ctx.closePath();
-        ctx.fill();
+      // Soft paper edge gradient
+      const grad = ctx.createRadialGradient(256, 256, 160, 256, 256, 340);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, 'rgba(60, 45, 25, 0.06)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 512);
 
-        // Navy chevron
-        ctx.fillStyle = '#203a74';
-        ctx.beginPath();
-        ctx.moveTo(x + 18, 0);
-        ctx.lineTo(x + 36, 0);
-        ctx.lineTo(x + 26, stripeW);
-        ctx.lineTo(x + 8, stripeW);
-        ctx.closePath();
-        ctx.fill();
-      }
+      // Central spine fold shading
+      ctx.fillStyle = 'rgba(40, 30, 18, 0.08)';
+      ctx.fillRect(254, 0, 4, 512);
 
-      // Airmail stamped seal on upper wing
-      ctx.strokeStyle = '#9c2424';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(185, 210, 142, 50);
-      ctx.font = 'bold 15px "Courier Prime", monospace';
-      ctx.fillStyle = '#9c2424';
+      // Faint archival typewriter serial on inner wing fold
+      ctx.font = '12px "Courier Prime", monospace';
+      ctx.fillStyle = 'rgba(45, 35, 22, 0.35)';
       ctx.textAlign = 'center';
-      ctx.fillText('FIELD MAIL', 256, 233);
-      ctx.font = '10px "Courier Prime", monospace';
-      ctx.fillText('PAR AVION · 1983', 256, 248);
+      ctx.fillText('REF. 1983 - FIELD MEMO', 256, 320);
 
       const tex = new THREE.CanvasTexture(c);
       tex.anisotropy = 4;
@@ -312,16 +294,17 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       const geo = new THREE.BufferGeometry();
 
       // Folded origami dart landmark points (facing -Z forward, +Y up, +X right)
-      const nose = [0, 0.008, -0.22];
-      const tailCenter = [0, 0.006, 0.18];
-      const keelFront = [0, -0.024, -0.08];
-      const keelBack = [0, -0.052, 0.16];
-      const lCrease = [-0.026, -0.012, 0.17];
-      const rCrease = [0.026, -0.012, 0.17];
-      const lWingTip = [-0.175, 0.026, 0.16];
-      const rWingTip = [0.175, 0.026, 0.16];
-      const lWinglet = [-0.182, 0.062, 0.155];
-      const rWinglet = [0.182, 0.062, 0.155];
+      // Refined scale: length ~0.26, wingspan ~0.18, height ~0.035
+      const nose = [0, 0.005, -0.15];
+      const tailCenter = [0, 0.004, 0.12];
+      const keelFront = [0, -0.016, -0.05];
+      const keelBack = [0, -0.035, 0.11];
+      const lCrease = [-0.018, -0.008, 0.115];
+      const rCrease = [0.018, -0.008, 0.115];
+      const lWingTip = [-0.125, 0.018, 0.11];
+      const rWingTip = [0.125, 0.018, 0.11];
+      const lWinglet = [-0.130, 0.042, 0.105];
+      const rWinglet = [0.130, 0.042, 0.105];
 
       const positions: number[] = [];
       const uvs: number[] = [];
@@ -333,7 +316,6 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       ) {
         positions.push(...p1, ...p2, ...p3);
         uvs.push(...uv1, ...uv2, ...uv3);
-        // Double-sided backface
         positions.push(...p1, ...p3, ...p2);
         uvs.push(...uv1, ...uv3, ...uv2);
       }
@@ -2179,50 +2161,43 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     scene.add(planeGroup);
 
     // Flight Path Curves
-    // 1. Entrance Flight (swoops in, circles the room, and lands on desk between keyboard and monitor)
+    // 1. Entrance Flight (Starts high on LEFT, glides left-to-right while descending in foreground, reaches desk below)
+    // Crucially never passes in front of or over the CRT screen (z stays in foreground >= 0.68, y descends cleanly)
     const entranceFlightPoints = [
-      new THREE.Vector3(3.6, 3.8, -1.8),     // High right entry above room
-      new THREE.Vector3(2.4, 2.7, -0.9),     // Gliding past the lamp shade
-      new THREE.Vector3(1.2, 1.7, -0.1),     // Sweeping through golden volumetric beam
-      new THREE.Vector3(-0.15, 1.25, 0.45),  // Crossing desk in front of CRT
-      new THREE.Vector3(-1.5, 1.65, 0.25),   // Banking turn around CRT
-      new THREE.Vector3(-2.3, 2.45, -0.7),   // Climbing banking turn past tower
-      new THREE.Vector3(-1.7, 3.05, -1.9),   // Cresting along back wall
-      new THREE.Vector3(0.8, 2.7, -1.6),     // Gliding across rear room
-      new THREE.Vector3(2.7, 2.1, -0.2),     // Wide banking turn around lamp
-      new THREE.Vector3(2.2, 1.4, 1.35),     // Turning toward front desk runway
-      new THREE.Vector3(1.1, 0.72, 1.3),     // Gliding along keyboard front edge
-      new THREE.Vector3(0.24, 0.22, 0.98),   // Short final approach
-      new THREE.Vector3(-0.05, 0.048, 0.80), // Flairing nose up before touchdown
-      new THREE.Vector3(-0.16, 0.019, 0.70)  // Settled touchdown between keyboard & monitor
+      new THREE.Vector3(-3.4, 2.6, 3.8),     // High left entry in camera view
+      new THREE.Vector3(-2.2, 2.0, 3.2),     // Descending glide across foreground (well in front of CRT)
+      new THREE.Vector3(-0.9, 1.4, 2.6),     // Continuing left-to-right descent below screen level
+      new THREE.Vector3(0.5, 0.9, 2.0),      // Crossing center-right in front of keyboard
+      new THREE.Vector3(1.6, 0.52, 1.45),    // Gliding down to right desk flank
+      new THREE.Vector3(1.25, 0.26, 1.05),   // Curving gently inward toward desk runway
+      new THREE.Vector3(0.4, 0.11, 0.82),    // Short final approach
+      new THREE.Vector3(-0.05, 0.028, 0.72), // Soft flair touchdown
+      new THREE.Vector3(-0.14, 0.015, 0.68)  // Gentle settle between keyboard & monitor
     ];
     const entranceCurve = new THREE.CatmullRomCurve3(entranceFlightPoints, false, 'centripetal', 0.5);
 
-    // 2. Loop Flight (taking off from desk, circling around room, landing back down)
+    // 2. Loop Flight (taking off from desk, quick low sweep to right and back)
     const loopFlightPoints = [
-      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
-      new THREE.Vector3(-0.10, 0.28, 0.45),  // Lift off & climb
-      new THREE.Vector3(0.40, 0.95, 0.10),   // Ascending toward volumetric beam
-      new THREE.Vector3(1.80, 1.85, 0.20),   // Banking right around lamp
-      new THREE.Vector3(2.50, 2.30, -0.80),  // High bank past wall
-      new THREE.Vector3(0.60, 2.60, -1.70),  // High back circuit
-      new THREE.Vector3(-1.60, 2.20, -1.10), // Swooping down past PC tower
-      new THREE.Vector3(-1.40, 1.35, 0.15),  // Sweeping low around CRT
-      new THREE.Vector3(0.30, 0.75, 1.10),   // Aligning keyboard runway
-      new THREE.Vector3(0.12, 0.18, 0.92),   // Final flair
-      new THREE.Vector3(-0.16, 0.019, 0.70)  // Touchdown between keyboard & monitor
+      new THREE.Vector3(-0.14, 0.015, 0.68), // On desk
+      new THREE.Vector3(0.2, 0.22, 0.85),    // Lift off to right
+      new THREE.Vector3(1.1, 0.65, 1.3),     // Climbing right
+      new THREE.Vector3(1.8, 1.15, 1.6),     // Arc to right
+      new THREE.Vector3(0.8, 1.05, 2.4),     // Swooping around foreground
+      new THREE.Vector3(-1.2, 0.85, 2.2),    // Low left turn (well below CRT)
+      new THREE.Vector3(-0.8, 0.45, 1.4),    // Turning back right
+      new THREE.Vector3(0.1, 0.12, 0.85),    // Aligning final approach
+      new THREE.Vector3(-0.14, 0.015, 0.68)  // Touchdown between keyboard & monitor
     ];
     const loopCurve = new THREE.CatmullRomCurve3(loopFlightPoints, false, 'centripetal', 0.5);
 
-    // 3. Delivery Flight (launches from desk, accelerates through the beam, flies off into distance)
+    // 3. Delivery Flight (launches from desk, accelerates to right and into distance)
     const deliveryFlightPoints = [
-      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
-      new THREE.Vector3(-0.12, 0.16, 0.42),  // Rapid lift off
-      new THREE.Vector3(-0.04, 0.65, 0.08),  // Steep climb
-      new THREE.Vector3(0.42, 1.60, -0.42),  // Climbing into golden beam
-      new THREE.Vector3(1.35, 2.70, -1.15),  // Banking past gooseneck
-      new THREE.Vector3(2.60, 3.80, -1.95),  // High exit trajectory
-      new THREE.Vector3(4.50, 5.20, -2.90)   // Disappearing into night
+      new THREE.Vector3(-0.14, 0.015, 0.68), // On desk
+      new THREE.Vector3(0.2, 0.18, 0.55),    // Rapid lift off
+      new THREE.Vector3(0.9, 0.65, 0.35),    // Climbing rightward
+      new THREE.Vector3(1.8, 1.35, 0.10),    // Through volumetric light beam
+      new THREE.Vector3(2.8, 2.20, -0.40),   // Banking high right
+      new THREE.Vector3(4.2, 3.40, -1.20)    // Flying away
     ];
     const deliveryCurve = new THREE.CatmullRomCurve3(deliveryFlightPoints, false, 'centripetal', 0.5);
 
@@ -2602,8 +2577,8 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
             planeState.mode = 'dispatched';
           } else {
             planeState.mode = 'landed';
-            planeGroup.position.set(-0.16, 0.019, 0.70);
-            planeGroup.rotation.set(0.03, 0.24, 0.07);
+            planeGroup.position.set(-0.14, 0.015, 0.68);
+            planeGroup.rotation.set(0.02, 0.22, 0.06);
             planeMesh.rotation.set(0, 0, 0);
             sfx.playPaperRustle();
           }
