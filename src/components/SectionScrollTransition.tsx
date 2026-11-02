@@ -515,59 +515,6 @@ export const SectionScrollTransition: React.FC = memo(() => {
       const yaw0 = lerp(-0.22 * smoothstep(0.34, 0.50, p), 0.5, pStep6Open);
       const pitch0 = lerp(-0.14 * smoothstep(0.02, 0.25, p), -0.4, pStep6Open);
       const tz0 = -smoothstep(0.01, 0.45, p) * 200;
-      // Two-phase soaring flight above the 3D desktop:
-      // Phase 1 (uFly 0.0 -> 0.50): Swoops LEFT TO RIGHT across the upper sky
-      // Phase 2 (uFly 0.50 -> 1.0): Banks and swoops RIGHT TO LEFT while descending down towards the desk
-      const deskLandingX = vw * 0.48;
-      const deskLandingY = vh * 0.71;
-
-      let flightTargetX = vw * 0.5;
-      let flightTargetY = vh * 0.5;
-      let bankRoll = 0;
-
-      if (uFly < 0.50) {
-        const p1 = uFly / 0.50;
-        const e1 = smoothstep(0, 1, p1);
-        // Phase 1: LEFT TO RIGHT
-        flightTargetX = lerp(vw * 0.28, vw * 0.80, e1);
-        flightTargetY = lerp(vh * 0.26, vh * 0.42, Math.sin(e1 * Math.PI * 0.5));
-        bankRoll = Math.sin(e1 * Math.PI) * (28 * DEG);
-      } else {
-        const p2 = (uFly - 0.50) / 0.50;
-        const e2 = smoothstep(0, 1, p2);
-        // Phase 2: RIGHT TO LEFT
-        flightTargetX = lerp(vw * 0.80, deskLandingX, e2);
-        flightTargetY = lerp(vh * 0.42, deskLandingY, e2);
-        bankRoll = -Math.sin(e2 * Math.PI) * (26 * DEG);
-      }
-
-      const targetPitch = lerp(pitch0, -0.04, uFly);
-      const targetYaw = lerp(yaw0, 0.04, uFly);
-
-      interface TransformParams {
-        S: number;
-        roll: number;
-        yaw: number;
-        pitch: number;
-        spin: number;
-        shiftX: number;
-        Tx: number;
-        Ty: number;
-        Tz: number;
-      }
-
-      const cur: TransformParams = {
-        S,
-        roll: roll0 + bankRoll,
-        yaw: targetYaw,
-        pitch: targetPitch,
-        spin,
-        shiftX,
-        Tx: 0,
-        Ty: 0,
-        Tz: tz0,
-      };
-
       const rest: TransformParams = {
         S: S / flightScale,
         roll: roll0,
@@ -596,8 +543,53 @@ export const SectionScrollTransition: React.FC = memo(() => {
         };
       }
 
+      const nose: V3 = [0, yOff, 0];
+      const n0 = proj(nose, rest).screen;
+
+      // Two-phase soaring flight above the 3D desktop with exact C2 continuity:
+      // Starts precisely at fold position n0 with zero initial jump, swoops LEFT TO RIGHT, then RIGHT TO LEFT down to desk
+      const startX = n0[0];
+      const startY = n0[1];
+      const deskLandingX = vw * 0.48;
+      const deskLandingY = vh * 0.71;
+
+      const u = smoothstep(0, 1, clamp(pFlight, 0, 1));
+      const baseLinearX = lerp(startX, deskLandingX, u);
+      const swingX = vw * (Math.sin(u * Math.PI) * 0.28 - Math.sin(u * Math.PI * 2) * 0.12);
+      const flightTargetX = baseLinearX + swingX;
+      const flightTargetY = lerp(startY, deskLandingY, Math.pow(u, 1.25));
+
+      const turnVel = Math.cos(u * Math.PI) * 0.28 - Math.cos(u * Math.PI * 2) * 0.24;
+      const bankRoll = clamp(turnVel * 55, -28, 28) * Math.sin(u * Math.PI) * DEG;
+
+      const targetPitch = lerp(pitch0, -0.05, u) + Math.sin(u * Math.PI * 2) * (5 * DEG);
+      const targetYaw = lerp(yaw0, 0.04, u);
+
+      interface TransformParams {
+        S: number;
+        roll: number;
+        yaw: number;
+        pitch: number;
+        spin: number;
+        shiftX: number;
+        Tx: number;
+        Ty: number;
+        Tz: number;
+      }
+
+      const cur: TransformParams = {
+        S,
+        roll: roll0 + bankRoll,
+        yaw: targetYaw,
+        pitch: targetPitch,
+        spin,
+        shiftX,
+        Tx: 0,
+        Ty: 0,
+        Tz: tz0,
+      };
+
       if (pFlight > 0) {
-        const nose: V3 = [0, yOff, 0];
         const nn = proj(nose, cur);
         cur.Tx = (flightTargetX - nn.screen[0]) / nn.scale;
         cur.Ty = (flightTargetY - nn.screen[1]) / nn.scale;
