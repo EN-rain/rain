@@ -119,3 +119,33 @@
   animation: paper-idle-float-3 8.4s ease-in-out 1.2s infinite;
   will-change: transform;
 }
+
+/* Physical 3D Desktop Slide-In: THE 3D OBJECTS SLIDES UP SLOWLY */
+@keyframes slideUp3DDesktop {
+  0% {
+    transform: translate3d(0, 100%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0%, 0);
+  }
+}
+
+.slide-up-3d-desktop {
+  animation: slideUp3DDesktop 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+/* Page 1 Slides Up and Out as Camera Moves Down */
+@keyframes slideUpOutDesktop {
+  0% {
+    transform: translate3d(0, 0%, 0);
+  }
+  100% {
+    transform: translate3d(0, -100%, 0);
+  }
+}
+
+.slide-up-out-desktop {
+  animation: slideUpOutDesktop 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}

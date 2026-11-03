@@ -89,6 +89,9 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
       setIsTransitioning(true);
 
       if (targetPage === 2) {
+        if (sheetOneRef.current) {
+          sheetOneRef.current.style.opacity = '0';
+        }
         triggerSectionTransition(
           1,
           2,
@@ -99,6 +102,9 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
             setPage(2);
           },
           () => {
+            if (sheetOneRef.current) {
+              sheetOneRef.current.style.opacity = '';
+            }
             setIsTransitioning(false);
             setJournalBusy(false);
           }
@@ -179,8 +185,8 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         paperId === 'works'
           ? 'works'
           : paperId === 'about'
-          ? 'about'
-          : 'home';
+            ? 'about'
+            : 'home';
 
       const currentSection = showWorks ? 'works' : showPageOneHalf ? 'about' : 'home';
       if (targetSection === currentSection && !journalBusy) return;
@@ -226,10 +232,10 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
     page === 2
       ? 'contact'
       : showWorks
-      ? 'works'
-      : showPageOneHalf
-      ? 'about'
-      : 'home';
+        ? 'works'
+        : showPageOneHalf
+          ? 'about'
+          : 'home';
 
   return (
     <div className={`relative w-full h-full flex flex-col items-center justify-center bg-[#151715] overflow-hidden select-none ${className}`}>
@@ -251,9 +257,9 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         className="absolute inset-0 flex items-center justify-center z-20"
         style={{
           opacity: isPage1Visible ? 1 : 0,
-          visibility: isPage1Visible || isTransitioning ? 'visible' : 'hidden',
+          visibility: isPage1Visible ? 'visible' : 'hidden',
           pointerEvents: isPage1Visible && !isTransitioning ? 'auto' : 'none',
-                  }}
+        }}
       >
         <div
           ref={sceneRef}
@@ -328,14 +334,14 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         className="absolute inset-0 w-full h-full z-[50]"
         style={{
           opacity: isPage2Visible ? 1 : 0,
-          visibility: isPage2Visible || isTransitioning ? 'visible' : 'hidden',
+          visibility: isPage2Visible ? 'visible' : 'hidden',
           pointerEvents: isPage2Visible && !isTransitioning ? 'auto' : 'none',
         }}
       >
         <VintageContactDesk
           onBack={() => handleSwitchPage(1, 'home')}
           onNavigateSection={(sec) => handleSwitchPage(1, sec)}
-          active={isPage2Visible || isTransitioning}
+          active={isPage2Visible}
           isTransitioning={isTransitioning}
         />
       </div>

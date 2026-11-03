@@ -39,7 +39,7 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 w-full h-full overflow-hidden select-none bg-[#0b0a08] ${className}`}
+      className={`absolute inset-0 w-full h-full overflow-hidden select-none bg-[#0b0a08] ${className}`}
       style={{
         pointerEvents: active ? 'auto' : 'none',
       }}
@@ -107,9 +107,7 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
       </nav>
 
       {/* Interactive 3D Field Mail CRT Terminal Desk (Native React Component) */}
-      {active && (
-        <FieldMailTerminal onBack={onBack} active={active} isTransitioning={isTransitioning} />
-      )}
+      <FieldMailTerminal onBack={onBack} active={active} isTransitioning={isTransitioning} />
     </div>
   );
 };

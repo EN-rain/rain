@@ -329,6 +329,10 @@ export function triggerSectionTransition(
   }
 }
 
+// Global preloaded paper image for paper airplane texture
+const globalPaperImg = new Image();
+globalPaperImg.src = '/assets/white-page-bg.png';
+
 export const SectionScrollTransition: React.FC = memo(() => {
   const containerRef = useRef<HTMLDivElement>(null);
   const airplaneCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -345,9 +349,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
     const ctx = airplaneCanvas.getContext('2d');
     if (!ctx) return;
 
-    // Load rotated lined paper texture for the paper airplane
-    const paperImg = new Image();
-    paperImg.src = '/assets/white-page-bg.png';
+    const paperImg = globalPaperImg;
 
     let webglRenderer: SectionScrollRenderer | null = null;
     createSectionScrollRenderer(webglCanvas)
@@ -398,7 +400,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
       }
 
       // Smooth flight scaling down to the natural resting size of the plane on the desk
-      const flightScale = lerp(1, 0.32, smoothstep(0.04, 0.95, pFlight));
+      const flightScale = lerp(1, 0.28, smoothstep(0.05, 0.98, pFlight));
       const spin = 0;
 
       const H = Math.min(vw * 0.82, vh * 1.17);
@@ -412,6 +414,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
       const xWing = H * Math.tan(Math.PI / 16);
       const d = 1.2;
 
+      // NEVER EVER MODIFY THE ANIMATION OF THE FOLDING ANIMATION TO DONE FOLDING
       const pStep2 = smoothstep(0.08, 0.22, p);
       const pStep3 = smoothstep(0.22, 0.36, p);
       const pStep4 = smoothstep(0.36, 0.50, p);
@@ -554,39 +557,86 @@ export const SectionScrollTransition: React.FC = memo(() => {
         };
       }
 
-      const nose: V3 = [0, yOff, 0];
-      const n0 = proj(nose, rest).screen;
+      const centerLocal: V3 = [0, 0, 0];
+      const noseLocal: V3 = [0, yOff, 0];
 
-      // ── FLIGHT PATH: 2X LEFT-TO-RIGHT DESCENT TO 3D DESK BELOW ──
-      // The plane never goes over the top of the screen; it descends steadily downwards.
-      // Sweeps LEFT TO RIGHT 2 times while descending to settle between the keyboard and CRT monitor.
-      const startX = n0[0];
-      const startY = n0[1];
-      const deskLandingX = vw * 0.485;
-      const deskLandingY = vh * 0.72;
+      // ── CONTINUOUS AERODYNAMIC CATMULL-ROM FLIGHT PATH ──
+      // P0: Center of screen (take-off)
+      // P1: Swoop far to the left
+      // P2: Apex of aerodynamic left U-turn
+      // P3: Soar across right side of desk, clear of CRT screen
+      // P4: Glide inward and flare downward
+      // P5: Smooth touchdown between keyboard and CRT monitor
+      const flightWaypoints: [number, number][] = [
+        [0.50, 0.50],
+        [0.12, 0.36],
+        [0.10, 0.44],
+        [0.82, 0.46],
+        [0.68, 0.62],
+        [0.51, 0.705],
+      ];
+
+      function getCatmullRom(pts: [number, number][], tNorm: number): [number, number] {
+        const n = pts.length - 1;
+        const s = clamp(tNorm, 0, 1) * n;
+        const i = Math.min(Math.floor(s), n - 1);
+        const t = s - i;
+        const p0 = pts[Math.max(0, i - 1)];
+        const p1 = pts[i];
+        const p2 = pts[i];
+        const p3 = pts[Math.min(n, i + 1)];
+        const p4 = pts[Math.min(n, i + 2)];
+        const t2 = t * t, t3 = t2 * t;
+        const x = 0.5 * (
+          2 * p2[0] +
+          (-p0[0] + p3[0]) * t +
+          (2 * p0[0] - 5 * p2[0] + 4 * p3[0] - p4[0]) * t2 +
+          (-p0[0] + 3 * p2[0] - 3 * p3[0] + p4[0]) * t3
+        );
+        const y = 0.5 * (
+          2 * p2[1] +
+          (-p0[1] + p3[1]) * t +
+          (2 * p0[1] - 5 * p2[1] + 4 * p3[1] - p4[1]) * t2 +
+          (-p0[1] + 3 * p2[1] - 3 * p3[1] + p4[1]) * t3
+        );
+        return [x, y];
+      }
 
       const u = clamp(pFlight, 0, 1);
-      // Steady downward descent towards the desk view below
-      const flightTargetY = lerp(startY, deskLandingY, Math.pow(u, 1.15));
+      const pos = getCatmullRom(flightWaypoints, u);
+      const flightTargetX = pos[0] * vw;
+      const flightTargetY = pos[1] * vh;
 
-      // 2 complete Left-to-Right oscillation passes:
-      // Pass 1: sweeps from left to right (u ~ 0.0 to 0.48)
-      // Pass 2: banks back left then sweeps left to right down into desk landing spot (u ~ 0.48 to 1.0)
-      const u2 = u * Math.PI * 4;
-      const sweepEnvelope = Math.sin(u * Math.PI) * (1.0 - 0.30 * u);
-      const sweepX = -Math.sin(u2) * (vw * 0.25) * sweepEnvelope;
-      const flightTargetX = lerp(startX, deskLandingX, u) + sweepX;
+      let targetRoll = roll0;
+      let targetYaw = yaw0;
+      let targetPitch = pitch0;
 
-      // Realistic aerodynamics: bank roll corresponds to horizontal sweep rate
-      const turnRate = -Math.cos(u2) * 4 * Math.PI * (vw * 0.25) * sweepEnvelope;
-      const bankRoll = clamp((turnRate / vw) * 7.5, -0.42, 0.42) * (1.0 - Math.pow(u, 2.5));
-
-      const targetPitch = lerp(pitch0, -0.05, u) + Math.sin(u * Math.PI) * 0.035;
-      const targetYaw = lerp(yaw0, 0.05, u);
+      if (u <= 0.30) {
+        // Phase 1: PLANE FLEWS TO THE LEFT
+        const p1 = u / 0.30;
+        const t1 = smoothstep(0, 1, p1);
+        targetRoll = roll0 - Math.sin(t1 * Math.PI) * (20 * DEG);
+        targetYaw = lerp(yaw0, 0.45, t1);
+        targetPitch = lerp(pitch0, -0.35, t1);
+      } else if (u <= 0.68) {
+        // Phase 2: U TURNS AND FLEW TO THE RIGHT
+        const p2 = (u - 0.30) / 0.38;
+        const t2 = smoothstep(0, 1, p2);
+        targetRoll = lerp(roll0, 85 * DEG, t2);
+        targetYaw = lerp(0.45, -0.15, t2);
+        targetPitch = lerp(-0.35, -0.10, t2);
+      } else {
+        // Phase 3: THE PLANE SETTLES IN THE DESK
+        const p3 = (u - 0.68) / 0.32;
+        const t3 = smoothstep(0, 1, p3);
+        targetRoll = lerp(85 * DEG, 0.02, t3);
+        targetYaw = lerp(-0.15, -0.65, t3);
+        targetPitch = lerp(-0.10, 0.04, t3);
+      }
 
       const cur: TransformParams = {
         S,
-        roll: roll0 + bankRoll,
+        roll: targetRoll,
         yaw: targetYaw,
         pitch: targetPitch,
         spin,
@@ -597,9 +647,9 @@ export const SectionScrollTransition: React.FC = memo(() => {
       };
 
       if (pFlight > 0) {
-        const nn = proj(nose, cur);
-        cur.Tx = (flightTargetX - nn.screen[0]) / nn.scale;
-        cur.Ty = (flightTargetY - nn.screen[1]) / nn.scale;
+        const cc = proj(centerLocal, cur);
+        cur.Tx = (flightTargetX - cc.screen[0]) / cc.scale;
+        cur.Ty = (flightTargetY - cc.screen[1]) / cc.scale;
       }
       const globalTx = cur.Tx, globalTy = cur.Ty;
 
@@ -704,13 +754,15 @@ export const SectionScrollTransition: React.FC = memo(() => {
               );
             }
           } else {
-            const lum = Math.round(lerp(255, clamp(228 + item.ndotl * 27, 214, 255), shadeStrength));
-            const fillStyle = `rgb(${lum},${lum},${Math.min(255, lum + 2)})`;
+            const nd = item.ndotl;
+            const r = Math.round(clamp(244 * (0.86 + 0.14 * nd), 180, 255));
+            const g = Math.round(clamp(238 * (0.86 + 0.14 * nd), 175, 250));
+            const b = Math.round(clamp(226 * (0.86 + 0.14 * nd), 160, 240));
             ctx.beginPath();
             ctx.moveTo(pts[0][0], pts[0][1]);
             for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
             ctx.closePath();
-            ctx.fillStyle = fillStyle;
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
             ctx.fill();
           }
 
@@ -764,6 +816,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
       onMid?: TransitionCallback,
       onDone?: TransitionCallback
     ) => {
+      console.log('[DEBUG_LOG] TRANSITION TRIGGERED: fromPage =', fromPage, 'toPage =', toPage, 'at performance.now =', performance.now());
       if (animRafId !== null) {
         cancelAnimationFrame(animRafId);
         animRafId = null;
@@ -783,27 +836,82 @@ export const SectionScrollTransition: React.FC = memo(() => {
         webglCanvas.style.display = 'none';
 
         const FOLD_DURATION = 1500;   // 1.5s for clean, distinct step-by-step folds
+        const FLIGHT_DURATION = 3200; // 3.2s for left flight -> U turn & fly right -> settle on desk
+        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 4.7s
+
+        (window as any).__RENDER_AIRPLANE_EXACT__ = (elapsed: number) => {
+          let pFold = 0;
+          let flight = 0;
+          if (elapsed < FOLD_DURATION) {
+            pFold = (elapsed / FOLD_DURATION) * 0.78;
+            flight = 0;
+          } else {
+            pFold = 0.78;
+            const tFlight = Math.min(1, (elapsed - FOLD_DURATION) / FLIGHT_DURATION);
+            flight = smoothstep(0, 1, tFlight);
+          }
+          container.style.visibility = 'visible';
+          container.style.opacity = '1';
+          airplaneCanvas.style.display = 'block';
+          renderAirplane(pFold, flight);
+        };
+
+        let lastTime = performance.now();
+        let animElapsed = 0;
 
         const stepAirplane = (now: number) => {
-          const elapsed = now - animStartTime;
+          const rawDt = now - lastTime;
+          lastTime = now;
+          // Clamp delta time to maximum 33ms so heavy scene initialization or thread hiccups NEVER skip the flight
+          const dt = Math.min(Math.max(0, rawDt), 33);
+          animElapsed += dt;
+          const elapsed = animElapsed;
+
+          let pFold = 0;
+          let flight = 0;
 
           if (elapsed < FOLD_DURATION) {
+            // NEVER EVER MODIFY THE ANIMATION OF THE FOLDING ANIMATION TO DONE FOLDING
             const t = elapsed / FOLD_DURATION;
-            const pFold = t * 0.78;
-            renderAirplane(pFold, 0);
-            animRafId = requestAnimationFrame(stepAirplane);
+            pFold = t * 0.78;
+            flight = 0;
           } else {
-            renderAirplane(0.78, 0);
-            // Fold is complete! Hand off to 3D scene below where 3D plane performs illuminated descent
+            pFold = 0.78;
+            const tFlight = Math.min(1, (elapsed - FOLD_DURATION) / FLIGHT_DURATION);
+            flight = smoothstep(0, 1, tFlight);
+
+            // Swap to Page 2 (3D desk) immediately when folding finishes so Page 1 background never reappears
             if (!midSwapDone) {
               midSwapDone = true;
               pendingMidSwap?.();
             }
-            container.style.visibility = 'hidden';
-            container.style.opacity = '0';
-            animRafId = null;
-            pendingFinish?.();
-            pendingFinish = null;
+          }
+
+          renderAirplane(pFold, flight);
+
+          if (elapsed < TOTAL_DURATION) {
+            if (Math.floor(elapsed / 300) !== Math.floor((elapsed - 17) / 300)) {
+              console.log('[DEBUG_LOG] TICK: elapsed =', Math.round(elapsed), 'flight =', flight.toFixed(2));
+            }
+            animRafId = requestAnimationFrame(stepAirplane);
+          } else {
+            try {
+              console.log('[DEBUG_LOG] stepAirplane FINISH at elapsed =', elapsed);
+              renderAirplane(0.78, 1.0);
+              if (!midSwapDone) {
+                midSwapDone = true;
+                pendingMidSwap?.();
+              }
+              container.style.visibility = 'hidden';
+              container.style.opacity = '0';
+              ctx.clearRect(0, 0, airplaneCanvas.width, airplaneCanvas.height);
+              shadow.style.opacity = '0';
+              animRafId = null;
+              pendingFinish?.();
+              pendingFinish = null;
+            } catch (err: any) {
+              console.error('Error in stepAirplane finish:', err);
+            }
           }
         };
 
