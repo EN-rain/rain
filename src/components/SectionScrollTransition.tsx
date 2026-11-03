@@ -329,6 +329,27 @@ export function triggerSectionTransition(
   }
 }
 
+export interface TerminalTransitionState {
+  inTransition: boolean;
+  /** 0 = below screen (hidden below viewport), 1 = settled at y=0 */
+  slideProgress: number;
+  /** Whether the 2D flight has finished and the 3D desk plane should be visible */
+  planeLanded: boolean;
+  /** Exact projected screen coordinates [nx, ny] of the 3D plane resting spot on the desk */
+  landingNx: number;
+  landingNy: number;
+  /** Synchronously renders a fresh frame of the 3D desk and returns its canvas for seamless return transition */
+  captureFrame?: () => HTMLCanvasElement | null;
+}
+
+export const terminalTransitionState: TerminalTransitionState = {
+  inTransition: false,
+  slideProgress: 1,
+  planeLanded: true,
+  landingNx: 0.422,
+  landingNy: 0.242,
+};
+
 // Global preloaded paper image for paper airplane texture
 const globalPaperImg = new Image();
 globalPaperImg.src = '/assets/white-page-bg.png';
@@ -356,7 +377,6 @@ export const SectionScrollTransition: React.FC = memo(() => {
       .then((instance) => {
         webglRenderer = instance;
         instance.resize();
-        console.log('[WebGL] SectionScrollRenderer initialized successfully');
       })
       .catch((err) => {
         console.error('[WebGL] Renderer initialization error:', err);
@@ -368,11 +388,18 @@ export const SectionScrollTransition: React.FC = memo(() => {
     let midSwapDone = false;
     let animRafId: number | null = null;
 
+    // Offscreen post-processing buffer for directional motion blur during airplane flight
+    const blurCanvas = document.createElement('canvas');
+    const blurCtx = blurCanvas.getContext('2d');
+
     const resizeCanvases = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       airplaneCanvas.width = window.innerWidth * dpr;
       airplaneCanvas.height = window.innerHeight * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      blurCanvas.width = window.innerWidth * dpr;
+      blurCanvas.height = window.innerHeight * dpr;
 
       webglRenderer?.resize();
     };
@@ -380,7 +407,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
     window.addEventListener('resize', resizeCanvases);
     resizeCanvases();
 
-    // ── RENDER 3D AIRPLANE FOLD FRAME WITH LINED PAPER TEXTURE ──
+    // ── RENDER 3D AIRPLANE FOLD FRAME WITH LINED PAPER TEXTURE & MOTION BLUR POST-PROCESSING ──
     const renderAirplane = (pRaw: number, flight: number) => {
       const vw = window.innerWidth, vh = window.innerHeight;
       ctx.clearRect(0, 0, vw, vh);
@@ -391,7 +418,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
       }
 
       const p = Math.min(pRaw, 0.78);
-      const pFlight = flight;
+      const pFlight = clamp(flight, 0, 1);
 
       if (pFlight >= 0.999) {
         shadow.style.opacity = '0';
@@ -399,8 +426,9 @@ export const SectionScrollTransition: React.FC = memo(() => {
         return;
       }
 
-      // Smooth flight scaling down to the natural resting size of the plane on the desk
-      const flightScale = lerp(1, 0.28, smoothstep(0.05, 0.98, pFlight));
+      // Smooth flight scaling down to the exact resting size of the 3D plane on top of the CRT monitor
+      // At pFlight = 0, flightScale is strictly 1.0 so the fold end frame never changes size
+      const flightScale = lerp(1, 0.178, smoothstep(0.0, 0.95, pFlight));
       const spin = 0;
 
       const H = Math.min(vw * 0.82, vh * 1.17);
@@ -408,7 +436,8 @@ export const SectionScrollTransition: React.FC = memo(() => {
       const cover = Math.max(vw / H, vh / (2 * W)) * 1.02;
       const sheetMorph = smoothstep(0.0, 0.07, p);
       const pStep6Open = smoothstep(0.64, 0.78, p);
-      const S = lerp(cover, 1, sheetMorph) * lerp(1, 0.75, pStep6Open) * flightScale;
+      const baseS = lerp(cover, 1, sheetMorph) * lerp(1, 0.75, pStep6Open);
+      const S = baseS * flightScale;
 
       const y2 = W * (1 + Math.SQRT2);
       const xWing = H * Math.tan(Math.PI / 16);
@@ -527,10 +556,13 @@ export const SectionScrollTransition: React.FC = memo(() => {
         Tx: number;
         Ty: number;
         Tz: number;
+        turnYaw?: number;
+        tiltUpDown?: number;
+        wingBank?: number;
       }
 
       const rest: TransformParams = {
-        S: S / flightScale,
+        S: baseS,
         roll: roll0,
         yaw: yaw0,
         pitch: pitch0,
@@ -548,6 +580,24 @@ export const SectionScrollTransition: React.FC = memo(() => {
         q = rotZ(q, P.roll);
         q = rotY(q, P.yaw);
         q = rotX(q, P.pitch);
+
+        // During flight, rotate around the airplane's 3D centroid in screen space:
+        // - rotY(turnYaw) turns the plane horizontally LEFT-TO-RIGHT without ever spinning vertically
+        // - rotZ(tiltUpDown) pitches the nose gently UP and DOWN along the climb/glide
+        // - rotX(wingBank) adds subtle wing banking
+        if (P.turnYaw || P.tiltUpDown || P.wingBank) {
+          let cBase: V3 = [P.shiftX * P.S, 0, 0];
+          cBase = rotZ(cBase, P.roll);
+          cBase = rotY(cBase, P.yaw);
+          cBase = rotX(cBase, P.pitch);
+
+          let rel: V3 = [q[0] - cBase[0], q[1] - cBase[1], q[2] - cBase[2]];
+          if (P.wingBank) rel = rotX(rel, P.wingBank);
+          if (P.turnYaw) rel = rotY(rel, P.turnYaw);
+          if (P.tiltUpDown) rel = rotZ(rel, P.tiltUpDown);
+          q = [cBase[0] + rel[0], cBase[1] + rel[1], cBase[2] + rel[2]];
+        }
+
         const wx = q[0] + P.Tx, wy = q[1] + P.Ty, wz = q[2] + P.Tz;
         const scale = fov / Math.max(200, fov - wz);
         return {
@@ -558,31 +608,38 @@ export const SectionScrollTransition: React.FC = memo(() => {
       }
 
       const centerLocal: V3 = [0, 0, 0];
-      const noseLocal: V3 = [0, yOff, 0];
+      // Exact screen coordinates of the paper plane at the end of the fold (p = 0.78, pFlight = 0)
+      const c0 = proj(centerLocal, rest).screen;
+      const startNx = c0[0] / vw;
+      const startNy = c0[1] / vh;
 
-      // ── CONTINUOUS AERODYNAMIC CATMULL-ROM FLIGHT PATH ──
-      // P0: Center of screen (take-off)
-      // P1: Swoop far to the left
-      // P2: Apex of aerodynamic left U-turn
-      // P3: Soar across right side of desk, clear of CRT screen
-      // P4: Glide inward and flare downward
-      // P5: Smooth touchdown between keyboard and CRT monitor
+      // ── ARC-LENGTH PARAMETERIZED LEFT-TO-RIGHT & UP-AND-DOWN FLIGHT PATH ──
+      // P0: Exact fold end frame screen position (0.0px shift when folding completes!)
+      // P1: Glides left and up while facing left
+      // P2: Left turn apex where the plane turns in 3D from facing LEFT to facing RIGHT
+      // P3: Climbs smoothly left-to-right across the upper room
+      // P4: Swoops gracefully above the monitor
+      // P5: Level aerodynamic flare skimming right over the cabinet deck
+      // P6: Soft touchdown onto the top of the CRT monitor cabinet
+      const lNx = terminalTransitionState.landingNx;
+      const lNy = terminalTransitionState.landingNy;
+
       const flightWaypoints: [number, number][] = [
-        [0.50, 0.50],
-        [0.12, 0.36],
-        [0.10, 0.44],
-        [0.82, 0.46],
-        [0.68, 0.62],
-        [0.51, 0.705],
+        [startNx, startNy],
+        [0.22, 0.54],
+        [0.10, 0.38],
+        [0.18, 0.17],
+        [lNx - 0.15, lNy - 0.042],
+        [lNx - 0.065, lNy - 0.008],
+        [lNx, lNy],
       ];
 
-      function getCatmullRom(pts: [number, number][], tNorm: number): [number, number] {
+      function getRawCatmullRom(pts: [number, number][], tNorm: number): [number, number] {
         const n = pts.length - 1;
         const s = clamp(tNorm, 0, 1) * n;
         const i = Math.min(Math.floor(s), n - 1);
         const t = s - i;
         const p0 = pts[Math.max(0, i - 1)];
-        const p1 = pts[i];
         const p2 = pts[i];
         const p3 = pts[Math.min(n, i + 1)];
         const p4 = pts[Math.min(n, i + 2)];
@@ -602,48 +659,100 @@ export const SectionScrollTransition: React.FC = memo(() => {
         return [x, y];
       }
 
+      // Build uniform arc-length lookup table so velocity is 100% smooth without spline bunching
+      const ARC_SAMPLES = 160;
+      const samplePts: [number, number][] = [];
+      const arcLen: number[] = [0];
+      for (let i = 0; i <= ARC_SAMPLES; i++) {
+        const pt = getRawCatmullRom(flightWaypoints, i / ARC_SAMPLES);
+        samplePts.push(pt);
+        if (i > 0) {
+          const prev = samplePts[i - 1];
+          const ds = Math.hypot((pt[0] - prev[0]) * vw, (pt[1] - prev[1]) * vh);
+          arcLen.push(arcLen[i - 1] + ds);
+        }
+      }
+      const totalArcLen = Math.max(1, arcLen[ARC_SAMPLES]);
+
+      function getPointAtArcLength(sNorm: number): [number, number] {
+        const targetD = clamp(sNorm, 0, 1) * totalArcLen;
+        let lo = 0, hi = ARC_SAMPLES;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (arcLen[mid] < targetD) lo = mid + 1;
+          else hi = mid;
+        }
+        const idx = Math.max(1, lo);
+        const l0 = arcLen[idx - 1], l1 = arcLen[idx];
+        const frac = l1 > l0 ? (targetD - l0) / (l1 - l0) : 0;
+        const a = samplePts[idx - 1], b = samplePts[idx];
+        return [lerp(a[0], b[0], frac), lerp(a[1], b[1], frac)];
+      }
+
       const u = clamp(pFlight, 0, 1);
-      const pos = getCatmullRom(flightWaypoints, u);
+      const pos = getPointAtArcLength(u);
       const flightTargetX = pos[0] * vw;
       const flightTargetY = pos[1] * vh;
 
-      let targetRoll = roll0;
-      let targetYaw = yaw0;
-      let targetPitch = pitch0;
+      let turnYaw = 0;
+      let tiltUpDown = 0;
+      let wingBank = 0;
+      let velDirX = -0.96;
+      let velDirY = -0.28;
+      let speedMag = 0;
 
-      if (u <= 0.30) {
-        // Phase 1: PLANE FLEWS TO THE LEFT
-        const p1 = u / 0.30;
-        const t1 = smoothstep(0, 1, p1);
-        targetRoll = roll0 - Math.sin(t1 * Math.PI) * (20 * DEG);
-        targetYaw = lerp(yaw0, 0.45, t1);
-        targetPitch = lerp(pitch0, -0.35, t1);
-      } else if (u <= 0.68) {
-        // Phase 2: U TURNS AND FLEW TO THE RIGHT
-        const p2 = (u - 0.30) / 0.38;
-        const t2 = smoothstep(0, 1, p2);
-        targetRoll = lerp(roll0, 85 * DEG, t2);
-        targetYaw = lerp(0.45, -0.15, t2);
-        targetPitch = lerp(-0.35, -0.10, t2);
-      } else {
-        // Phase 3: THE PLANE SETTLES IN THE DESK
-        const p3 = (u - 0.68) / 0.32;
-        const t3 = smoothstep(0, 1, p3);
-        targetRoll = lerp(85 * DEG, 0.02, t3);
-        targetYaw = lerp(-0.15, -0.65, t3);
-        targetPitch = lerp(-0.10, 0.04, t3);
+      if (u > 0) {
+        const du = 0.016;
+        const uPrev = Math.max(0, u - du);
+        const uNext = Math.min(1, u + du);
+        const posPrev = getPointAtArcLength(uPrev);
+        const posNext = getPointAtArcLength(uNext);
+        const dx = (posNext[0] - posPrev[0]) * vw;
+        const dy = (posNext[1] - posPrev[1]) * vh;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 1e-4) {
+          velDirX = dx / dist;
+          velDirY = dy / dist;
+        }
+
+        // 1. Horizontal 3D Left-to-Right turn (rotY around vertical screen axis):
+        // At u = 0..0.24 the plane faces LEFT (turnYaw = 0).
+        // Around the left apex (u = 0.24..0.52) it turns smoothly in 3D to face RIGHT.
+        // On approach to landing, it aligns with the resting 3D angle (turnYaw = 2.76 rad).
+        const turnProgress = smoothstep(0.24, 0.52, u);
+        turnYaw = lerp(0, 2.76, turnProgress);
+
+        // 2. Up-and-down nose pitch tilt (rotZ) with aerodynamic landing flare:
+        // Tilts gently up when climbing and down when descending,
+        // then as it nears the top of the monitor (u = 0.78..0.98), flares nose up (+0.10 rad)
+        // to catch air and cushion the descent, leveling out right at touchdown (u = 1.0)
+        const verticalSlope = clamp(dy / (Math.abs(dx) + 80), -0.65, 0.65);
+        const facingSign = lerp(-1, 1, turnProgress);
+        const rawTilt = clamp(verticalSlope * facingSign * 0.52, -0.32, 0.32);
+        const flarePitch = Math.sin(smoothstep(0.78, 1.0, u) * Math.PI) * 0.10;
+        tiltUpDown = (lerp(0, rawTilt, smoothstep(0.0, 0.12, u)) * (1 - smoothstep(0.80, 0.98, u))) + flarePitch;
+
+        // 3. Aerodynamic wing bank: banks dynamically during the turn, then levels flat onto cabinet
+        const turnBank = Math.sin(turnProgress * Math.PI) * 0.28;
+        wingBank = turnBank * (1 - smoothstep(0.80, 0.98, u));
+
+        // Speed envelope peaks during the swoop and tapers smoothly to 0 on landing
+        speedMag = Math.sin(Math.pow(u, 0.76) * Math.PI) * (1 - smoothstep(0.84, 0.98, u));
       }
 
       const cur: TransformParams = {
         S,
-        roll: targetRoll,
-        yaw: targetYaw,
-        pitch: targetPitch,
+        roll: roll0,
+        yaw: yaw0,
+        pitch: pitch0,
         spin,
         shiftX,
         Tx: 0,
         Ty: 0,
         Tz: tz0,
+        turnYaw,
+        tiltUpDown,
+        wingBank,
       };
 
       if (pFlight > 0) {
@@ -692,22 +801,26 @@ export const SectionScrollTransition: React.FC = memo(() => {
 
       const drawOrder = orderByDepth(drawList, vw * 0.5, vh * 0.5, fov);
 
-      // ── MASKING: Cut out paper silhouette from dark backdrop during initial folding only ──
-      // During flight, canvas remains completely transparent so 3D desk objects below are 100% visible
+      // ── MASKING: Cut out unfolded paper silhouette from dark backdrop during initial folding only ──
+      // Only cut out unfolded facets (!isFolded && pStep4 <= 0.01) so the content inside the paper
+      // NEVER goes over the folded paper flaps or outside the paper sheet!
       if (pFlight <= 0.001) {
         ctx.save();
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, vw, vh);
 
-        ctx.globalCompositeOperation = 'destination-out';
-        for (let i = 0; i < drawList.length; i++) {
-          const pts = drawList[i].pts;
-          if (!pts || pts.length < 3) continue;
-          ctx.beginPath();
-          ctx.moveTo(pts[0][0], pts[0][1]);
-          for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
-          ctx.closePath();
-          ctx.fill();
+        if (pStep4 <= 0.01) {
+          ctx.globalCompositeOperation = 'destination-out';
+          for (let i = 0; i < drawList.length; i++) {
+            if (drawList[i].isFolded) continue;
+            const pts = drawList[i].pts;
+            if (!pts || pts.length < 3) continue;
+            ctx.beginPath();
+            ctx.moveTo(pts[0][0], pts[0][1]);
+            for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
+            ctx.closePath();
+            ctx.fill();
+          }
         }
         ctx.restore();
       }
@@ -739,6 +852,27 @@ export const SectionScrollTransition: React.FC = memo(() => {
         const isFacetActive = item.isFolded || pStep4 > 0.01;
 
         if (isFacetActive) {
+          // 0. Solid opaque paper base fill first so background/inner canvas NEVER bleeds through seams or hinge strips
+          // During flight (pFlight > 0), progressively apply the scene's warm lamp & CRT shader tint
+          const shaderMix = smoothstep(0.10, 0.92, pFlight);
+          const nd = item.ndotl;
+          const baseR = 244 * (0.86 + 0.14 * nd);
+          const baseG = 238 * (0.86 + 0.14 * nd);
+          const baseB = 226 * (0.86 + 0.14 * nd);
+          // Warm gooseneck lamp subsurface scatter + CRT ambient rim
+          const shaderR = (178 + 74 * nd);
+          const shaderG = (146 + 68 * nd);
+          const shaderB = (108 + 56 * nd);
+          const r = Math.round(clamp(lerp(baseR, shaderR, shaderMix), 120, 255));
+          const g = Math.round(clamp(lerp(baseG, shaderG, shaderMix), 100, 250));
+          const b = Math.round(clamp(lerp(baseB, shaderB, shaderMix), 80, 240));
+          ctx.beginPath();
+          ctx.moveTo(pts[0][0], pts[0][1]);
+          for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
+          ctx.closePath();
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
+          ctx.fill();
+
           // 1. Draw textured facet using white-page-bg.png
           if (hasPaperImg && item.uvs && item.uvs.length >= pts.length) {
             for (let j = 1; j < pts.length - 1; j++) {
@@ -753,29 +887,28 @@ export const SectionScrollTransition: React.FC = memo(() => {
                 pts[j + 1][0], pts[j + 1][1]
               );
             }
-          } else {
-            const nd = item.ndotl;
-            const r = Math.round(clamp(244 * (0.86 + 0.14 * nd), 180, 255));
-            const g = Math.round(clamp(238 * (0.86 + 0.14 * nd), 175, 250));
-            const b = Math.round(clamp(226 * (0.86 + 0.14 * nd), 160, 240));
-            ctx.beginPath();
-            ctx.moveTo(pts[0][0], pts[0][1]);
-            for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
-            ctx.closePath();
-            ctx.fillStyle = `rgb(${r},${g},${b})`;
-            ctx.fill();
           }
 
-          // 2. 3D lighting shadow / tint overlay
+          // 2. 3D lighting shadow + warm lamp / CRT shader overlay
           if (shadeStrength > 0.01) {
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(pts[0][0], pts[0][1]);
             for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
             ctx.closePath();
-            const shadowAlpha = clamp((1.0 - item.ndotl) * 0.42 * shadeStrength, 0, 0.65);
-            ctx.fillStyle = `rgba(20, 16, 14, ${shadowAlpha})`;
+            const shadowAlpha = clamp((1.0 - item.ndotl) * (0.42 + 0.16 * shaderMix) * shadeStrength, 0, 0.72);
+            const shR = Math.round(lerp(20, 28, shaderMix));
+            const shG = Math.round(lerp(16, 20, shaderMix));
+            const shB = Math.round(lerp(14, 15, shaderMix));
+            ctx.fillStyle = `rgba(${shR}, ${shG}, ${shB}, ${shadowAlpha})`;
             ctx.fill();
+
+            if (shaderMix > 0.01) {
+              // Warm golden lamp glow + subsurface scatter on lit paper facets
+              const warmAlpha = clamp((0.12 + 0.22 * item.ndotl) * shaderMix, 0, 0.36);
+              ctx.fillStyle = `rgba(255, 188, 96, ${warmAlpha})`;
+              ctx.fill();
+            }
             ctx.restore();
           }
 
@@ -806,7 +939,69 @@ export const SectionScrollTransition: React.FC = memo(() => {
       }
       ctx.restore();
 
-      shadow.style.opacity = String(Math.sin(clamp(p, 0, 1) * Math.PI) * 0.85 * (1 - pFlight));
+      // ── DIRECTIONAL MOTION BLUR POST-PROCESSING PASS (DURING ENTRY FLIGHT ONLY) ──
+      if (pFlight > 0.005 && speedMag > 0.02 && blurCtx) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        blurCtx.setTransform(1, 0, 0, 1, 0, 0);
+        blurCtx.clearRect(0, 0, blurCanvas.width, blurCanvas.height);
+        blurCtx.drawImage(airplaneCanvas, 0, 0);
+
+        // Multi-tap directional shutter motion blur along backward velocity vector (-velDirX, -velDirY)
+        const maxBlurPx = 28 * speedMag;
+        const taps = 6;
+        ctx.save();
+        for (let tap = 1; tap <= taps; tap++) {
+          const frac = tap / taps;
+          const offsetX = -velDirX * maxBlurPx * frac;
+          const offsetY = -velDirY * maxBlurPx * frac;
+          ctx.globalAlpha = (1 - frac * 0.78) * 0.22 * speedMag;
+          ctx.drawImage(
+            blurCanvas,
+            0, 0, blurCanvas.width, blurCanvas.height,
+            offsetX, offsetY, vw, vh
+          );
+        }
+
+        // Dynamic aerodynamic wingtip & tail slipstream motion-blur streaks
+        const noseScreen = proj([0, -H * 0.5, 0], cur).screen;
+        const lWingScreen = proj([xWing * 0.9, H * 0.48, 2.5 * d], cur).screen;
+        const rWingScreen = proj([-xWing * 0.9, H * 0.48, 2.5 * d], cur).screen;
+        const streakLen = (48 + 72 * speedMag) * S;
+
+        [
+          { pt: lWingScreen, width: 2.2, alpha: 0.34 * speedMag },
+          { pt: rWingScreen, width: 2.2, alpha: 0.34 * speedMag },
+          { pt: noseScreen, width: 1.4, alpha: 0.20 * speedMag },
+        ].forEach(({ pt, width, alpha }) => {
+          const ex = pt[0] - velDirX * streakLen;
+          const ey = pt[1] - velDirY * streakLen;
+          const grad = ctx.createLinearGradient(pt[0], pt[1], ex, ey);
+          grad.addColorStop(0, `rgba(255, 232, 185, ${alpha})`);
+          grad.addColorStop(0.45, `rgba(255, 205, 130, ${alpha * 0.45})`);
+          grad.addColorStop(1, 'rgba(255, 190, 100, 0)');
+          ctx.beginPath();
+          ctx.moveTo(pt[0], pt[1]);
+          ctx.lineTo(ex, ey);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = width;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        });
+        ctx.restore();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      // Seamless handoff to 3D model right at touchdown on top of the CRT monitor
+      if (pFlight > 0.96) {
+        const fadeOut = smoothstep(0.96, 1.0, pFlight);
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = `rgba(0, 0, 0, ${fadeOut})`;
+        ctx.fillRect(0, 0, vw, vh);
+        ctx.restore();
+      }
+
+      shadow.style.opacity = '0';
     };
 
     // ── TRIGGER TRANSITION CONTROLLER ──
@@ -816,7 +1011,6 @@ export const SectionScrollTransition: React.FC = memo(() => {
       onMid?: TransitionCallback,
       onDone?: TransitionCallback
     ) => {
-      console.log('[DEBUG_LOG] TRANSITION TRIGGERED: fromPage =', fromPage, 'toPage =', toPage, 'at performance.now =', performance.now());
       if (animRafId !== null) {
         cancelAnimationFrame(animRafId);
         animRafId = null;
@@ -835,9 +1029,16 @@ export const SectionScrollTransition: React.FC = memo(() => {
         airplaneCanvas.style.display = 'block';
         webglCanvas.style.display = 'none';
 
-        const FOLD_DURATION = 1500;   // 1.5s for clean, distinct step-by-step folds
-        const FLIGHT_DURATION = 3200; // 3.2s for left flight -> U turn & fly right -> settle on desk
-        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 4.7s
+        // Stage 3D terminal below viewport before folding completes
+        terminalTransitionState.inTransition = true;
+        terminalTransitionState.slideProgress = 0;
+        terminalTransitionState.planeLanded = false;
+
+        const FOLD_DURATION = 1150;   // 1.15s crisp, snappier step-by-step folds (geometry strictly preserved)
+        const FLIGHT_DURATION = 1850; // 1.85s brisk left-to-right swoop + landing on top of the monitor
+        const SLIDE_DELAY = 240;      // 240ms slide delay
+        const SLIDE_DURATION = 1320;  // 1.32s desk slide-up into place
+        const TOTAL_DURATION = FOLD_DURATION + FLIGHT_DURATION; // 3.00s
 
         (window as any).__RENDER_AIRPLANE_EXACT__ = (elapsed: number) => {
           let pFold = 0;
@@ -845,10 +1046,16 @@ export const SectionScrollTransition: React.FC = memo(() => {
           if (elapsed < FOLD_DURATION) {
             pFold = (elapsed / FOLD_DURATION) * 0.78;
             flight = 0;
+            terminalTransitionState.slideProgress = 0;
+            terminalTransitionState.planeLanded = false;
           } else {
             pFold = 0.78;
-            const tFlight = Math.min(1, (elapsed - FOLD_DURATION) / FLIGHT_DURATION);
+            const flightElapsed = elapsed - FOLD_DURATION;
+            const tFlight = Math.min(1, flightElapsed / FLIGHT_DURATION);
             flight = smoothstep(0, 1, tFlight);
+            const tSlide = clamp((flightElapsed - SLIDE_DELAY) / SLIDE_DURATION, 0, 1);
+            terminalTransitionState.slideProgress = 1 - Math.pow(1 - tSlide, 3);
+            terminalTransitionState.planeLanded = tFlight >= 0.97;
           }
           container.style.visibility = 'visible';
           container.style.opacity = '1';
@@ -875,12 +1082,28 @@ export const SectionScrollTransition: React.FC = memo(() => {
             const t = elapsed / FOLD_DURATION;
             pFold = t * 0.78;
             flight = 0;
+            terminalTransitionState.slideProgress = 0;
+            terminalTransitionState.planeLanded = false;
+
+            // Once pFold >= 0.55 (pStep4 === 1, plane is folded in half and 100% opaque over solid #000000 backdrop),
+            // swap DOM underneath to Page 2 so Page 1 BG is already gone before the fold finishes at 1500ms!
+            if (pFold >= 0.55 && !midSwapDone) {
+              midSwapDone = true;
+              pendingMidSwap?.();
+            }
           } else {
             pFold = 0.78;
-            const tFlight = Math.min(1, (elapsed - FOLD_DURATION) / FLIGHT_DURATION);
+            const flightElapsed = elapsed - FOLD_DURATION;
+            const tFlight = Math.min(1, flightElapsed / FLIGHT_DURATION);
             flight = smoothstep(0, 1, tFlight);
 
-            // Swap to Page 2 (3D desk) immediately when folding finishes so Page 1 background never reappears
+            // Slide the 3D desk object smoothly up from below synced with the left-to-right approach
+            const tSlide = clamp((flightElapsed - SLIDE_DELAY) / SLIDE_DURATION, 0, 1);
+            terminalTransitionState.slideProgress = 1 - Math.pow(1 - tSlide, 3);
+
+            // Reveal the 3D plane resting on top of the monitor right as touchdown occurs for seamless continuity
+            terminalTransitionState.planeLanded = tFlight >= 0.97;
+
             if (!midSwapDone) {
               midSwapDone = true;
               pendingMidSwap?.();
@@ -890,13 +1113,12 @@ export const SectionScrollTransition: React.FC = memo(() => {
           renderAirplane(pFold, flight);
 
           if (elapsed < TOTAL_DURATION) {
-            if (Math.floor(elapsed / 300) !== Math.floor((elapsed - 17) / 300)) {
-              console.log('[DEBUG_LOG] TICK: elapsed =', Math.round(elapsed), 'flight =', flight.toFixed(2));
-            }
             animRafId = requestAnimationFrame(stepAirplane);
           } else {
             try {
-              console.log('[DEBUG_LOG] stepAirplane FINISH at elapsed =', elapsed);
+              terminalTransitionState.slideProgress = 1;
+              terminalTransitionState.planeLanded = true;
+              terminalTransitionState.inTransition = false;
               renderAirplane(0.78, 1.0);
               if (!midSwapDone) {
                 midSwapDone = true;
@@ -918,36 +1140,43 @@ export const SectionScrollTransition: React.FC = memo(() => {
         animRafId = requestAnimationFrame(stepAirplane);
 
       } else {
-        // ── GO BACK (2 -> 1): WEBGL 2 MUD NORMAL TRANSITION ──
+        // ── GO BACK (2 -> 1): WEBGL 2 DIRECTIONAL REVEAL WIPE ──
         airplaneCanvas.style.display = 'none';
         webglCanvas.style.display = 'block';
         shadow.style.opacity = '0';
         webglRenderer?.resize();
 
-        const WEBGL_DURATION = 1200;
-        let lastToIndex = -1;
+        // Capture the live 3D terminal canvas frame so the outgoing scene stays visible and gets wiped away instead of disappearing!
+        const capturedCanvas = terminalTransitionState.captureFrame?.();
+        if (capturedCanvas && webglRenderer) {
+          webglRenderer.setCurrentFromCanvas(capturedCanvas);
+        }
+
+        // Synchronously draw the initial opaque curtain frame BEFORE swapping DOM underneath
+        webglRenderer?.draw(1, 0, 0, -1, 0);
+        if (!midSwapDone) {
+          midSwapDone = true;
+          pendingMidSwap?.();
+        }
+
+        const WEBGL_DURATION = 1150;
 
         const stepWebgl = (now: number) => {
-          const elapsed = now - animStartTime;
+          const elapsed = Math.max(0, now - animStartTime);
           const progress = Math.min(1, elapsed / WEBGL_DURATION);
 
-          const timeSec = (now - animStartTime) * 0.0015;
+          const timeSec = elapsed * 0.0015;
           webglRenderer?.draw(1, 0, progress, -1, timeSec);
-
-          if (progress >= 0.48 && !midSwapDone) {
-            midSwapDone = true;
-            pendingMidSwap?.();
-          }
 
           if (progress < 1) {
             animRafId = requestAnimationFrame(stepWebgl);
           } else {
+            pendingFinish?.();
+            pendingFinish = null;
             webglCanvas.style.display = 'none';
             container.style.visibility = 'hidden';
             container.style.opacity = '0';
             animRafId = null;
-            pendingFinish?.();
-            pendingFinish = null;
           }
         };
 
@@ -974,10 +1203,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
       <div
         ref={shadowRef}
         id="paperShadow"
-        className="absolute inset-0 pointer-events-none z-[9999] opacity-0 transition-opacity duration-150"
-        style={{
-          background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08) 0%, transparent 65%)',
-        }}
+        className="absolute inset-0 pointer-events-none z-[9999] opacity-0"
       />
 
       {/* Airplane Canvas (Forward 1 -> 2 Animation) */}

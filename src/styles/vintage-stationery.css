@@ -149,3 +149,15 @@
   animation: slideUpOutDesktop 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform;
 }
+
+/* Paper Plane Folding: Completely eliminate Sheet 1 and its text headline so it never shows behind the airplane */
+html.folding-plane-active .idle-paper-1,
+body.folding-plane-active .idle-paper-1,
+.scene[data-folding="true"] .idle-paper-1,
+.scene[data-hide-sheet-one="true"] .idle-paper-1,
+[data-plane-active="true"] .idle-paper-1,
+.folding-plane-active .idle-paper-1 {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

@@ -89,9 +89,6 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
       setIsTransitioning(true);
 
       if (targetPage === 2) {
-        if (sheetOneRef.current) {
-          sheetOneRef.current.style.opacity = '0';
-        }
         triggerSectionTransition(
           1,
           2,
@@ -102,31 +99,28 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
             setPage(2);
           },
           () => {
-            if (sheetOneRef.current) {
-              sheetOneRef.current.style.opacity = '';
-            }
             setIsTransitioning(false);
             setJournalBusy(false);
           }
         );
+        setIsTransitioning(true);
       } else {
-        // Stage all desk assets in 'hidden' pose and make Page 1 active in DOM
-        setShowPageOneHalf(false);
-        setShowWorks(false);
-        setActiveBookmark('home');
-        renderPose('hidden', { section: 'home' });
-        setPage(1);
-
-        // Start the full intro animation immediately as the WebGL curtain begins wiping upward
-        requestAnimationFrame(() => {
-          void replay();
-        });
-
+        setIsTransitioning(true);
+        // Trigger WebGL curtain first so frame 0 covers the screen before Page 2 hides,
+        // then immediately stage Page 1 underneath so the upward wave reveals Page 1 smoothly!
         triggerSectionTransition(
           2,
           1,
           () => {
-            // Midpoint state check
+            setShowPageOneHalf(returnSection === 'about');
+            setShowWorks(returnSection === 'works');
+            setActiveBookmark(returnSection);
+            renderPose('hidden', { section: returnSection });
+            setPage(1);
+
+            requestAnimationFrame(() => {
+              void transitionSection(returnSection);
+            });
           },
           () => {
             setIsTransitioning(false);
@@ -137,6 +131,14 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
     },
     [isTransitioning, journalBusy, page, renderPose, replay, setPage, transitionSection]
   );
+
+  const handleReturnHome = useCallback(() => {
+    handleSwitchPage(1, 'home');
+  }, [handleSwitchPage]);
+
+  const handleReturnSection = useCallback((sec: 'home' | 'about' | 'works') => {
+    handleSwitchPage(1, sec);
+  }, [handleSwitchPage]);
 
   const hasPlayedIntroRef = useRef(false);
 
@@ -238,19 +240,23 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
           : 'home';
 
   return (
-    <div className={`relative w-full h-full flex flex-col items-center justify-center bg-[#151715] overflow-hidden select-none ${className}`}>
-      {/* Background vignette & texture */}
-      <img
-        src={`${assetsPath}/dark-backing.png?v=3`}
-        alt="Vintage detective desk backing"
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-      />
-      <div
-        className="absolute inset-0 pointer-events-none z-10"
-        style={{
-          background: 'radial-gradient(ellipse at 49% 38%, transparent 30%, rgba(25,28,32,0.04) 53%, rgba(10,14,17,0.45) 100%)',
-        }}
-      />
+    <div className={`relative w-full h-full flex flex-col items-center justify-center ${isPage2Visible ? 'bg-black' : 'bg-[#151715]'} overflow-hidden select-none ${className}`}>
+      {/* Background vignette & texture (Page 1 only - never shown on Page 2) */}
+      {isPage1Visible && (
+        <>
+          <img
+            src={`${assetsPath}/dark-backing.png?v=3`}
+            alt="Vintage detective desk backing"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          />
+          <div
+            className="absolute inset-0 pointer-events-none z-10"
+            style={{
+              background: 'radial-gradient(ellipse at 49% 38%, transparent 30%, rgba(25,28,32,0.04) 53%, rgba(10,14,17,0.45) 100%)',
+            }}
+          />
+        </>
+      )}
 
       {/* Page 1 Layer: Kept mounted in DOM to eliminate mount/unmount stalls during WebGL transitions */}
       <div
@@ -339,8 +345,8 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
         }}
       >
         <VintageContactDesk
-          onBack={() => handleSwitchPage(1, 'home')}
-          onNavigateSection={(sec) => handleSwitchPage(1, sec)}
+          onBack={handleReturnHome}
+          onNavigateSection={handleReturnSection}
           active={isPage2Visible}
           isTransitioning={isTransitioning}
         />

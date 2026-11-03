@@ -39,7 +39,7 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
 
   return (
     <div
-      className={`absolute inset-0 w-full h-full overflow-hidden select-none bg-[#0b0a08] ${className}`}
+      className={`absolute inset-0 w-full h-full overflow-hidden select-none bg-black ${className}`}
       style={{
         pointerEvents: active ? 'auto' : 'none',
       }}
@@ -71,7 +71,7 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
       <nav
         aria-label="Return Navigation Bookmark"
         className={`fixed top-6 sm:top-8 md:top-10 left-0 z-50 pointer-events-auto ${
-          active ? 'bookmark-slide-popup' : 'opacity-0 -translate-x-full pointer-events-none'
+          active && !isTransitioning ? 'bookmark-slide-popup' : 'opacity-0 -translate-x-full pointer-events-none'
         }`}
       >
         <button

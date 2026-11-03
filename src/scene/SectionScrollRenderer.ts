@@ -86,21 +86,21 @@ void main() {
   float edgeDistance = abs(edge);
   float edgeProximity = 1.0 - smoothstep(0.0, 0.26, edgeDistance);
 
-  // Black curtain: 1.0 ahead of the wave (above), 0.0 behind the wave (below, revealing Page 1 DOM)
+  // Curtain: 1.0 ahead of the wave (above, showing outgoing Page 2 scene), 0.0 behind the wave (below, revealing live Page 1 DOM)
   float antialias = max(fwidth(edge) * 2.5, 0.002);
   float curtainAlpha = 1.0 - smoothstep(-antialias, antialias, edge);
 
   // Hardware derivative luminance contour lines along moving wave edge
   float edgeStrength = edgeProximity * smoothstep(0.01, 0.08, progress) * (1.0 - smoothstep(0.92, 0.99, progress));
-  vec3 edgeTint = vec3(1.0) * edgeStrength * 3.5;
+  vec3 edgeTint = vec3(1.0, 0.96, 0.88) * edgeStrength * 2.6;
 
   // Wavefront rim glow along moving edge
-  float glowFactor = smoothstep(0.0, 0.016, edgeDistance);
-  float glowIntensity = (1.0 - glowFactor) * edgeStrength * 4.2 * uBlurIntensity;
-  vec3 waveGlow = edgeTint + vec3(1.0) * glowIntensity;
+  float glowFactor = smoothstep(0.0, 0.018, edgeDistance);
+  float glowIntensity = (1.0 - glowFactor) * edgeStrength * 3.4 * uBlurIntensity;
+  vec3 waveGlow = edgeTint + vec3(1.0, 0.95, 0.85) * glowIntensity;
 
-  // Output: black curtain ahead of wave, transparent behind wave, with glowing wave line
-  vec3 color = vec3(0.0) + waveGlow;
+  // Output: outgoing Page 2 scene ahead of the wave, transparent behind the wave (revealing live Page 1 DOM), with glowing wavefront
+  vec3 color = current.rgb * curtainAlpha + waveGlow;
   float alpha = clamp(curtainAlpha + edgeStrength + glowIntensity, 0.0, 1.0);
 
   // Smooth final fade at the very top
@@ -117,6 +117,7 @@ export type SectionScrollRenderer = {
     direction: 1 | -1,
     time: number
   ) => void;
+  setCurrentFromCanvas: (sourceCanvas: HTMLCanvasElement) => void;
   resize: () => void;
   dispose: () => void;
 };
@@ -300,6 +301,22 @@ export async function createSectionScrollRenderer(
 
   resize();
 
+  const setCurrentFromCanvas = (sourceCanvas: HTMLCanvasElement) => {
+    if (!sourceCanvas || sourceCanvas.width === 0 || sourceCanvas.height === 0) return;
+    try {
+      gl.useProgram(program);
+      gl.bindTexture(gl.TEXTURE_2D, sectionTextures[1]);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceCanvas);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      if (uCurrentImageSize) {
+        gl.uniform2f(uCurrentImageSize, sourceCanvas.width, sourceCanvas.height);
+      }
+    } catch {
+      // Ignore if context unavailable
+    }
+  };
+
   const draw = (
     fromIndex: number,
     toIndex: number,
@@ -361,5 +378,5 @@ export async function createSectionScrollRenderer(
     }
   };
 
-  return { draw, resize, dispose };
+  return { draw, setCurrentFromCanvas, resize, dispose };
 }

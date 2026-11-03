@@ -64,7 +64,7 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
   return (
     <nav
       aria-label="Portfolio Navigation Bookmarks"
-      className="absolute left-0 top-[48%] -translate-y-1/2 z-[25] sm:z-[15] flex flex-col gap-2 sm:gap-2.5 md:gap-3 pointer-events-auto"
+      className="absolute left-0 top-[48%] -translate-y-1/2 z-[25] sm:z-[15] flex flex-col gap-3 sm:gap-3.5 md:gap-4 lg:gap-4.5 pointer-events-auto"
     >
       {TABS.map((tab, idx) => {
         const ref = getRef(idx);
@@ -79,7 +79,7 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
             disabled={disabled}
             aria-label={`Navigate to ${tab.label}`}
             aria-current={isActive ? 'page' : undefined}
-            className={`group relative -left-14 sm:-left-16 md:-left-20 w-[220px] sm:w-[250px] md:w-[280px] lg:w-[300px] h-[58px] sm:h-[66px] md:h-[74px] lg:h-[80px] ${
+            className={`group relative -left-14 sm:-left-16 md:-left-20 w-[225px] sm:w-[255px] md:w-[285px] lg:w-[310px] h-[72px] sm:h-[82px] md:h-[92px] lg:h-[100px] ${
               isActive ? 'z-[40]' : tab.zIndex
             } border-0 p-0 bg-transparent cursor-pointer will-change-transform select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e8cf92]`}
           >
@@ -105,7 +105,7 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
 
               {/* Vintage Typewriter / Dossier Stamped Text + Active Indicator positioned in the protruding left 64% of the tab */}
               <span
-                className={`absolute inset-y-0 left-0 w-[64%] flex items-center justify-center pl-4 pr-1 gap-2 font-bold uppercase select-none pointer-events-none transition-all duration-300 text-[0.9rem] sm:text-[1.02rem] md:text-[1.12rem] ${
+                className={`absolute inset-y-0 left-0 w-[64%] flex items-center justify-center pl-4 pr-1 gap-2.5 font-bold uppercase select-none pointer-events-none transition-all duration-300 text-[0.95rem] sm:text-[1.08rem] md:text-[1.18rem] ${
                   isActive
                     ? 'tracking-[0.22em] text-[#110a05]'
                     : 'tracking-[0.18em] text-[#2b2118] group-hover:tracking-[0.22em] group-hover:text-[#0f0b07]'

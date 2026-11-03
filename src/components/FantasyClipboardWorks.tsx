@@ -404,10 +404,11 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
 
             {/* Inscribed Paper Content: Aligns directly to paper lines with ZERO background */}
             <div
-              className="clipboard-inscribed-content absolute inset-0 select-none"
+              className="clipboard-inscribed-content absolute inset-0 select-none transition-opacity duration-700 ease-out"
               style={{
                 fontFamily: "'Special Elite', 'Courier Prime', Courier, monospace",
                 pointerEvents: effectiveAssembled ? 'auto' : 'none',
+                opacity: effectiveAssembled ? 1 : 0,
               }}
             >
               {/* Top Space (above first ruled line at 25.76%): 'PROJECTS' title animates between center and left */}
@@ -514,7 +515,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
         >
           {/* Top Torn Note Strip (image_aeac6358.png) displaying Selected Project Name */}
           <div
-            className="clipboard-inscribed-content absolute select-none pointer-events-none"
+            className="clipboard-inscribed-content absolute select-none pointer-events-none transition-opacity duration-700 ease-out"
             style={{
               left: '28%',
               top: '-30%',
@@ -523,6 +524,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
               zIndex: 8,
               containerType: 'size',
               filter: 'drop-shadow(0 3px 5px rgba(0, 0, 0, 0.42))',
+              opacity: effectiveAssembled ? 1 : 0,
             }}
           >
             <img
@@ -568,9 +570,9 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                 top: '-4.4053%',
               }}
             >
-              {/* Polaroid cutout displaying ONLY the full project icon */}
+              {/* Polaroid cutout: Black when scattered, white + faded in icon when assembled */}
               <div
-                className="absolute overflow-hidden rounded-[2px] flex items-center justify-center"
+                className="absolute overflow-hidden rounded-[2px] flex items-center justify-center transition-colors duration-700 ease-out"
                 style={{
                   left: '20.15%',
                   top: '13.91%',
@@ -579,13 +581,17 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                   transform: 'rotate(-6.93deg)',
                   transformOrigin: '50% 50%',
                   zIndex: 1,
-                  background: '#ffffff',
+                  background: effectiveAssembled ? '#ffffff' : '#0a0806',
                 }}
               >
                 <img
                   alt={`${selectedProject.title} icon`}
                   src={selectedProject.icon || selectedProject.image}
-                  className="w-full h-full object-contain p-[3%] select-none pointer-events-none transition-all duration-300"
+                  className="w-full h-full object-contain p-[3%] select-none pointer-events-none transition-all duration-700 ease-out"
+                  style={{
+                    opacity: effectiveAssembled ? 1 : 0,
+                    transform: effectiveAssembled ? 'scale(1)' : 'scale(0.95)',
+                  }}
                 />
               </div>
 
@@ -634,10 +640,11 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
 
             {/* Small Note Body: Tech Stack on Ruled Lines (Bigger Text) */}
             <div
-              className="clipboard-inscribed-content absolute inset-0 select-none"
+              className="clipboard-inscribed-content absolute inset-0 select-none transition-opacity duration-700 ease-out"
               style={{
                 fontFamily: "'Special Elite', 'Courier Prime', Courier, monospace",
                 pointerEvents: effectiveAssembled ? 'auto' : 'none',
+                opacity: effectiveAssembled ? 1 : 0,
               }}
             >
               {/* Header: Centered 'TECH STACK' landing cleanly above Line 1 (23.34%) */}

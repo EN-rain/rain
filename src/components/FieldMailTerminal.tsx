@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
+import { terminalTransitionState } from './SectionScrollTransition';
 
 interface FieldMailTerminalProps {
   onBack?: () => void;
@@ -132,10 +133,10 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     activeRef.current = active;
   }, [active]);
 
-  const isTransitioningRef = useRef(isTransitioning);
+  const onBackRef = useRef(onBack);
   useEffect(() => {
-    isTransitioningRef.current = isTransitioning;
-  }, [isTransitioning]);
+    onBackRef.current = onBack;
+  }, [onBack]);
 
   const [toast, setToast] = useState<{ title: string; body: string; visible: boolean }>({
     title: '',
@@ -151,6 +152,20 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       setToast(prev => ({ ...prev, visible: false }));
     }, 3400);
   }, []);
+
+  const showToastRef = useRef(showToast);
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
+
+  const resetCameraRef = useRef<(() => void) | null>(null);
+  const isTransitioningRef = useRef(isTransitioning);
+  useEffect(() => {
+    isTransitioningRef.current = isTransitioning;
+    if (isTransitioning) {
+      resetCameraRef.current?.();
+    }
+  }, [isTransitioning]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -277,15 +292,15 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     function createPaperAirplaneGeo(): THREE.BufferGeometry {
       const geo = new THREE.BufferGeometry();
 
-      // Folded origami dart landmark points matching SectionScrollTransition (facing -Z forward, +Y up, +X right)
-      const nose = [0, 0.008, -0.22];
-      const tailCenter = [0, 0.006, 0.18];
-      const keelFront = [0, -0.024, -0.08];
-      const keelBack = [0, -0.052, 0.16];
-      const lCrease = [-0.026, -0.012, 0.17];
-      const rCrease = [0.026, -0.012, 0.17];
-      const lWingTip = [-0.175, 0.022, 0.16];
-      const rWingTip = [0.175, 0.022, 0.16];
+      // Folded origami dart landmark points (facing +Z forward so Three.js Object3D.lookAt points the sharp nose forward!)
+      const nose = [0, 0.008, 0.22];
+      const tailCenter = [0, 0.006, -0.18];
+      const keelFront = [0, -0.024, 0.08];
+      const keelBack = [0, -0.052, -0.16];
+      const lCrease = [-0.026, -0.012, -0.17];
+      const rCrease = [0.026, -0.012, -0.17];
+      const lWingTip = [-0.175, 0.022, -0.16];
+      const rWingTip = [0.175, 0.022, -0.16];
 
       const positions: number[] = [];
       const uvs: number[] = [];
@@ -346,11 +361,11 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       { id: 'name', label: 'NAME', ph: '(optional)', y: 176, h: 48, max: 28 },
       { id: 'email', label: 'EMAIL', ph: 'you@example.com', y: 240, h: 48, max: 40 },
       { id: 'subject', label: 'SUBJECT', ph: 'What is this about?', y: 304, h: 48, max: 40 },
-      { id: 'message', label: 'MESSAGE', ph: 'Dear Field Mail,', y: 368, h: 152, max: 200, multi: true },
+      { id: 'message', label: 'MESSAGE', ph: 'Dear Field Mail,', y: 368, h: 152, max: 3000, multi: true },
     ];
     const FORM_ORDER = ['name', 'email', 'subject', 'message', 'send', 'clear'];
-    const MSG_COLS = 40;
-    const MSG_LINES = 5;
+    const MSG_COLS = 38;
+    const MSG_VISIBLE_LINES = 5;
 
     interface Region {
       id: string;
@@ -369,6 +384,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       statusKind: '',
       sent: false,
       regions: [] as Region[],
+      messageScroll: 0,
     };
 
     function wrapLines(text: string, cols: number): string[] {
@@ -412,6 +428,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       const ts = terminalState;
       ts.fields = { name: '', email: '', subject: '', message: '' };
       ts.sent = false;
+      ts.messageScroll = 0;
       ts.status = 'Form cleared.';
       ts.statusKind = 'ok';
       ts.focus = 'name';
@@ -446,7 +463,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       ts.focus = 'new';
       sfx.playCRTBeep(1040, 0.08);
       launchPlaneDelivery();
-      showToast('MESSAGE DISPATCHED', 'Your airmail letter has taken flight to Edrian Nieves.');
+      showToastRef.current('MESSAGE DISPATCHED', 'Your airmail letter has taken flight to Edrian Nieves.');
       renderCRTScreen();
     }
 
@@ -457,6 +474,15 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       else if (reg.id === 'send') { terminalState.focus = 'send'; sendMessage(); }
       else if (reg.id === 'clear') clearForm();
       else if (reg.id === 'new') resetForm();
+      else if (reg.id === 'scroll_up') {
+        terminalState.messageScroll = Math.max(0, terminalState.messageScroll - 1);
+        renderCRTScreen();
+      } else if (reg.id === 'scroll_down') {
+        const lines = wrapLines(terminalState.fields.message || '', MSG_COLS);
+        const maxScroll = Math.max(0, lines.length - MSG_VISIBLE_LINES);
+        terminalState.messageScroll = Math.min(maxScroll, terminalState.messageScroll + 1);
+        renderCRTScreen();
+      }
     }
 
     function renderCRTScreen() {
@@ -558,18 +584,113 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
           g.stroke();
 
           const val = ts.fields[def.id] || '';
-          const lines = def.multi ? wrapLines(val, MSG_COLS) : [val];
-          const ty = L.y + (def.multi ? 14 : 11);
-          if (!val) {
-            text(def.ph, boxX + 16, ty, '26px ' + MONO, '#a0a7ba', 'left', 'top');
+          if (def.multi) {
+            const lines = wrapLines(val, MSG_COLS);
+            const maxScroll = Math.max(0, lines.length - MSG_VISIBLE_LINES);
+            ts.messageScroll = Math.max(0, Math.min(maxScroll, ts.messageScroll || 0));
+
+            // Clip text area cleanly inside message input box
+            const textW = boxW - (lines.length > MSG_VISIBLE_LINES ? 38 : 24);
+            g.save();
+            g.beginPath();
+            g.rect(boxX + 6, L.y + 6, textW, L.h - 12);
+            g.clip();
+
+            const ty = L.y + 14;
+            if (!val) {
+              text(def.ph, boxX + 16, ty, '26px ' + MONO, '#a0a7ba', 'left', 'top');
+            } else {
+              const startLine = ts.messageScroll;
+              const endLine = Math.min(lines.length, startLine + MSG_VISIBLE_LINES + 1);
+              for (let i = startLine; i < endLine; i++) {
+                text(lines[i], boxX + 16, ty + (i - startLine) * 34, '26px ' + MONO, INK, 'left', 'top');
+              }
+            }
+
+            if (focused && ts.cursorVisible) {
+              const cursorLineIdx = lines.length - 1;
+              if (cursorLineIdx >= ts.messageScroll && cursorLineIdx <= ts.messageScroll + MSG_VISIBLE_LINES) {
+                const visibleRow = cursorLineIdx - ts.messageScroll;
+                const lastLine = lines[cursorLineIdx] || '';
+                g.font = '26px ' + MONO;
+                const cw = g.measureText(lastLine).width;
+                rect(boxX + 16 + cw + 1, ty + visibleRow * 34 + 1, 3, 28, NAVY);
+              }
+            }
+            g.restore();
+
+            // Side scrollbar (visible when message length exceeds visible box)
+            if (lines.length > MSG_VISIBLE_LINES) {
+              const sbX = boxX + boxW - 22;
+              const sbY = L.y + 8;
+              const sbW = 14;
+              const sbH = L.h - 16;
+              const btnH = 16;
+
+              // Scroll Up button
+              ts.regions.push({ id: 'scroll_up', x0: sbX - 4, x1: sbX + sbW + 4, y0: sbY - 2, y1: sbY + btnH + 2 });
+              rr(sbX, sbY, sbW, btnH, 4);
+              g.fillStyle = ts.messageScroll > 0 ? '#dbe2f4' : '#eef2f9';
+              g.fill();
+              g.strokeStyle = '#9aa5c4';
+              g.lineWidth = 1.5;
+              g.stroke();
+              g.beginPath();
+              g.moveTo(sbX + sbW / 2, sbY + 4);
+              g.lineTo(sbX + 3, sbY + btnH - 4);
+              g.lineTo(sbX + sbW - 3, sbY + btnH - 4);
+              g.closePath();
+              g.fillStyle = ts.messageScroll > 0 ? NAVY : '#a0a7ba';
+              g.fill();
+
+              // Scroll Down button
+              const btnDownY = sbY + sbH - btnH;
+              ts.regions.push({ id: 'scroll_down', x0: sbX - 4, x1: sbX + sbW + 4, y0: btnDownY - 2, y1: btnDownY + btnH + 2 });
+              rr(sbX, btnDownY, sbW, btnH, 4);
+              g.fillStyle = ts.messageScroll < maxScroll ? '#dbe2f4' : '#eef2f9';
+              g.fill();
+              g.strokeStyle = '#9aa5c4';
+              g.lineWidth = 1.5;
+              g.stroke();
+              g.beginPath();
+              g.moveTo(sbX + sbW / 2, btnDownY + btnH - 4);
+              g.lineTo(sbX + 3, btnDownY + 4);
+              g.lineTo(sbX + sbW - 3, btnDownY + 4);
+              g.closePath();
+              g.fillStyle = ts.messageScroll < maxScroll ? NAVY : '#a0a7ba';
+              g.fill();
+
+              // Recessed vertical track
+              const trackY = sbY + btnH + 4;
+              const trackH = sbH - 2 * btnH - 8;
+              rr(sbX + 2, trackY, sbW - 4, trackH, 3);
+              g.fillStyle = '#e8ecf6';
+              g.fill();
+
+              // Scroll Thumb
+              const thumbRatio = MSG_VISIBLE_LINES / lines.length;
+              const thumbH = Math.max(22, trackH * thumbRatio);
+              const thumbTravel = trackH - thumbH;
+              const thumbY = trackY + (maxScroll > 0 ? (ts.messageScroll / maxScroll) * thumbTravel : 0);
+              rr(sbX + 1, thumbY, sbW - 2, thumbH, 4);
+              g.fillStyle = focused ? NAVY : '#5b6ea0';
+              g.fill();
+              g.strokeStyle = '#ffffff';
+              g.lineWidth = 1;
+              g.stroke();
+            }
           } else {
-            lines.forEach((ln, i) => text(ln, boxX + 16, ty + i * 34, '26px ' + MONO, INK, 'left', 'top'));
-          }
-          if (focused && ts.cursorVisible) {
-            const last = lines[lines.length - 1] || '';
-            g.font = '26px ' + MONO;
-            const cw = g.measureText(last).width;
-            rect(boxX + 16 + cw + 1, ty + (lines.length - 1) * 34 + 1, 3, 28, NAVY);
+            const ty = L.y + 11;
+            if (!val) {
+              text(def.ph, boxX + 16, ty, '26px ' + MONO, '#a0a7ba', 'left', 'top');
+            } else {
+              text(val, boxX + 16, ty, '26px ' + MONO, INK, 'left', 'top');
+            }
+            if (focused && ts.cursorVisible) {
+              g.font = '26px ' + MONO;
+              const cw = g.measureText(val).width;
+              rect(boxX + 16 + cw + 1, ty + 1, 3, 28, NAVY);
+            }
           }
         });
 
@@ -739,12 +860,17 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       }
     `;
 
-    // 3D Scene Initialization
+    // 3D Scene Initialization (pure black void background - no BG or canvas visible)
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0b0a08);
-    scene.fog = new THREE.FogExp2(0x0b0a08, 0.048);
+    scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.FogExp2(0x000000, 0.038);
 
-    const camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 60);
+    const deskWorldGroup = new THREE.Group();
+    scene.add(deskWorldGroup);
+
+    const initialAspect = window.innerWidth / window.innerHeight;
+    const initialFov = initialAspect < 1.0 ? Math.min(62, 48 / initialAspect) : 46;
+    const camera = new THREE.PerspectiveCamera(initialFov, initialAspect, 0.1, 60);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -758,22 +884,71 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    const defaultCamSpherical = { radius: 7.55, theta: 0.41, phi: 1.33 };
-    const defaultCamTarget = new THREE.Vector3(-0.18, 1.05, 0.22);
-    const focusedCamSpherical = { radius: 4.15, theta: 0.26, phi: 1.39 };
-    const focusedCamTarget = new THREE.Vector3(-0.55, 1.48, -0.15);
+    // 1. Wide Entry Desk View: wide cinematic view showcasing desk slide-up & airplane landing
+    const entryCamSpherical = { radius: 5.60, theta: 0.36, phi: 1.25 };
+    const entryCamTarget = new THREE.Vector3(-0.35, 1.28, 0.10);
 
-    // If entering via transition, camera starts elevated looking down at 3D desk objects below
-    const camSpherical = isTransitioning
-      ? { radius: 9.8, theta: 0.38, phi: 0.85 }
-      : { ...defaultCamSpherical };
-    let targetSpherical = { ...defaultCamSpherical };
-    const currentLookAt = isTransitioning
-      ? new THREE.Vector3(-0.18, 0.60, 0.40)
-      : defaultCamTarget.clone();
-    const targetLookAt = defaultCamTarget.clone();
+    // 2. Focused CRT Monitor View: DRAMATIC, IMMERSIVE ZOOM-IN ONTO THE MONITOR SCREEN
+    // Tight, full-screen monitor focus (radius: 2.45, centered on CRT display glass y = 1.56, theta = 0.27 face-on)
+    const focusedCamSpherical = { radius: 2.45, theta: 0.27, phi: 1.50 };
+    const focusedCamTarget = new THREE.Vector3(-0.56, 1.56, 0.05);
 
-    let isFocusedOnCRT = false;
+    // NEVER snap to the screen: start at the wide entry view and glide in with fluid cinematic motion
+    const camSpherical = { ...entryCamSpherical };
+    let targetSpherical = { ...entryCamSpherical };
+    const currentLookAt = entryCamTarget.clone();
+    const targetLookAt = entryCamTarget.clone();
+
+    // Dedicated Cinematic Camera Motion Controller (Single smooth zoom, zero jerks/duplicate triggers)
+    let isZoomingIn = false;
+    let zoomMotionStartTime = -1;
+    let zoomMotionProgress = 0.0;
+    let hasCompletedInitialZoom = false;
+    const ZOOM_MOTION_DURATION = 0.92; // 0.92s brisk, fluid zoom-in onto the monitor screen
+
+    const smoothParallax = new THREE.Vector2(0, 0);
+
+    resetCameraRef.current = () => {
+      isZoomingIn = false;
+      zoomMotionStartTime = -1;
+      zoomMotionProgress = 0.0;
+      hasCompletedInitialZoom = false;
+      userInteracted = false;
+      isReCentering = false;
+      camSpherical.radius = entryCamSpherical.radius;
+      camSpherical.theta = entryCamSpherical.theta;
+      camSpherical.phi = entryCamSpherical.phi;
+      currentLookAt.copy(entryCamTarget);
+      targetSpherical.radius = entryCamSpherical.radius;
+      targetSpherical.theta = entryCamSpherical.theta;
+      targetSpherical.phi = entryCamSpherical.phi;
+      targetLookAt.copy(entryCamTarget);
+    };
+
+    // Resting position and orientation anchored right on the top-front crown of the CRT monitor
+    // (directly above the screen on the front bezel crown, clearly visible at the top of the viewport)
+    const PLANE_REST_POS = new THREE.Vector3(-0.555, 2.76, 0.052);
+    const PLANE_REST_ROT = new THREE.Euler(0.01, 0.54, -0.01);
+
+    function updateLandingScreenProjection() {
+      const r = entryCamSpherical.radius;
+      const sinPhi = Math.sin(entryCamSpherical.phi);
+      camera.position.set(
+        entryCamTarget.x + r * sinPhi * Math.sin(entryCamSpherical.theta),
+        entryCamTarget.y + r * Math.cos(entryCamSpherical.phi),
+        entryCamTarget.z + r * sinPhi * Math.cos(entryCamSpherical.theta)
+      );
+      camera.lookAt(entryCamTarget);
+      camera.updateMatrixWorld(true);
+      const restWorld = PLANE_REST_POS.clone();
+      restWorld.project(camera);
+      terminalTransitionState.landingNx = (restWorld.x + 1) * 0.5;
+      terminalTransitionState.landingNy = (1 - restWorld.y) * 0.5;
+    }
+    updateLandingScreenProjection();
+
+    let userInteracted = false;
+    let isReCentering = false;
     let isLampOn = true;
     let lastKeyId = '';
 
@@ -985,19 +1160,11 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     const matDarkCable = new THREE.MeshStandardMaterial({ color: 0x3b352e, roughness: 0.65, metalness: 0.12 });
     const matBeigeCable = new THREE.MeshStandardMaterial({ color: 0x8d8373, roughness: 0.6, metalness: 0.08 });
 
-    // A. ENVIRONMENT
+    // A. ENVIRONMENT (Desk only - no backWall so background remains pure black)
     const deskMesh = new THREE.Mesh(createRoundedBoxGeo(14, 0.35, 8.5, 0.04, 4), matDeskWood);
     deskMesh.position.set(0, -0.175, 0.5);
     deskMesh.receiveShadow = true;
-    scene.add(deskMesh);
-
-    const backWall = new THREE.Mesh(
-      new THREE.PlaneGeometry(18, 12),
-      new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.92 })
-    );
-    backWall.position.set(0, 5.2, -2.6);
-    backWall.receiveShadow = true;
-    scene.add(backWall);
+    deskWorldGroup.add(deskMesh);
 
     // B. CRT MONITOR
     const monitorGroup = new THREE.Group();
@@ -1105,7 +1272,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     );
     powerLed.position.set(0.96, 0.25, 0.32);
     monitorGroup.add(powerLed);
-    scene.add(monitorGroup);
+    deskWorldGroup.add(monitorGroup);
 
     // C. KEYBOARD
     const keyCapMeshes: THREE.Mesh[] = [];
@@ -1286,7 +1453,9 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       key.position.set(cx, restY, cz);
       key.castShadow = true;
       key.receiveShadow = true;
+      key.name = id ? 'KB_KEY_' + id : 'KB_KEY';
       key.userData.restY = restY;
+      key.userData.id = id;
       if (spec) {
         const dec = new THREE.Mesh(
           new THREE.PlaneGeometry(w * 0.76, d * 0.76),
@@ -1469,7 +1638,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     kbCordBoot.rotation.x = Math.PI / 2;
     kbCordBoot.position.set(0.32, 0.075, -0.66);
     kbGroup.add(kbCordBoot);
-    scene.add(kbGroup);
+    deskWorldGroup.add(kbGroup);
 
     // D. GOOSENECK DESK LAMP
     const lampGroup = new THREE.Group();
@@ -1647,60 +1816,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     lampVolumetricCone.position.set(0, -0.42, 0);
     lampVolumetricCone.raycast = () => { };
     lampHeadGroup.add(lampVolumetricCone);
-    scene.add(lampGroup);
-
-    // Dust Motes
-    const dustCount = 90;
-    const dustGeo = new THREE.BufferGeometry();
-    const dustPositions = new Float32Array(dustCount * 3);
-    const dustSeeds = new Float32Array(dustCount);
-    for (let i = 0; i < dustCount; i++) {
-      dustPositions[i * 3] = (Math.random() - 0.35) * 4.5;
-      dustPositions[i * 3 + 1] = 0.25 + Math.random() * 2.5;
-      dustPositions[i * 3 + 2] = (Math.random() - 0.3) * 3.0;
-      dustSeeds[i] = Math.random() * 100.0;
-    }
-    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
-    dustGeo.setAttribute('aSeed', new THREE.BufferAttribute(dustSeeds, 1));
-
-    const dustMat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      uniforms: {
-        uTime: { value: 0 },
-        uLampOn: { value: 1.0 }
-      },
-      vertexShader: `
-        attribute float aSeed;
-        uniform float uTime;
-        varying float vAlpha;
-        void main() {
-          vec3 pos = position;
-          pos.y += mod(uTime * 0.06 + aSeed, 2.4) - 1.2;
-          pos.x += sin(uTime * 0.4 + aSeed) * 0.08;
-          pos.z += cos(uTime * 0.35 + aSeed) * 0.08;
-          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-          gl_PointSize = (14.0 / -mvPosition.z) * (0.6 + 0.4 * sin(uTime * 1.5 + aSeed));
-          vAlpha = 0.25 + 0.25 * sin(uTime * 1.2 + aSeed * 3.0);
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform float uLampOn;
-        varying float vAlpha;
-        void main() {
-          float dist = length(gl_PointCoord - vec2(0.5));
-          if (dist > 0.5) discard;
-          float softCircle = smoothstep(0.5, 0.05, dist);
-          vec3 color = mix(vec3(0.35, 0.85, 0.35), vec3(1.0, 0.82, 0.48), uLampOn);
-          gl_FragColor = vec4(color, softCircle * vAlpha * (0.35 + 0.65 * uLampOn));
-        }
-      `
-    });
-    const dustParticles = new THREE.Points(dustGeo, dustMat);
-    dustParticles.raycast = () => { };
-    scene.add(dustParticles);
+    deskWorldGroup.add(lampGroup);
 
     // Peripherals & Cables
     monitorGroup.updateMatrixWorld(true);
@@ -1718,7 +1834,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       const jack = new THREE.Mesh(createRoundedBoxGeo(0.17, 0.075, 0.04, 0.012, 3), matJack);
       jack.position.copy(p).addScaledVector(normal, 0.005);
       jack.rotation.y = yaw;
-      scene.add(jack);
+      deskWorldGroup.add(jack);
 
       const plug = new THREE.Group();
       plug.scale.setScalar(PLUG_S);
@@ -1745,7 +1861,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
         screw.position.set(sx, 0, 0.02);
         plug.add(screw);
       });
-      scene.add(plug);
+      deskWorldGroup.add(plug);
       return p.clone().addScaledVector(normal, 0.025 + 0.37 * PLUG_S);
     }
 
@@ -1754,7 +1870,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       const mesh = new THREE.Mesh(geo, material);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
-      scene.add(mesh);
+      deskWorldGroup.add(mesh);
       return mesh;
     }
 
@@ -1810,7 +1926,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     const coilMesh = new THREE.Mesh(coilGeo, matBeigeCable);
     coilMesh.castShadow = true;
     coilMesh.receiveShadow = true;
-    scene.add(coilMesh);
+    deskWorldGroup.add(coilMesh);
 
     // Vintage Beige PC Tower
     const towerGroup = new THREE.Group();
@@ -1981,7 +2097,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     towerBoot.position.set(0.18, 0.22, -tD / 2 - 0.08);
     towerGroup.add(towerBoot);
 
-    scene.add(towerGroup);
+    deskWorldGroup.add(towerGroup);
     towerGroup.updateMatrixWorld(true);
 
     const driveJackEnd = addJackAndPlug(new THREE.Vector3(-0.5, 0.07, -0.77), nBack, MON_YAW + Math.PI);
@@ -2084,8 +2200,8 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     padMesh.position.set(3.05, 0, 1.2);
     padMesh.rotation.y = -0.1;
     padMesh.receiveShadow = true;
-    scene.add(padMesh);
-    scene.add(mouseGroup);
+    deskWorldGroup.add(padMesh);
+    deskWorldGroup.add(mouseGroup);
     mouseGroup.updateMatrixWorld(true);
 
     const mouseJackEnd = addJackAndPlug(new THREE.Vector3(0.35, 0.07, -0.77), nBack, MON_YAW + Math.PI);
@@ -2121,18 +2237,90 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     noteMesh.rotation.z = 0.18;
     noteMesh.position.set(3.5, 0.01, 0.15);
     noteMesh.receiveShadow = true;
-    scene.add(noteMesh);
+    deskWorldGroup.add(noteMesh);
 
-    // Origami Lined Paper Airplane (identical texture and folded geometry as transition)
+    // Origami Lined Paper Airplane (identical texture and folded geometry as transition, enhanced with custom CRT/Lamp GLSL shader)
     const planeTex = createPaperPlaneTexture();
     const planeGeo = createPaperAirplaneGeo();
     const planeMat = new THREE.MeshStandardMaterial({
       map: planeTex,
-      roughness: 0.72,
-      metalness: 0.02,
+      roughness: 0.64,
+      metalness: 0.04,
       side: THREE.DoubleSide,
       shadowSide: THREE.DoubleSide,
     });
+
+    planeMat.onBeforeCompile = (shader) => {
+      shader.uniforms.uScreenTex = crtShaderUniforms.uScreenTex;
+      shader.uniforms.uTime = crtShaderUniforms.uTime;
+      shader.uniforms.uLampOn = crtShaderUniforms.uLampOn;
+      shader.uniforms.uLampWorldPos = crtShaderUniforms.uLampWorldPos;
+      shader.uniforms.uHoverBoost = crtShaderUniforms.uHoverBoost;
+
+      shader.vertexShader = `
+        varying vec3 vPlaneWorldPos;
+        varying vec3 vPlaneWorldNormal;
+        varying vec2 vPlaneUv;
+      ` + shader.vertexShader.replace(
+        '#include <worldpos_vertex>',
+        `
+        #include <worldpos_vertex>
+        vec4 planeWp = modelMatrix * vec4(transformed, 1.0);
+        vPlaneWorldPos = planeWp.xyz;
+        vPlaneWorldNormal = normalize(mat3(modelMatrix) * objectNormal);
+        vPlaneUv = uv;
+        `
+      );
+
+      shader.fragmentShader = `
+        uniform sampler2D uScreenTex;
+        uniform float uTime;
+        uniform float uLampOn;
+        uniform vec3 uLampWorldPos;
+        uniform float uHoverBoost;
+        varying vec3 vPlaneWorldPos;
+        varying vec3 vPlaneWorldNormal;
+        varying vec2 vPlaneUv;
+
+        float planeHash(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+      ` + shader.fragmentShader.replace(
+        '#include <dithering_fragment>',
+        `
+        #include <dithering_fragment>
+        vec3 pN = normalize(vPlaneWorldNormal * (gl_FrontFacing ? 1.0 : -1.0));
+        vec3 pV = normalize(cameraPosition - vPlaneWorldPos);
+        vec3 toLamp = uLampWorldPos - vPlaneWorldPos;
+        float lampDist = length(toLamp);
+        vec3 pL = toLamp / max(lampDist, 0.001);
+        float lampAtten = clamp(1.0 / (1.0 + 0.14 * lampDist + 0.04 * lampDist * lampDist), 0.0, 1.0);
+
+        // Warm gooseneck lamp subsurface paper translucency & wrap lighting
+        float wrapNdotL = max(0.0, (dot(pN, pL) + 0.55) / 1.55);
+        float subSurface = pow(clamp(1.0 - abs(dot(pN, pL)), 0.0, 1.0), 1.5) * 0.48 + pow(max(0.0, dot(-pN, pL)), 1.8) * 0.42;
+        vec3 warmPaperScatter = vec3(1.0, 0.76, 0.38) * (wrapNdotL * 0.24 + subSurface * 0.34) * lampAtten * uLampOn;
+
+        // Specular paper crease sheen from desk lamp
+        vec3 pH = normalize(pV + pL);
+        float creaseSpec = pow(max(dot(pN, pH), 0.0), 22.0) * 0.18 * lampAtten * uLampOn;
+
+        // CRT phosphor bounce light & subtle scanline shimmer from monitor below
+        float crtProx = clamp(1.0 - length(vPlaneWorldPos - vec3(-0.55, 2.35, -0.10)) * 0.42, 0.0, 1.0);
+        vec3 crtSample = texture2D(uScreenTex, clamp(vPlaneUv * 0.6 + 0.2, 0.05, 0.95)).rgb;
+        float scanPulse = 0.92 + 0.08 * sin(uTime * 24.0 + vPlaneWorldPos.x * 36.0 + vPlaneWorldPos.z * 36.0);
+        vec3 crtBounce = mix(vec3(0.42, 0.58, 0.95), crtSample, 0.45) * crtProx * (0.14 + uHoverBoost * 0.08) * scanPulse;
+
+        // Fresnel paper edge highlight & vintage film grain matching CRT shader
+        float pFresnel = pow(1.0 - max(abs(dot(pN, pV)), 0.0), 2.6);
+        vec3 rimGlow = mix(vec3(0.28, 0.36, 0.55), vec3(1.0, 0.80, 0.46), uLampOn) * pFresnel * 0.20;
+        float pGrain = (planeHash(vPlaneUv * 420.0 + uTime) - 0.5) * 0.026;
+
+        gl_FragColor.rgb += warmPaperScatter + vec3(1.0, 0.85, 0.58) * creaseSpec + crtBounce + rimGlow + pGrain;
+        `
+      );
+    };
+
     const planeMesh = new THREE.Mesh(planeGeo, planeMat);
     planeMesh.castShadow = true;
     planeMesh.receiveShadow = true;
@@ -2140,56 +2328,54 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
 
     const planeGroup = new THREE.Group();
     planeGroup.name = 'PAPER_PLANE_GROUP';
+    planeGroup.scale.setScalar(1.45);
     planeGroup.add(planeMesh);
-    planeGroup.position.set(-0.16, 0.052, 0.70);
-    planeGroup.rotation.set(0.0, 0.22, 0.05);
-    planeGroup.visible = !isTransitioning;
-    scene.add(planeGroup);
+    planeGroup.position.copy(PLANE_REST_POS);
+    planeGroup.rotation.copy(PLANE_REST_ROT);
+    planeGroup.visible = !isTransitioning && !terminalTransitionState.inTransition;
+    deskWorldGroup.add(planeGroup);
 
     // Flight Path Curves
-    // 1. Entrance Flight (swoops in, circles the room, and lands on desk between keyboard and monitor)
+    // 1. Entrance Flight (swoops in, circles the room, and lands on top of the CRT monitor)
     const entranceFlightPoints = [
       new THREE.Vector3(3.6, 3.8, -1.8),     // High right entry above room
       new THREE.Vector3(2.4, 2.7, -0.9),     // Gliding past the lamp shade
-      new THREE.Vector3(1.2, 1.7, -0.1),     // Sweeping through golden volumetric beam
-      new THREE.Vector3(-0.15, 1.25, 0.45),  // Crossing desk in front of CRT
-      new THREE.Vector3(-1.5, 1.65, 0.25),   // Banking turn around CRT
-      new THREE.Vector3(-2.3, 2.45, -0.7),   // Climbing banking turn past tower
-      new THREE.Vector3(-1.7, 3.05, -1.9),   // Cresting along back wall
-      new THREE.Vector3(0.8, 2.7, -1.6),     // Gliding across rear room
-      new THREE.Vector3(2.7, 2.1, -0.2),     // Wide banking turn around lamp
-      new THREE.Vector3(2.2, 1.4, 1.35),     // Turning toward front desk runway
-      new THREE.Vector3(1.1, 0.72, 1.3),     // Gliding along keyboard front edge
-      new THREE.Vector3(0.24, 0.22, 0.98),   // Short final approach
-      new THREE.Vector3(-0.05, 0.048, 0.80), // Flairing nose up before touchdown
-      new THREE.Vector3(-0.16, 0.019, 0.70)  // Settled touchdown between keyboard & monitor
+      new THREE.Vector3(1.2, 1.9, -0.1),     // Sweeping through golden volumetric beam
+      new THREE.Vector3(-0.15, 1.85, 0.45),  // Crossing in front of CRT
+      new THREE.Vector3(-1.6, 2.25, 0.25),   // Banking turn around CRT
+      new THREE.Vector3(-2.3, 2.85, -0.7),   // Climbing banking turn past tower
+      new THREE.Vector3(-1.4, 3.35, -1.7),   // Cresting above room
+      new THREE.Vector3(0.8, 3.25, -1.4),    // Gliding across rear room
+      new THREE.Vector3(1.8, 3.10, -0.3),    // Wide banking turn around lamp
+      new THREE.Vector3(0.5, 3.02, 0.20),    // Turning toward top of CRT monitor
+      new THREE.Vector3(-0.35, 2.95, 0.02),  // Level glide over front crown
+      PLANE_REST_POS.clone()                 // Settled touchdown on top of CRT monitor
     ];
     const entranceCurve = new THREE.CatmullRomCurve3(entranceFlightPoints, false, 'centripetal', 0.5);
 
-    // 2. Loop Flight (taking off from desk, circling around room, landing back down)
+    // 2. Loop Flight (taking off from top of monitor, circling around room, landing back on top of monitor)
     const loopFlightPoints = [
-      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
-      new THREE.Vector3(-0.10, 0.28, 0.45),  // Lift off & climb
-      new THREE.Vector3(0.40, 0.95, 0.10),   // Ascending toward volumetric beam
-      new THREE.Vector3(1.80, 1.85, 0.20),   // Banking right around lamp
-      new THREE.Vector3(2.50, 2.30, -0.80),  // High bank past wall
-      new THREE.Vector3(0.60, 2.60, -1.70),  // High back circuit
-      new THREE.Vector3(-1.60, 2.20, -1.10), // Swooping down past PC tower
-      new THREE.Vector3(-1.40, 1.35, 0.15),  // Sweeping low around CRT
-      new THREE.Vector3(0.30, 0.75, 1.10),   // Aligning keyboard runway
-      new THREE.Vector3(0.12, 0.18, 0.92),   // Final flair
-      new THREE.Vector3(-0.16, 0.019, 0.70)  // Touchdown between keyboard & monitor
+      PLANE_REST_POS.clone(),                // On top of CRT monitor
+      new THREE.Vector3(-0.25, 2.98, 0.15),  // Lift off forward from monitor top
+      new THREE.Vector3(0.75, 2.45, 0.65),   // Swooping through golden volumetric beam
+      new THREE.Vector3(2.10, 2.25, 0.15),   // Banking right around lamp
+      new THREE.Vector3(2.40, 2.75, -0.90),  // High bank past lamp
+      new THREE.Vector3(0.50, 3.25, -1.65),  // High back circuit
+      new THREE.Vector3(-1.65, 2.95, -1.05), // Swooping past PC tower
+      new THREE.Vector3(-1.55, 2.55, 0.25),  // Sweeping around left of CRT
+      new THREE.Vector3(-0.95, 2.96, 0.05),  // Aligning with top of monitor
+      new THREE.Vector3(-0.78, 2.92, -0.02), // Final flair over monitor top
+      PLANE_REST_POS.clone()                 // Touchdown on top of CRT monitor
     ];
     const loopCurve = new THREE.CatmullRomCurve3(loopFlightPoints, false, 'centripetal', 0.5);
 
-    // 3. Delivery Flight (launches from desk, accelerates through the beam, flies off into distance)
+    // 3. Delivery Flight (launches from top of monitor, accelerates through the beam, flies off into distance)
     const deliveryFlightPoints = [
-      new THREE.Vector3(-0.16, 0.019, 0.70), // On desk
-      new THREE.Vector3(-0.12, 0.16, 0.42),  // Rapid lift off
-      new THREE.Vector3(-0.04, 0.65, 0.08),  // Steep climb
-      new THREE.Vector3(0.42, 1.60, -0.42),  // Climbing into golden beam
-      new THREE.Vector3(1.35, 2.70, -1.15),  // Banking past gooseneck
-      new THREE.Vector3(2.60, 3.80, -1.95),  // High exit trajectory
+      PLANE_REST_POS.clone(),                // On top of CRT monitor
+      new THREE.Vector3(-0.22, 2.95, 0.18),  // Rapid lift off from monitor
+      new THREE.Vector3(0.45, 2.65, 0.35),   // Diving into golden lamp beam
+      new THREE.Vector3(1.35, 2.85, -0.35),  // Climbing past gooseneck lamp
+      new THREE.Vector3(2.60, 3.80, -1.55),  // High exit trajectory
       new THREE.Vector3(4.50, 5.20, -2.90)   // Disappearing into night
     ];
     const deliveryCurve = new THREE.CatmullRomCurve3(deliveryFlightPoints, false, 'centripetal', 0.5);
@@ -2236,7 +2422,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
 
     const crtGlowLight = new THREE.PointLight(0xdbe6ff, 0.62, 3.2, 2.0);
     crtGlowLight.position.set(-0.35, 1.48, 0.55);
-    scene.add(crtGlowLight);
+    deskWorldGroup.add(crtGlowLight);
 
     const rimLight = new THREE.DirectionalLight(0x4b5c6b, 0.45);
     rimLight.position.set(-5, 4, -3);
@@ -2247,19 +2433,143 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     let pointerDownPos = { x: 0, y: 0 };
     let prevPointerPos = { x: 0, y: 0 };
 
-    function updateCameraPosition() {
-      const lerpSpeed = isTransitioningRef.current ? 0.038 : 0.08;
-      camSpherical.radius += (targetSpherical.radius - camSpherical.radius) * lerpSpeed;
-      camSpherical.theta += (targetSpherical.theta - camSpherical.theta) * lerpSpeed;
-      camSpherical.phi += (targetSpherical.phi - camSpherical.phi) * lerpSpeed;
-      currentLookAt.lerp(targetLookAt, lerpSpeed);
+    // Custom C3-continuous camera zoom easing function (order-7 smootherstep)
+    // Guarantees zero velocity, acceleration, and jerk at both endpoints:
+    // f(0)=0, f'(0)=0, f''(0)=0, f'''(0)=0
+    // f(1)=1, f'(1)=0, f''(1)=0, f'''(1)=0
+    // Eliminates double-snapping, hard landings, and velocity discontinuities.
+    function customCameraZoomEase(t: number): number {
+      const s = Math.max(0, Math.min(1, t));
+      return s * s * s * s * (35 + s * (-84 + s * (70 - 20 * s)));
+    }
 
-      const r = camSpherical.radius;
-      const sinPhi = Math.sin(camSpherical.phi);
-      camera.position.x = currentLookAt.x + r * sinPhi * Math.sin(camSpherical.theta);
-      camera.position.y = currentLookAt.y + r * Math.cos(camSpherical.phi);
-      camera.position.z = currentLookAt.z + r * sinPhi * Math.cos(camSpherical.theta);
-      camera.lookAt(currentLookAt);
+    function refocusMonitorScreen() {
+      // If still mid-flight during the very first auto-zoom before any user interaction, let it finish naturally
+      if (!hasCompletedInitialZoom && isZoomingIn && !userInteracted) return;
+
+      hasCompletedInitialZoom = true;
+      isZoomingIn = false;
+      isReCentering = true;
+      userInteracted = true;
+      targetSpherical.radius = focusedCamSpherical.radius;
+      targetSpherical.theta = focusedCamSpherical.theta;
+      targetSpherical.phi = focusedCamSpherical.phi;
+      targetLookAt.copy(focusedCamTarget);
+    }
+
+    function updateCameraPosition(delta: number, elapsed: number) {
+      // The camera starts zooming in ONLY when the desk slide-up and plane landing have 100% settled
+      const deskSlideSettled =
+        (!terminalTransitionState.inTransition && terminalTransitionState.planeLanded) ||
+        (!terminalTransitionState.inTransition && !isTransitioningRef.current);
+
+      if (deskSlideSettled && !isZoomingIn && !hasCompletedInitialZoom && !userInteracted) {
+        isZoomingIn = true;
+        zoomMotionStartTime = elapsed;
+      }
+
+      if (isZoomingIn && zoomMotionStartTime >= 0 && !userInteracted) {
+        const rawT = Math.min(1.0, (elapsed - zoomMotionStartTime) / ZOOM_MOTION_DURATION);
+        zoomMotionProgress = customCameraZoomEase(rawT);
+        if (rawT >= 1.0) {
+          hasCompletedInitialZoom = true;
+          isZoomingIn = false;
+          zoomMotionProgress = 1.0;
+        }
+      } else if (hasCompletedInitialZoom) {
+        zoomMotionProgress = 1.0;
+      }
+
+      if (!userInteracted) {
+        // Fluid cinematic glide from wide entry view directly to the focused CRT monitor screen
+        camSpherical.radius = THREE.MathUtils.lerp(entryCamSpherical.radius, focusedCamSpherical.radius, zoomMotionProgress);
+        camSpherical.theta = THREE.MathUtils.lerp(entryCamSpherical.theta, focusedCamSpherical.theta, zoomMotionProgress);
+        camSpherical.phi = THREE.MathUtils.lerp(entryCamSpherical.phi, focusedCamSpherical.phi, zoomMotionProgress);
+        currentLookAt.set(
+          THREE.MathUtils.lerp(entryCamTarget.x, focusedCamTarget.x, zoomMotionProgress),
+          THREE.MathUtils.lerp(entryCamTarget.y, focusedCamTarget.y, zoomMotionProgress),
+          THREE.MathUtils.lerp(entryCamTarget.z, focusedCamTarget.z, zoomMotionProgress)
+        );
+
+        const currentAspect = camera.aspect || 1.777;
+        const entryFov = currentAspect < 1.0 ? Math.min(62, 48 / currentAspect) : 46;
+        const focusedFov = currentAspect < 1.0 ? Math.min(56, 42 / currentAspect) : 42;
+        camera.fov = THREE.MathUtils.lerp(entryFov, focusedFov, zoomMotionProgress);
+        camera.updateProjectionMatrix();
+
+        targetSpherical.radius = camSpherical.radius;
+        targetSpherical.theta = camSpherical.theta;
+        targetSpherical.phi = camSpherical.phi;
+        targetLookAt.copy(currentLookAt);
+      } else {
+        // When user manually drags/scrolls or smoothly returns to screen focus: smooth exponential damping
+        const damp = isReCentering
+          ? 1.0 - Math.exp(-6.5 * delta)
+          : 1.0 - Math.exp(-7.0 * delta);
+        camSpherical.radius += (targetSpherical.radius - camSpherical.radius) * damp;
+        camSpherical.theta += (targetSpherical.theta - camSpherical.theta) * damp;
+        camSpherical.phi += (targetSpherical.phi - camSpherical.phi) * damp;
+        currentLookAt.lerp(targetLookAt, damp);
+
+        const currentAspect = camera.aspect || 1.777;
+        const focusedFov = currentAspect < 1.0 ? Math.min(56, 42 / currentAspect) : 42;
+        if (Math.abs(camera.fov - focusedFov) > 0.05) {
+          camera.fov += (focusedFov - camera.fov) * damp;
+          camera.updateProjectionMatrix();
+        }
+
+        if (isReCentering) {
+          const dR = Math.abs(camSpherical.radius - focusedCamSpherical.radius);
+          const dT = Math.abs(camSpherical.theta - focusedCamSpherical.theta);
+          const dP = Math.abs(camSpherical.phi - focusedCamSpherical.phi);
+          const dL = currentLookAt.distanceTo(focusedCamTarget);
+          if (dR < 0.012 && dT < 0.006 && dP < 0.006 && dL < 0.012) {
+            camSpherical.radius = focusedCamSpherical.radius;
+            camSpherical.theta = focusedCamSpherical.theta;
+            camSpherical.phi = focusedCamSpherical.phi;
+            currentLookAt.copy(focusedCamTarget);
+            targetSpherical.radius = focusedCamSpherical.radius;
+            targetSpherical.theta = focusedCamSpherical.theta;
+            targetSpherical.phi = focusedCamSpherical.phi;
+            targetLookAt.copy(focusedCamTarget);
+            camera.fov = focusedFov;
+            camera.updateProjectionMatrix();
+            userInteracted = false;
+            isReCentering = false;
+          }
+        }
+      }
+
+      // Ambient handheld sway: decoupled during zoom flight to prevent jitter,
+      // smoothly transitioning in as the camera docks at the monitor screen
+      const ambientIntensity = hasCompletedInitialZoom
+        ? 1.0
+        : (isZoomingIn ? Math.pow(zoomMotionProgress, 4) * 0.4 : 0.0);
+
+      // Subtle handheld breathing sway
+      const swayTheta = (Math.sin(elapsed * 0.65) * 0.006 + Math.cos(elapsed * 0.28) * 0.003) * ambientIntensity;
+      const swayPhi = (Math.cos(elapsed * 0.82) * 0.0045 + Math.sin(elapsed * 0.38) * 0.0025) * ambientIntensity;
+      const swayRadius = Math.sin(elapsed * 0.48) * 0.012 * ambientIntensity;
+
+      // Subtle responsive cursor parallax
+      const targetParallaxX = (mouse.x || 0) * 0.020 * ambientIntensity;
+      const targetParallaxY = -(mouse.y || 0) * 0.014 * ambientIntensity;
+      smoothParallax.x += (targetParallaxX - smoothParallax.x) * 0.06;
+      smoothParallax.y += (targetParallaxY - smoothParallax.y) * 0.06;
+
+      const finalRadius = camSpherical.radius + swayRadius;
+      const finalTheta = camSpherical.theta + swayTheta + smoothParallax.x;
+      const finalPhi = THREE.MathUtils.clamp(camSpherical.phi + swayPhi + smoothParallax.y, 0.85, 1.57);
+
+      const lookTarget = currentLookAt.clone();
+
+      const sinPhi = Math.sin(finalPhi);
+      camera.position.set(
+        lookTarget.x + finalRadius * sinPhi * Math.sin(finalTheta),
+        lookTarget.y + finalRadius * Math.cos(finalPhi),
+        lookTarget.z + finalRadius * sinPhi * Math.cos(finalTheta)
+      );
+      camera.lookAt(lookTarget);
     }
 
     function depressRandom3DKey() {
@@ -2280,22 +2590,13 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       domeInnerMat.emissiveIntensity = isLampOn ? 0.95 : 0.0;
       crtShaderUniforms.uLampOn.value = isLampOn ? 1.0 : 0.0;
       if (lampVolumetricCone) lampVolumetricCone.visible = isLampOn;
-      if (dustParticles) (dustParticles.material as THREE.ShaderMaterial).uniforms.uLampOn.value = isLampOn ? 1.0 : 0.0;
     }
 
-    function toggleCRTFocus() {
-      isFocusedOnCRT = !isFocusedOnCRT;
-      if (isFocusedOnCRT) {
-        targetSpherical = { ...focusedCamSpherical };
-        targetLookAt.copy(focusedCamTarget);
-      } else {
-        targetSpherical = { ...defaultCamSpherical };
-        targetLookAt.copy(defaultCamTarget);
-      }
-    }
 
     function handlePointerMove(clientX: number, clientY: number) {
       if (isDragging) {
+        userInteracted = true;
+        isReCentering = false;
         const dx = clientX - prevPointerPos.x;
         const dy = clientY - prevPointerPos.y;
         prevPointerPos = { x: clientX, y: clientY };
@@ -2303,7 +2604,7 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
         targetSpherical.theta -= dx * 0.0045;
         targetSpherical.phi -= dy * 0.0038;
         targetSpherical.theta = Math.max(-0.55, Math.min(1.05, targetSpherical.theta));
-        targetSpherical.phi = Math.max(0.85, Math.min(1.50, targetSpherical.phi));
+        targetSpherical.phi = Math.max(0.85, Math.min(1.55, targetSpherical.phi));
         return;
       }
 
@@ -2363,11 +2664,23 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       }
 
       if (hitObj.name === 'CRT_SCREEN') {
+        refocusMonitorScreen();
         if (terminalState.hoveredItem !== -1) {
           activateRegion(terminalState.regions[terminalState.hoveredItem]);
-        } else if (!isFocusedOnCRT) {
-          toggleCRTFocus();
         }
+        return;
+      }
+
+      const isKeyboard =
+        hitObj.name.startsWith('KB_KEY') ||
+        (hitObj.parent && (hitObj.parent.name === 'KEYBOARD_GROUP' || (hitObj.parent as any).userData?.id)) ||
+        keyCapMeshes.includes(hitObj as any) ||
+        keyCapMeshes.includes(hitObj.parent as any);
+
+      if (isKeyboard) {
+        refocusMonitorScreen();
+        depressRandom3DKey();
+        sfx.playKeyClick((Math.random() - 0.5) * 2);
         return;
       }
 
@@ -2385,10 +2698,13 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     function handleFormKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onBack?.();
+        onBackRef.current?.();
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // When the user starts typing anything, smoothly glide back and focus squarely onto the monitor screen
+      refocusMonitorScreen();
 
       let k = (e.key || '').toLowerCase();
       if (kbShifted[e.key]) k = kbShifted[e.key];
@@ -2416,13 +2732,57 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       }
 
       const val = ts.fields[def.id] || '';
+
+      // Scroll navigation for multi-line message field
+      if (def.id === 'message') {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (ts.messageScroll > 0) {
+            ts.messageScroll = Math.max(0, ts.messageScroll - 1);
+            renderCRTScreen();
+          }
+          return;
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const lines = wrapLines(val, MSG_COLS);
+          const maxScroll = Math.max(0, lines.length - MSG_VISIBLE_LINES);
+          if (ts.messageScroll < maxScroll) {
+            ts.messageScroll = Math.min(maxScroll, ts.messageScroll + 1);
+            renderCRTScreen();
+          }
+          return;
+        } else if (e.key === 'PageUp') {
+          e.preventDefault();
+          ts.messageScroll = Math.max(0, ts.messageScroll - MSG_VISIBLE_LINES);
+          renderCRTScreen();
+          return;
+        } else if (e.key === 'PageDown') {
+          e.preventDefault();
+          const lines = wrapLines(val, MSG_COLS);
+          const maxScroll = Math.max(0, lines.length - MSG_VISIBLE_LINES);
+          ts.messageScroll = Math.min(maxScroll, ts.messageScroll + MSG_VISIBLE_LINES);
+          renderCRTScreen();
+          return;
+        }
+      }
+
       if (e.key === 'Backspace') {
         e.preventDefault();
         ts.fields[def.id] = val.slice(0, -1);
+        if (def.multi) {
+          const lines = wrapLines(ts.fields[def.id], MSG_COLS);
+          const maxScroll = Math.max(0, lines.length - MSG_VISIBLE_LINES);
+          ts.messageScroll = Math.min(ts.messageScroll, maxScroll);
+        }
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (def.multi && wrapLines(val + '\n', MSG_COLS).length <= MSG_LINES && val.length < def.max) {
-          ts.fields[def.id] = val + '\n';
+        if (def.multi) {
+          if (val.length < def.max) {
+            ts.fields[def.id] = val + '\n';
+            const lines = wrapLines(ts.fields[def.id], MSG_COLS);
+            const maxScroll = Math.max(0, lines.length - MSG_VISIBLE_LINES);
+            ts.messageScroll = maxScroll;
+          }
         } else {
           sfx.playKeyClick(2);
           focusStep(1);
@@ -2431,8 +2791,13 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       } else if (e.key.length === 1) {
         e.preventDefault();
         if (val.length >= def.max) return;
-        if (def.multi && wrapLines(val + e.key, MSG_COLS).length > MSG_LINES) return;
         ts.fields[def.id] = val + e.key;
+        if (def.multi) {
+          const lines = wrapLines(ts.fields[def.id], MSG_COLS);
+          const maxScroll = Math.max(0, lines.length - MSG_VISIBLE_LINES);
+          // Follow cursor while typing
+          ts.messageScroll = maxScroll;
+        }
       } else {
         return;
       }
@@ -2467,8 +2832,38 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+
+      // Check if mouse is hovering over the CRT message field
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObject(crtScreenMesh);
+      if (hits.length > 0 && hits[0].uv) {
+        const uv = hits[0].uv;
+        const ccx = uv.x - 0.5, ccy = uv.y - 0.5, cd = ccx * ccx + ccy * ccy;
+        const duv = { x: uv.x + ccx * cd * 0.14, y: uv.y + ccy * cd * 0.14 };
+        const canvasY = (1 - duv.y) * crtCanvas.height;
+        const canvasX = duv.x * crtCanvas.width;
+        // Message box bounds on CRT canvas (boxX = 250, boxW = 680, y = 398, h = 196)
+        if (canvasX >= 240 && canvasX <= 940 && canvasY >= 390 && canvasY <= 600) {
+          const lines = wrapLines(terminalState.fields.message || '', MSG_COLS);
+          const maxScroll = Math.max(0, lines.length - MSG_VISIBLE_LINES);
+          if (maxScroll > 0) {
+            const dir = e.deltaY > 0 ? 1 : -1;
+            const prev = terminalState.messageScroll;
+            terminalState.messageScroll = Math.max(0, Math.min(maxScroll, terminalState.messageScroll + dir));
+            if (terminalState.messageScroll !== prev) {
+              renderCRTScreen();
+              return; // Do not zoom 3D camera when scrolling message text
+            }
+          }
+        }
+      }
+
+      userInteracted = true;
+      isReCentering = false;
       targetSpherical.radius += e.deltaY * 0.0035;
-      targetSpherical.radius = Math.max(3.4, Math.min(10.5, targetSpherical.radius));
+      targetSpherical.radius = Math.max(2.2, Math.min(8.0, targetSpherical.radius));
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -2496,8 +2891,11 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
 
     const onResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
+      const baseFov = hasCompletedInitialZoom ? 42 : 46;
+      camera.fov = camera.aspect < 1.0 ? Math.min(62, (baseFov + 2) / camera.aspect) : baseFov;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      updateLandingScreenProjection();
     };
 
     dom.addEventListener('mousedown', onMouseDown);
@@ -2513,34 +2911,49 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     // Animation Loop
     const clock = new THREE.Clock();
     let animId = 0;
+    let lastPlaneLanded = false;
+    let touchdownTimestamp = -1;
 
     function animate() {
       animId = requestAnimationFrame(animate);
       if (!activeRef.current) return;
+      const delta = Math.min(clock.getDelta(), 0.05);
       const elapsed = clock.getElapsedTime();
 
-      updateCameraPosition();
+      // Slide the entire 3D desk assembly smoothly up from below during the transition
+      const slideY = terminalTransitionState.inTransition
+        ? (1 - terminalTransitionState.slideProgress) * -5.8
+        : 0;
+      deskWorldGroup.position.y = slideY;
+      if (slideY !== 0) {
+        deskWorldGroup.updateMatrixWorld(true);
+        lampBulbMesh.getWorldPosition(crtShaderUniforms.uLampWorldPos.value);
+      }
+
+      // Smooth cinematic camera flight & organic ambient motion
+      updateCameraPosition(delta, elapsed);
 
       crtShaderUniforms.uTime.value = elapsed;
       const targetHoverBoost = terminalState.hoveredItem !== -1 ? 1.0 : 0.0;
       crtShaderUniforms.uHoverBoost.value += (targetHoverBoost - crtShaderUniforms.uHoverBoost.value) * 0.12;
 
-      // Paper Airplane Dynamics on the Desk
-      if (planeState.mode === 'landed') {
-        planeGroup.visible = true;
-        planeGroup.position.set(-0.16, 0.052, 0.70);
-        planeGroup.rotation.set(0.0, 0.22, 0.05);
-        planeMesh.rotation.set(0, 0, 0);
-      } else if (planeState.mode === 'entrance') {
-        if (!isTransitioningRef.current) {
-          planeState.mode = 'landed';
-          planeGroup.visible = true;
-          planeGroup.position.set(-0.16, 0.052, 0.70);
-          planeGroup.rotation.set(0.0, 0.22, 0.05);
-          planeMesh.rotation.set(0, 0, 0);
-        } else {
-          planeGroup.visible = false;
+      // Paper Airplane Dynamics on Top of the CRT Monitor
+      if (terminalTransitionState.inTransition && !terminalTransitionState.planeLanded) {
+        planeGroup.visible = false;
+        lastPlaneLanded = false;
+      } else if (planeState.mode === 'landed' || planeState.mode === 'entrance') {
+        if (!lastPlaneLanded && terminalTransitionState.planeLanded) {
+          lastPlaneLanded = true;
+          touchdownTimestamp = elapsed;
+          sfx.playPaperRustle();
         }
+        planeState.mode = 'landed';
+        planeGroup.visible = true;
+
+        // Anchored solidly and directly on the front-top crown of the monitor at the top of the viewport
+        planeGroup.position.copy(PLANE_REST_POS);
+        planeGroup.rotation.copy(PLANE_REST_ROT);
+        planeMesh.rotation.set(0, 0, 0);
       } else if (planeState.mode === 'loop' || planeState.mode === 'deliver') {
         const activeCurve = planeState.mode === 'deliver' ? deliveryCurve : loopCurve;
         const duration = planeState.mode === 'deliver' ? 3.8 : 6.2;
@@ -2585,8 +2998,8 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
             planeState.mode = 'dispatched';
           } else {
             planeState.mode = 'landed';
-            planeGroup.position.set(-0.16, 0.052, 0.70);
-            planeGroup.rotation.set(0.0, 0.22, 0.05);
+            planeGroup.position.copy(PLANE_REST_POS);
+            planeGroup.rotation.copy(PLANE_REST_ROT);
             planeMesh.rotation.set(0, 0, 0);
             sfx.playPaperRustle();
           }
@@ -2596,9 +3009,6 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       if (lampVolumetricCone) {
         lampVolumetricCone.material.uniforms.uTime.value = elapsed;
       }
-      if (dustParticles) {
-        dustParticles.material.uniforms.uTime.value = elapsed;
-      }
       if (crtGlowLight) {
         crtGlowLight.intensity = 0.60 + Math.sin(elapsed * 32) * 0.015;
       }
@@ -2607,8 +3017,16 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     }
     animate();
 
+    terminalTransitionState.captureFrame = () => {
+      renderer.render(scene, camera);
+      return renderer.domElement;
+    };
+
     // Cleanup on unmount
     return () => {
+      if (terminalTransitionState.captureFrame) {
+        terminalTransitionState.captureFrame = undefined;
+      }
       cancelAnimationFrame(animId);
       clearInterval(cursorInterval);
       document.body.style.cursor = 'default';
@@ -2651,14 +3069,15 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
       planeTex.dispose();
       renderer.dispose();
 
+      resetCameraRef.current = null;
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
     };
-  }, [onBack, showToast]);
+  }, []);
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden select-none bg-[#0b0a08]">
+    <div className="absolute inset-0 w-full h-full overflow-hidden select-none bg-black">
       {/* 3D Canvas Mounting Container */}
       <div ref={containerRef} className="absolute inset-0 w-full h-full z-[1]" />
 

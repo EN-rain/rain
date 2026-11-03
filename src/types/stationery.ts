@@ -98,6 +98,7 @@ export interface PaperStackProps {
   sheetTwoRef?: React.RefObject<HTMLElement | null>;
   sheetThreeRef?: React.RefObject<HTMLElement | null>;
   onNavigate?: (section: string) => void;
+  hideSheetOne?: boolean;
   children?: React.ReactNode;
 }
 
