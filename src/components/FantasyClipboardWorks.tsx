@@ -871,7 +871,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                     }}
                     aria-label="Previous image"
                     title="Previous"
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/80 hover:bg-[#e8cf92] text-[#e8cf92] hover:text-[#161310] border-2 border-[#e8cf92]/60 hover:border-[#e8cf92] flex items-center justify-center text-lg font-bold shadow-[0_4px_14px_rgba(0,0,0,0.85)] transition-all duration-150 active:scale-90 z-20 cursor-pointer"
+                    className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 bg-transparent border-0 p-1 text-white/90 hover:text-[#e8cf92] drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] flex items-center justify-center text-3xl sm:text-4xl font-extrabold transition-all duration-150 hover:scale-125 active:scale-90 z-20 cursor-pointer select-none"
                   >
                     &#10094;
                   </button>
@@ -885,7 +885,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                     }}
                     aria-label="Next image"
                     title="Next"
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/80 hover:bg-[#e8cf92] text-[#e8cf92] hover:text-[#161310] border-2 border-[#e8cf92]/60 hover:border-[#e8cf92] flex items-center justify-center text-lg font-bold shadow-[0_4px_14px_rgba(0,0,0,0.85)] transition-all duration-150 active:scale-90 z-20 cursor-pointer"
+                    className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 bg-transparent border-0 p-1 text-white/90 hover:text-[#e8cf92] drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] flex items-center justify-center text-3xl sm:text-4xl font-extrabold transition-all duration-150 hover:scale-125 active:scale-90 z-20 cursor-pointer select-none"
                   >
                     &#10095;
                   </button>

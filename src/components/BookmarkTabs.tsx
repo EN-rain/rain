@@ -64,7 +64,7 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
   return (
     <nav
       aria-label="Portfolio Navigation Bookmarks"
-      className="absolute left-0 top-[48%] -translate-y-1/2 z-[25] sm:z-[15] flex flex-col gap-3 sm:gap-3.5 md:gap-4 lg:gap-4.5 pointer-events-auto"
+      className="absolute left-0 top-[48%] -translate-y-1/2 z-[25] sm:z-[15] flex flex-col gap-1 sm:gap-1 md:gap-1.5 lg:gap-1.5 pointer-events-auto"
     >
       {TABS.map((tab, idx) => {
         const ref = getRef(idx);

@@ -460,14 +460,6 @@ export const LoadingScreen = ({
       ctx.textAlign = 'center';
       ctx.fillText(str.split('').join(' '), cx, counter.y);
 
-      // 4. Clean status indicator text
-      if (statusStr) {
-        ctx.font = '500 10.5px "IBM Plex Mono", monospace';
-        ctx.fillStyle = 'rgba(10, 10, 10, 0.42)';
-        ctx.letterSpacing = '0.08em';
-        ctx.fillText(statusStr.toUpperCase(), cx, counter.y + 22);
-      }
-
       ctx.restore();
     }
 
