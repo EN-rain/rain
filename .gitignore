@@ -56,3 +56,9 @@ Thumbs.db
 *.sln
 *.sw?
 
+
+# Temporary capture bundles
+PocketTrade_Captures/
+StudentFlow_Captures/
+Auvrynt_Captures/
+ChemQuest_Captures/

@@ -335,6 +335,8 @@ export interface TerminalTransitionState {
   slideProgress: number;
   /** Whether the 2D flight has finished and the 3D desk plane should be visible */
   planeLanded: boolean;
+  /** Whether camera zoom should trigger (starts when paper plane has 20% flight left before landing) */
+  startCameraZoom: boolean;
   /** Exact projected screen coordinates [nx, ny] of the 3D plane resting spot on the desk */
   landingNx: number;
   landingNy: number;
@@ -346,6 +348,7 @@ export const terminalTransitionState: TerminalTransitionState = {
   inTransition: false,
   slideProgress: 1,
   planeLanded: true,
+  startCameraZoom: true,
   landingNx: 0.422,
   landingNy: 0.242,
 };
@@ -1033,6 +1036,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
         terminalTransitionState.inTransition = true;
         terminalTransitionState.slideProgress = 0;
         terminalTransitionState.planeLanded = false;
+        terminalTransitionState.startCameraZoom = false;
 
         const FOLD_DURATION = 1150;   // 1.15s crisp, snappier step-by-step folds (geometry strictly preserved)
         const FLIGHT_DURATION = 1850; // 1.85s brisk left-to-right swoop + landing on top of the monitor
@@ -1048,6 +1052,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
             flight = 0;
             terminalTransitionState.slideProgress = 0;
             terminalTransitionState.planeLanded = false;
+            terminalTransitionState.startCameraZoom = false;
           } else {
             pFold = 0.78;
             const flightElapsed = elapsed - FOLD_DURATION;
@@ -1055,6 +1060,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
             flight = smoothstep(0, 1, tFlight);
             const tSlide = clamp((flightElapsed - SLIDE_DELAY) / SLIDE_DURATION, 0, 1);
             terminalTransitionState.slideProgress = 1 - Math.pow(1 - tSlide, 3);
+            terminalTransitionState.startCameraZoom = tFlight >= 0.80;
             terminalTransitionState.planeLanded = tFlight >= 0.97;
           }
           container.style.visibility = 'visible';
@@ -1084,6 +1090,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
             flight = 0;
             terminalTransitionState.slideProgress = 0;
             terminalTransitionState.planeLanded = false;
+            terminalTransitionState.startCameraZoom = false;
 
             // Once pFold >= 0.55 (pStep4 === 1, plane is folded in half and 100% opaque over solid #000000 backdrop),
             // swap DOM underneath to Page 2 so Page 1 BG is already gone before the fold finishes at 1500ms!
@@ -1100,6 +1107,9 @@ export const SectionScrollTransition: React.FC = memo(() => {
             // Slide the 3D desk object smoothly up from below synced with the left-to-right approach
             const tSlide = clamp((flightElapsed - SLIDE_DELAY) / SLIDE_DURATION, 0, 1);
             terminalTransitionState.slideProgress = 1 - Math.pow(1 - tSlide, 3);
+
+            // Trigger camera zoom when paper plane is at 20% left before it lands (tFlight >= 0.80)
+            terminalTransitionState.startCameraZoom = tFlight >= 0.80;
 
             // Reveal the 3D plane resting on top of the monitor right as touchdown occurs for seamless continuity
             terminalTransitionState.planeLanded = tFlight >= 0.97;
@@ -1118,6 +1128,7 @@ export const SectionScrollTransition: React.FC = memo(() => {
             try {
               terminalTransitionState.slideProgress = 1;
               terminalTransitionState.planeLanded = true;
+              terminalTransitionState.startCameraZoom = true;
               terminalTransitionState.inTransition = false;
               renderAirplane(0.78, 1.0);
               if (!midSwapDone) {

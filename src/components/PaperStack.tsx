@@ -159,8 +159,7 @@ export const PaperStack: React.FC<PaperStackProps> = ({
           {/* Inscribed Hero Hook inside the visible upper area of Sheet 1 */}
           <div
             onClick={handleSkipTypewriter}
-            title={isTypingComplete ? undefined : 'Click to finish typing'}
-            className="absolute flex flex-col items-center justify-center text-center text-[#1e140c] select-none pointer-events-auto cursor-pointer"
+            className="absolute flex flex-col items-center justify-center text-center text-[#1e140c] select-none pointer-events-auto cursor-default"
             style={{
               left: '12%',
               right: '9.5%',

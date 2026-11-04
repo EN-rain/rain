@@ -207,10 +207,6 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
                     I like starting with the question behind the question. What is this supposed to solve, who will use it, and what happens on the day something goes wrong? Once those answers are clear, the rest of the work gets calmer and a lot faster.
                   </p>
 
-                  <p className="m-0 font-medium italic text-[#3b2718]" style={{ fontSize: 'clamp(11.5px, 1.8cqh, 15px)' }}>
-                    The rest is waiting for you. Follow the tabs on the left, and if you find something worth discussing, you know where to reach me.
-                  </p>
-
                   {/* TECH STACK - COMPLETE & CLEAN MINIMAL TEXT */}
                   <div className="mt-[1.2cqh] pt-[1.2cqh] border-t border-[#1b140e]/20 space-y-[0.6cqh]">
                     <p className="m-0 font-bold uppercase tracking-[0.12em] text-[#7a1c1c] text-[clamp(10px,1.5cqh,13px)]">

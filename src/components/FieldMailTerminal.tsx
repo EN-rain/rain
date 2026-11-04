@@ -2458,12 +2458,14 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
     }
 
     function updateCameraPosition(delta: number, elapsed: number) {
-      // The camera starts zooming in ONLY when the desk slide-up and plane landing have 100% settled
-      const deskSlideSettled =
+      // The camera starts zooming in when the paper plane has 20% left before landing (tFlight >= 0.80)
+      // or if transition is already complete / not running
+      const shouldZoom =
+        terminalTransitionState.startCameraZoom ||
         (!terminalTransitionState.inTransition && terminalTransitionState.planeLanded) ||
         (!terminalTransitionState.inTransition && !isTransitioningRef.current);
 
-      if (deskSlideSettled && !isZoomingIn && !hasCompletedInitialZoom && !userInteracted) {
+      if (shouldZoom && !isZoomingIn && !hasCompletedInitialZoom && !userInteracted) {
         isZoomingIn = true;
         zoomMotionStartTime = elapsed;
       }
@@ -2932,6 +2934,18 @@ export const FieldMailTerminal: React.FC<FieldMailTerminalProps> = ({
 
       // Smooth cinematic camera flight & organic ambient motion
       updateCameraPosition(delta, elapsed);
+
+      // Dynamically project the 3D plane landing target to screen coordinates during transition
+      // so the 2D plane trajectory matches the 3D monitor crown in real-time as the camera zooms
+      if (terminalTransitionState.inTransition) {
+        camera.updateMatrixWorld(true);
+        deskWorldGroup.updateMatrixWorld(true);
+        const restWorld = new THREE.Vector3();
+        planeGroup.getWorldPosition(restWorld);
+        restWorld.project(camera);
+        terminalTransitionState.landingNx = (restWorld.x + 1) * 0.5;
+        terminalTransitionState.landingNy = (1 - restWorld.y) * 0.5;
+      }
 
       crtShaderUniforms.uTime.value = elapsed;
       const targetHoverBoost = terminalState.hoveredItem !== -1 ? 1.0 : 0.0;

@@ -14,6 +14,8 @@ export interface ProjectEntry {
   description: string;
   detailedDescription: string[];
   videoDuration: string;
+  videoUrl?: string;
+  gallery?: string[];
 }
 
 export const PROJECTS: ProjectEntry[] = [
@@ -24,6 +26,7 @@ export const PROJECTS: ProjectEntry[] = [
     date: '2024 – 2025',
     image: '/assets/projects/studentflow.png',
     icon: '/assets/projects/studentflow-icon.png',
+    videoUrl: '/assets/projects/studentflow.mp4',
     repoUrl: 'https://github.com/EN-rain/StudentFLow',
     techStack: ['Laravel 12', 'PHP 8.2', 'Blade', 'Sanctum', 'SQLite', 'Dompdf', 'Java 17', 'Retrofit'],
     description:
@@ -33,7 +36,7 @@ export const PROJECTS: ProjectEntry[] = [
       'The platform includes teacher and student management, classes, enrollment, join requests, attendance, grade categories, grade items, scores, assignments, announcements, exams, reports, activity logs, and school settings. Student accounts can also use configured social sign-in providers.',
       'Teachers create classes, manage enrollment or join-code requests, record attendance and grades, publish announcements, create assignments and exams, then review student progress and reports. Students access their dashboard, class work, grades, attendance, announcements, and supported exam flows through the Android client.',
     ],
-    videoDuration: '01:42',
+    videoDuration: '00:08',
   },
   {
     id: 'pockettrade',
@@ -42,6 +45,7 @@ export const PROJECTS: ProjectEntry[] = [
     date: 'June 2026',
     image: '/assets/projects/pockettrade.png',
     icon: '/assets/projects/pockettrade-icon.png',
+    videoUrl: '/assets/projects/pockettrade.mp4',
     repoUrl: 'https://github.com/EN-rain/PocketTrade',
     techStack: ['Flutter', 'Dart', 'NestJS', 'TypeScript', 'Prisma', 'PostgreSQL', 'React', 'Cloudinary', 'Socket.IO', 'Firebase'],
     description:
@@ -51,14 +55,14 @@ export const PROJECTS: ProjectEntry[] = [
       'The platform supports email and password sign-in, OTP verification and reset, JWT access and refresh tokens, listings, favorites, conversations, blocks, reports, push tokens, and administrative operations.',
       'Listings are moderated before public visibility: sellers submit a listing with one to five images, the backend validates and stores it as pending, and administrators approve or reject it through the dashboard. Only approved public statuses are returned to buyer-facing listing search and detail endpoints.',
     ],
-    videoDuration: '01:18',
+    videoDuration: '00:08',
   },
   {
     id: 'chemquest',
     title: 'ChemQuest',
     subtitle: 'STORY-DRIVEN CHEMISTRY LEARNING GAME',
     date: '2024 – 2025',
-    image: '/assets/projects/chemquest.png',
+    image: '/assets/projects/chemquest/01_main_menu.png',
     icon: '/assets/projects/chemquest-icon.png',
     repoUrl: 'https://github.com/EN-rain/ChemQuest',
     techStack: ['Godot 4.6', 'GDScript', 'Android', 'JSON'],
@@ -69,14 +73,22 @@ export const PROJECTS: ProjectEntry[] = [
       "Chapter One branches from the hometown into lessons for elements, compounds, mixtures, separation methods, accuracy and precision, density, and states of matter. NPC interactions, buildings, quests, and rewards connect those lessons to the game's progression.",
       "Shared managers coordinate quests, saving, spawning, dialogue, music, sound effects, fades, guidance, and feedback. Project data files hold quest definitions and learning content, while Godot user storage preserves the player's current scene and progress.",
     ],
-    videoDuration: '02:05',
+    videoDuration: '6 Slides',
+    gallery: [
+      '/assets/projects/chemquest/01_main_menu.png',
+      '/assets/projects/chemquest/02_spawned_hometown.png',
+      '/assets/projects/chemquest/03_puzzle_precision_accuracy.png',
+      '/assets/projects/chemquest/04_puzzle_separation_methods.png',
+      '/assets/projects/chemquest/05_puzzle_matter_maze.png',
+      '/assets/projects/chemquest/06_periodic_table_glossary.png',
+    ],
   },
   {
     id: 'typeduel',
     title: 'TypeDuel',
     subtitle: 'COMPETITIVE PIXEL TYPING DUEL',
     date: 'May 2026',
-    image: '/assets/projects/typeduel-bg.png',
+    image: '/assets/projects/typeduel/01_scenes_ui_menus_main_menu.png',
     icon: '/assets/projects/typeduel-icon.png',
     repoUrl: 'https://github.com/EN-rain/TypeDuel',
     techStack: ['Godot 4.6', 'GDScript', 'Node.js', 'Express', 'Socket.IO', 'WebSockets', 'SQLite'],
@@ -87,7 +99,11 @@ export const PROJECTS: ProjectEntry[] = [
       'Matches combine speed and accuracy with health, mana, active skills, passive disruption effects, win streaks, forfeits, and rematches. The documented roster includes Riven, Liora, and Zephon.',
       'REST endpoints support account, lobby, room, social, and history workflows, while Socket.IO and WebSocket connections synchronize match events. Live rooms remain in memory and SQLite persists accounts, social records, chat, leaderboards, and history.',
     ],
-    videoDuration: '01:34',
+    videoDuration: '2 Slides',
+    gallery: [
+      '/assets/projects/typeduel/01_scenes_ui_menus_main_menu.png',
+      '/assets/projects/typeduel/07_scenes_ui_lobby_custom_room.png',
+    ],
   },
   {
     id: 'tsukiai',
@@ -112,8 +128,8 @@ export const PROJECTS: ProjectEntry[] = [
     title: 'Auvrynt',
     subtitle: 'WEB-TO-LOCAL MCP ARSENAL',
     date: 'July – Oct 2026',
-    image: '/assets/projects/auvrynt.png',
-    icon: '/assets/projects/auvrynt-icon.png',
+    image: '/assets/projects/auvrynt/01_analytics_overview.png',
+    icon: '/assets/projects/auvrynt/00_app_icon.png',
     repoUrl: 'https://github.com/EN-rain/Auvrynt',
     techStack: ['TypeScript', 'React', 'Tailwind CSS', 'Electron', 'Node.js', 'Model Context Protocol (MCP)'],
     description:
@@ -123,7 +139,14 @@ export const PROJECTS: ProjectEntry[] = [
       'No cloud upload and no third-party storage: your code stays on your machine. Connect once, then ask your AI to open approved project folders, read, write, search, and edit real source files, and run shell commands, tests, builds, and package scripts.',
       'Designed to work across web, .NET, Godot, Blender, and Aseprite projects, with built-in capabilities to capture screenshots of running apps and use isolated Git worktrees for parallel coding sessions.',
     ],
-    videoDuration: '01:28',
+    videoDuration: '5 Slides',
+    gallery: [
+      '/assets/projects/auvrynt/01_analytics_overview.png',
+      '/assets/projects/auvrynt/02_connectivity_mcp.png',
+      '/assets/projects/auvrynt/03_observability_logs.png',
+      '/assets/projects/auvrynt/04_command_reference.png',
+      '/assets/projects/auvrynt/05_secrets_failover.png',
+    ],
   },
 ];
 
@@ -141,6 +164,11 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
   const [selectedProjectId, setSelectedProjectId] = useState<string>('studentflow');
   const [isFolderOpen, setIsFolderOpen] = useState<boolean>(false);
   const [isFolderExpanded, setIsFolderExpanded] = useState<boolean>(false);
+  const [galleryIndex, setGalleryIndex] = useState<number>(0);
+
+  useEffect(() => {
+    setGalleryIndex(0);
+  }, [selectedProjectId]);
   const folderRef = useRef<HTMLDivElement | null>(null);
   const projectsTitleRef = useRef<HTMLHeadingElement | null>(null);
 
@@ -820,41 +848,116 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
               )}
             </div>
 
-            {/* Video (Placeholder Only) */}
+            {/* Video Preview */}
             <div
               className="relative w-full rounded-[3px] overflow-hidden border-2 border-[#2d1f14]/55 bg-[#161310] shadow-[inset_0_2px_12px_rgba(0,0,0,0.75)] my-[1.4cqh] shrink-0"
               style={{ height: '42%' }}
             >
-              <img
-                src={selectedProject.image}
-                alt=""
-                draggable={false}
-                className="w-full h-full object-cover opacity-35 select-none pointer-events-none"
-                style={{ filter: 'sepia(0.45) contrast(1.1) grayscale(0.3)' }}
-              />
+              {selectedProject.gallery && selectedProject.gallery.length > 0 ? (
+                <div className="relative w-full h-full bg-[#0a070f] flex items-center justify-center select-none group">
+                  <img
+                    key={selectedProject.gallery[galleryIndex]}
+                    src={selectedProject.gallery[galleryIndex]}
+                    alt={`${selectedProject.title} slide ${galleryIndex + 1}`}
+                    className="w-full h-full object-contain select-none transition-all duration-200"
+                  />
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-black/30 via-black/45 to-black/70 p-3 text-center">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-[#e8cf92]/80 bg-[#1a120b]/80 flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,0.6)] mb-1.5">
-                  <span
-                    className="text-[#e8cf92] ml-0.5 select-none"
-                    style={{ fontSize: 'clamp(13px, 2.5cqh, 20px)' }}
+                  {/* Left Carousel Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setGalleryIndex((prev) => (prev - 1 + selectedProject.gallery!.length) % selectedProject.gallery!.length);
+                    }}
+                    aria-label="Previous image"
+                    title="Previous"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/80 hover:bg-[#e8cf92] text-[#e8cf92] hover:text-[#161310] border-2 border-[#e8cf92]/60 hover:border-[#e8cf92] flex items-center justify-center text-lg font-bold shadow-[0_4px_14px_rgba(0,0,0,0.85)] transition-all duration-150 active:scale-90 z-20 cursor-pointer"
                   >
-                    ▶
-                  </span>
+                    &#10094;
+                  </button>
+
+                  {/* Right Carousel Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setGalleryIndex((prev) => (prev + 1) % selectedProject.gallery!.length);
+                    }}
+                    aria-label="Next image"
+                    title="Next"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/80 hover:bg-[#e8cf92] text-[#e8cf92] hover:text-[#161310] border-2 border-[#e8cf92]/60 hover:border-[#e8cf92] flex items-center justify-center text-lg font-bold shadow-[0_4px_14px_rgba(0,0,0,0.85)] transition-all duration-150 active:scale-90 z-20 cursor-pointer"
+                  >
+                    &#10095;
+                  </button>
+
+                  {/* Slide Indicators & Count Pill */}
+                  <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/85 border border-[#e8cf92]/40 backdrop-blur-md z-20 shadow-lg">
+                    {selectedProject.gallery.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setGalleryIndex(idx);
+                        }}
+                        className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
+                          idx === galleryIndex
+                            ? 'w-5 bg-[#e8cf92] shadow-[0_0_8px_rgba(232,207,146,0.8)]'
+                            : 'w-2 bg-[#e8cf92]/40 hover:bg-[#e8cf92]/80'
+                        }`}
+                        aria-label={`Slide ${idx + 1}`}
+                      />
+                    ))}
+                    <span className="text-[11px] text-[#e8cf92] font-mono font-bold ml-1.5 select-none">
+                      {galleryIndex + 1}/{selectedProject.gallery.length}
+                    </span>
+                  </div>
                 </div>
-                <span
-                  className="uppercase tracking-[0.2em] text-[#e8cf92] font-bold"
-                  style={{ fontSize: 'clamp(8.5px, 1.7cqh, 13.5px)' }}
-                >
-                  VIDEO PREVIEW PLACEHOLDER
-                </span>
-                <span
-                  className="uppercase tracking-[0.14em] text-[#cbb682]/80 mt-0.5"
-                  style={{ fontSize: 'clamp(7.5px, 1.35cqh, 11px)' }}
-                >
-                  00:00 / {selectedProject.videoDuration}
-                </span>
-              </div>
+              ) : selectedProject.videoUrl ? (
+                <video
+                  key={selectedProject.videoUrl}
+                  src={selectedProject.videoUrl}
+                  poster={selectedProject.image}
+                  loop
+                  muted
+                  playsInline
+                  controls
+                  className="w-full h-full object-cover select-none"
+                />
+              ) : (
+                <>
+                  <img
+                    src={selectedProject.image}
+                    alt=""
+                    draggable={false}
+                    className="w-full h-full object-cover opacity-35 select-none pointer-events-none"
+                    style={{ filter: 'sepia(0.45) contrast(1.1) grayscale(0.3)' }}
+                  />
+
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-black/30 via-black/45 to-black/70 p-3 text-center">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-[#e8cf92]/80 bg-[#1a120b]/80 flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,0.6)] mb-1.5">
+                      <span
+                        className="text-[#e8cf92] ml-0.5 select-none"
+                        style={{ fontSize: 'clamp(13px, 2.5cqh, 20px)' }}
+                      >
+                        ▶
+                      </span>
+                    </div>
+                    <span
+                      className="uppercase tracking-[0.2em] text-[#e8cf92] font-bold"
+                      style={{ fontSize: 'clamp(8.5px, 1.7cqh, 13.5px)' }}
+                    >
+                      VIDEO PREVIEW PLACEHOLDER
+                    </span>
+                    <span
+                      className="uppercase tracking-[0.14em] text-[#cbb682]/80 mt-0.5"
+                      style={{ fontSize: 'clamp(7.5px, 1.35cqh, 11px)' }}
+                    >
+                      00:00 / {selectedProject.videoDuration}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Description Section + Center-Bottom Expand Button */}
