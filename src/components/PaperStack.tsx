@@ -105,7 +105,7 @@ export const PaperStack: React.FC<PaperStackProps> = ({
       <div className="absolute inset-0 z-[2] pointer-events-none idle-paper-3">
         <div
           ref={sheetThreeRef as React.RefObject<HTMLDivElement | null>}
-          className="absolute left-[3%] sm:left-[calc(89*100%/1376)] top-[4.5%] sm:top-0 w-[94%] sm:w-[calc(1205*100%/1376)] h-[92%] sm:h-[calc(794*100%/768)] origin-bottom-center will-change-transform select-none"
+          className="absolute left-[calc(89*100%/1376)] top-0 w-[calc(1205*100%/1376)] h-[calc(794*100%/768)] origin-bottom-center will-change-transform select-none"
         >
           <img
             src={`${assetsPath}/paper-sheet-3.png`}
@@ -120,7 +120,7 @@ export const PaperStack: React.FC<PaperStackProps> = ({
       <div className="absolute inset-0 z-[4] pointer-events-none idle-paper-2">
         <div
           ref={sheetTwoRef as React.RefObject<HTMLDivElement | null>}
-          className="absolute left-[3%] sm:left-[calc(89*100%/1376)] top-[4.5%] sm:top-0 w-[94%] sm:w-[calc(1205*100%/1376)] h-[92%] sm:h-[calc(794*100%/768)] origin-bottom-center will-change-transform select-none"
+          className="absolute left-[calc(89*100%/1376)] top-0 w-[calc(1205*100%/1376)] h-[calc(794*100%/768)] origin-bottom-center will-change-transform select-none"
         >
           <img
             src={`${assetsPath}/paper-sheet-2.png`}
@@ -143,7 +143,7 @@ export const PaperStack: React.FC<PaperStackProps> = ({
       >
         <div
           ref={sheetOneRef as React.RefObject<HTMLDivElement | null>}
-          className="absolute left-[3%] sm:left-[calc(89*100%/1376)] top-[4.5%] sm:top-[2.8%] w-[94%] sm:w-[calc(1205*100%/1376)] h-[92%] sm:h-[calc(794*100%/768)] origin-bottom-center will-change-transform select-none"
+          className="absolute left-[calc(89*100%/1376)] top-[2.8%] w-[calc(1205*100%/1376)] h-[calc(794*100%/768)] origin-bottom-center will-change-transform select-none"
           style={{
             containerType: 'size',
             ...(hideSheetOne ? { opacity: 0, visibility: 'hidden' } : {}),
