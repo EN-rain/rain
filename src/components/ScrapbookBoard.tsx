@@ -645,7 +645,7 @@ export const ScrapbookBoard: React.FC<ScrapbookBoardProps> = ({
         {/* Lined Note Paper: tightly cropped 3-line ratio */}
         <div className="scrapbook-note-inner relative drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]">
           <img
-            src={`${getScrapbookAsset('note-illustrated.png')}?v=7`}
+            src={getScrapbookAsset('note-illustrated.png')}
             alt="Lined paper note"
             className="block w-full h-auto pointer-events-none select-none"
           />

@@ -165,6 +165,13 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
   const [isFolderOpen, setIsFolderOpen] = useState<boolean>(false);
   const [isFolderExpanded, setIsFolderExpanded] = useState<boolean>(false);
   const [galleryIndex, setGalleryIndex] = useState<number>(0);
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(() => typeof window !== "undefined" && window.innerWidth < 768);
+
+  useEffect(() => {
+    const onResize = () => setIsMobileScreen(window.innerWidth < 768);
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     setGalleryIndex(0);
@@ -254,15 +261,16 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
     const el = folderRef.current;
     if (!el) return;
 
+    const isMobile = isMobileScreen || (typeof window !== 'undefined' && window.innerWidth < 768);
     if (isFolderOpen && effectiveAssembled) {
-      if (isFolderExpanded) {
-        // Centered two-page spread view
+      if (isFolderExpanded || isMobile) {
+        // Centered view on mobile or expanded view on desktop
         gsap.to(el, {
           xPercent: -50,
           x: '0vw',
           yPercent: 0,
           rotation: 0,
-          scale: 1.02,
+          scale: isMobile ? 1.03 : 1.02,
           opacity: 1,
           duration: 0.6,
           ease: 'expo.out',
@@ -270,7 +278,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
           overwrite: 'auto',
         });
       } else {
-        // Angled position on the right side of the clipboard
+        // Angled position on the right side of the clipboard on desktop
         gsap.to(el, {
           xPercent: -50,
           x: '45vw',
@@ -831,7 +839,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
               </span>
 
               {/* Big X Close Button (Hidden when folder is centered/expanded) */}
-              {!isFolderExpanded && (
+              {(!isFolderExpanded || isMobileScreen) && (
                 <button
                   type="button"
                   onClick={handleCloseFolder}

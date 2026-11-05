@@ -15,7 +15,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
   autoPlay = true,
   onBookmarkClick,
   onStateChange,
-  assetsPath = './assets',
+  assetsPath = '/assets',
   className = '',
   initialPage = 1,
   page: propPage,
@@ -245,7 +245,7 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
       {isPage1Visible && (
         <>
           <img
-            src={`${assetsPath}/dark-backing.png?v=3`}
+            src={`${assetsPath}/dark-backing.png`}
             alt="Vintage detective desk backing"
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
           />

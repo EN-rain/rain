@@ -246,3 +246,14 @@ body.page-fade-out {
 .tech-font {
   font-family: 'IBM Plex Mono', monospace;
 }
+
+
+/* Android and mobile touch adaptability */
+@media (hover: none) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, a {
+    touch-action: manipulation;
+  }
+}

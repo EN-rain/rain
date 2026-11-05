@@ -79,9 +79,9 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
             disabled={disabled}
             aria-label={`Navigate to ${tab.label}`}
             aria-current={isActive ? 'page' : undefined}
-            className={`group relative -left-14 sm:-left-16 md:-left-20 w-[225px] sm:w-[255px] md:w-[285px] lg:w-[310px] h-[72px] sm:h-[82px] md:h-[92px] lg:h-[100px] ${
+            className={`group relative -left-10 sm:-left-16 md:-left-20 w-[175px] xs:w-[210px] sm:w-[255px] md:w-[285px] lg:w-[310px] h-[58px] xs:h-[68px] sm:h-[82px] md:h-[92px] lg:h-[100px] ${
               isActive ? 'z-[40]' : tab.zIndex
-            } border-0 p-0 bg-transparent cursor-pointer will-change-transform select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e8cf92]`}
+            } border-0 p-0 bg-transparent cursor-pointer touch-manipulation will-change-transform select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e8cf92]`}
           >
             {/* Inner visual wrapper pulls out to the LEFT when active or hovered while the right end stays tucked behind the papers/clipboard */}
             <div
@@ -105,7 +105,7 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
 
               {/* Vintage Typewriter / Dossier Stamped Text + Active Indicator positioned in the protruding left 64% of the tab */}
               <span
-                className={`absolute inset-y-0 left-0 w-[64%] flex items-center justify-center pl-4 pr-1 gap-2.5 font-bold uppercase select-none pointer-events-none transition-all duration-300 text-[0.95rem] sm:text-[1.08rem] md:text-[1.18rem] ${
+                className={`absolute inset-y-0 left-0 w-[64%] flex items-center justify-center pl-4 pr-1 gap-2.5 font-bold uppercase select-none pointer-events-none transition-all duration-300 text-[0.80rem] xs:text-[0.92rem] sm:text-[1.08rem] md:text-[1.18rem] ${
                   isActive
                     ? 'tracking-[0.22em] text-[#110a05]'
                     : 'tracking-[0.18em] text-[#2b2118] group-hover:tracking-[0.22em] group-hover:text-[#0f0b07]'

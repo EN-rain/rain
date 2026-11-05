@@ -203,7 +203,7 @@ export async function createSectionScrollRenderer(
 
   const [mudImg, backingImg] = await Promise.all([
     loadImage(mudNormalUrl),
-    loadImage('/assets/dark-backing.png?v=3'),
+    loadImage('/assets/dark-backing.png'),
   ]);
 
   const width = 1600;

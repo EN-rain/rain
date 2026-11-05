@@ -114,7 +114,7 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
 
             {/* Straightened Frame Artwork Layer with Corner Tape overlaying naturally */}
             <img
-              src={`${assetsPath}/page-one-half/03-large-card.png?v=2`}
+              src={`${assetsPath}/page-one-half/03-large-card.png`}
               alt="Archival Evidence Frame"
               decoding="async"
               draggable={false}
@@ -151,7 +151,7 @@ export const PageOneHalf: React.FC<PageOneHalfProps> = ({
                 right: '11%',
                 top: '9.5%',
                 bottom: '7.5%',
-                fontFamily: "'Source Serif 4', Georgia, serif",
+                fontFamily: "'Playfair Display', Georgia, serif",
                 pointerEvents: isAssembled ? 'auto' : 'none',
               }}
             >
