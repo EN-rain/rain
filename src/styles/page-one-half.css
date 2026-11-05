@@ -149,3 +149,18 @@
 .page-half[data-settled="true"] .page-half-idle-black-card {
   animation: dossier-idle-float-1 9.1s ease-in-out 1.1s infinite;
 }
+
+@media (max-width: 767px) {
+  .page-half-backing {
+    left: 2% !important;
+    top: 3% !important;
+    width: 96% !important;
+    height: 92% !important;
+  }
+  .page-half-spread {
+    left: 3% !important;
+    top: 4% !important;
+    width: 94% !important;
+    height: 90% !important;
+  }
+}

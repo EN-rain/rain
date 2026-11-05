@@ -158,3 +158,31 @@
   animation: clipboard-idle-float-4 7.4s ease-in-out 0.7s infinite;
   will-change: transform;
 }
+
+
+@media (max-width: 767px) {
+  .clipboard-layer-board {
+    left: 4% !important;
+    top: 3% !important;
+    width: 92% !important;
+    height: 94% !important;
+  }
+  .clipboard-layer-bottom-paper {
+    left: 6% !important;
+    top: 5% !important;
+    width: 88% !important;
+    height: 88% !important;
+  }
+  .clipboard-layer-middle-paper {
+    left: 7% !important;
+    top: 6% !important;
+    width: 86% !important;
+    height: 86% !important;
+  }
+  .clipboard-layer-front-paper {
+    left: 8% !important;
+    top: 7% !important;
+    width: 84% !important;
+    height: 84% !important;
+  }
+}

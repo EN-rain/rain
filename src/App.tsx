@@ -205,9 +205,9 @@ export default function App() {
 
       {/* Primary Scene: Home (Page 1 folder + scattered papers / assembled dossier spread) */}
       <div id="home" className="w-full h-full">
-        <div className="home-section w-full h-full flex items-center justify-center p-2 sm:p-4">
+        <div className="home-section w-full h-full flex items-center justify-center p-0 md:p-4">
           <VintageStationery
-            className="w-full h-full max-w-[1376px] max-h-[768px]"
+            className="w-full h-full md:max-w-[1376px] md:max-h-[768px]"
             autoPlay={revealStarted || !showLoading}
           />
         </div>
