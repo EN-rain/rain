@@ -981,13 +981,15 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                 </p>
               </div>
 
-              {/* Center-Bottom See More / See Less Button */}
-              <div className="pt-[1cqh] border-t border-[#3b2a1a]/30 flex items-center justify-center shrink-0">
+              {/* Center-Bottom See More / See Less and GitHub Buttons */}
+              <div className={`pt-[1cqh] border-t border-[#3b2a1a]/30 flex items-center justify-center shrink-0 transition-all duration-300 ${
+                isFolderExpanded ? 'gap-0' : 'gap-3 sm:gap-4'
+              }`}>
                 <button
                   type="button"
                   onClick={handleToggleExpand}
                   aria-expanded={isFolderExpanded}
-                  className="bg-transparent border-0 py-0.5 px-3 cursor-pointer select-none uppercase tracking-[0.18em] font-extrabold text-[#6e1717] hover:text-[#9e2222] transition-transform duration-150 hover:scale-105 active:scale-95"
+                  className="bg-transparent border-0 py-0.5 px-2 cursor-pointer select-none uppercase tracking-[0.18em] font-extrabold text-[#6e1717] hover:text-[#9e2222] transition-transform duration-150 hover:scale-105 active:scale-95 whitespace-nowrap"
                   style={{
                     fontSize: 'clamp(10px, 2.0cqh, 16px)',
                     textDecorationLine: 'underline',
@@ -997,6 +999,24 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                 >
                   {isFolderExpanded ? '← See Less' : 'See More →'}
                 </button>
+
+                {/* GitHub button that fades out and collapses when folder is centered/expanded */}
+                <a
+                  href={selectedProject.repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`bg-transparent border-0 py-0.5 cursor-pointer select-none uppercase tracking-[0.18em] font-extrabold text-[#6e1717] hover:text-[#9e2222] transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap ${
+                    isFolderExpanded ? 'opacity-0 max-w-0 px-0 pointer-events-none overflow-hidden' : 'opacity-100 max-w-[120px] px-2 pointer-events-auto'
+                  }`}
+                  style={{
+                    fontSize: 'clamp(10px, 2.0cqh, 16px)',
+                    textDecorationLine: 'underline',
+                    textDecorationColor: 'rgba(110, 23, 23, 0.55)',
+                    textUnderlineOffset: '3px',
+                  }}
+                >
+                  GitHub ↗
+                </a>
               </div>
             </div>
           </div>
@@ -1027,7 +1047,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                   <img
                     src={selectedProject.icon}
                     alt={`${selectedProject.title} icon`}
-                    className="w-[28px] h-[28px] sm:w-[36px] sm:h-[36px] object-contain rounded-[6px] shadow-sm border border-[#3b2a1a]/25 shrink-0"
+                    className="w-[28px] h-[28px] sm:w-[36px] sm:h-[36px] object-contain rounded-[6px] shadow-sm border border-[#3b2a1a]/25 shrink-0 bg-white p-0.5"
                   />
                 )}
                 <div className="flex flex-col">
@@ -1078,13 +1098,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
             </div>
 
             {/* Right Page Footer: Repository Link */}
-            <div className="pt-[1cqh] border-t border-[#3b2a1a]/30 flex items-center justify-between shrink-0">
-              <span
-                className="uppercase tracking-[0.14em] text-[#5c432b] font-bold"
-                style={{ fontSize: 'clamp(8px, 1.45cqh, 11.5px)' }}
-              >
-                {selectedProject.title}
-              </span>
+            <div className="pt-[1cqh] border-t border-[#3b2a1a]/30 flex items-center justify-center shrink-0">
               <a
                 href={selectedProject.repoUrl}
                 target="_blank"
@@ -1096,7 +1110,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
                   textUnderlineOffset: '2px',
                 }}
               >
-                View Repository ↗
+                GitHub ↗
               </a>
             </div>
           </div>

@@ -184,6 +184,9 @@ export const LoadingScreen = ({
     let layoutTopRuleY = 0;
     let layoutBotRuleY = 0;
     let layoutMaxR = 400;
+    let layoutHeadingFont = '700 42px "Cinzel", "Playfair Display", Georgia, serif';
+    let layoutHeadingTrack = 14;
+    let layoutHeadingY = 0;
     let counter: { font: string; y: number } | null = null;
     let T = 0;
     let last = 0;
@@ -298,10 +301,10 @@ export const LoadingScreen = ({
       const startX = px;
       const match = font.match(/(\d+(?:\.\d+)?)px/);
       const fs = match ? parseFloat(match[1]) : 14;
-      const h = Math.ceil(fs * 1.35);
+      const h = Math.ceil(fs * 2.2);
       ch.forEach((c, i) => {
         if (c !== ' ') {
-          const w = Math.ceil(ws[i] + fs * 0.3);
+          const w = Math.ceil(ws[i] + fs * 0.8);
           const s = sprite(w, h, (g) => {
             g.font = font;
             g.fillStyle = '#0a0a0a';
@@ -334,12 +337,16 @@ export const LoadingScreen = ({
       if (!cv) return;
       meshes = [];
 
-      // Match git LoadingScreen.tsx typography & layout:
-      // 1. Clean "LOADING" heading in Sora with wide 0.3em tracking
-      const headingSize = Math.min(60, Math.max(32, W * 0.048));
-      const headingTrack = Math.round(headingSize * 0.3);
-      const headingFont = `600 ${headingSize}px "Sora", sans-serif`;
-      const headingY = cy - 32;
+      // Match portfolio typography:
+      // 1. Clean "LOADING" heading in Cinzel with wide 0.32em tracking
+      const headingSize = Math.min(52, Math.max(28, W * 0.042));
+      const headingTrack = Math.round(headingSize * 0.32);
+      const headingFont = `700 ${headingSize}px "Cinzel", "Playfair Display", Georgia, serif`;
+      const headingY = cy - 36;
+
+      layoutHeadingFont = headingFont;
+      layoutHeadingTrack = headingTrack;
+      layoutHeadingY = headingY;
 
       text('LOADING', cx, headingY, headingFont, 'center', headingTrack);
 
@@ -418,8 +425,20 @@ export const LoadingScreen = ({
       ctx.globalAlpha = alpha;
       ctx.translate(0, slide);
 
-      // Draw static "LOADING" heading
-      ctx.drawImage(layer, 0, 0, W, H);
+      // Draw solid vector-clean "LOADING" heading directly to canvas (no seams, no clipping, no holes)
+      ctx.font = layoutHeadingFont;
+      ctx.fillStyle = '#0a0a0a';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+
+      const headingChars = [...'LOADING'];
+      const totalHeadingW = headingChars.reduce((sum, ch) => sum + ctx.measureText(ch).width, 0) + (headingChars.length - 1) * layoutHeadingTrack;
+      let curHeadingX = cx - totalHeadingW / 2;
+      headingChars.forEach((ch) => {
+        const charW = ctx.measureText(ch).width;
+        ctx.fillText(ch, curHeadingX + charW / 2, layoutHeadingY);
+        curHeadingX += charW + layoutHeadingTrack;
+      });
 
       // 1. Main loading line track & animated progress fill
       const barLeft = cx - layoutBw / 2;
@@ -566,7 +585,7 @@ export const LoadingScreen = ({
 
     initGL();
     Promise.all([
-      document.fonts?.load('600 48px "Sora"'),
+      document.fonts?.load('700 48px "Cinzel"'),
       document.fonts?.load('500 12px "IBM Plex Mono"'),
     ])
       .catch(() => {})

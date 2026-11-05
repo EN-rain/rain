@@ -6,9 +6,10 @@ import mudNormalUrl from './assets/images/mud_normal.jpg';
 import texNoiseUrl from './assets/images/tex_noise.jpg';
 import './styles/vintage-stationery.css';
 
-// Complete ahead-of-time manifest of all high-res assets across Page 1, Page 1.5, Page 2 Scrapbook & Projects
-const ALL_AHEAD_OF_TIME_ASSETS = [
-  // Page 1: Vintage Stationery Desk & Envelope
+// Critical assets required immediately for Page 1 Initial View & WebGL Reveal
+const CRITICAL_PAGE1_ASSETS = [
+  mudNormalUrl,
+  texNoiseUrl,
   '/assets/white-page-bg.png',
   '/assets/folder-back.png',
   '/assets/folder-front.png',
@@ -23,15 +24,18 @@ const ALL_AHEAD_OF_TIME_ASSETS = [
   '/assets/edrian-hero.png',
   '/assets/edrian-about.png',
   '/assets/edrian-portrait-new.png',
+  '/assets/clipboard/clipboard-board.png',
+  '/assets/clipboard/front-paper.png',
+  '/assets/clipboard/clipboard-clip.png',
+];
 
-  // Page 1.5: Assembled Dossier Spread & Forensic Cards
+// Subsequent assets preloaded asynchronously in background without blocking initial reveal
+const DEFERRED_BACKGROUND_ASSETS = [
   '/assets/page-one-half/01-backing.png',
   '/assets/page-one-half/02-spread.png',
   '/assets/page-one-half/03-large-card.png',
   '/assets/page-one-half/04-black-card-square.png',
   '/assets/page-one-half/06-paper.png',
-
-  // Page 2: Detective Scrapbook Board, Props & Hardware
   '/assets/scrapbook/board-standalone.png',
   '/assets/scrapbook/wall-extension.png',
   '/assets/scrapbook/note-illustrated.png',
@@ -46,8 +50,6 @@ const ALL_AHEAD_OF_TIME_ASSETS = [
   '/assets/scrapbook/wall-lamp-off.png',
   '/assets/scrapbook/wall-clock.png',
   '/assets/scrapbook/wall-keys.png',
-
-  // Projects & Case Archive Evidence
   '/assets/projects/studentflow.png',
   '/assets/projects/studentflow-logo.png',
   '/assets/projects/pockettrade.png',
@@ -56,48 +58,44 @@ const ALL_AHEAD_OF_TIME_ASSETS = [
   '/assets/projects/typeduel-logo.png',
   '/assets/projects/tsukiai.png',
   '/assets/projects/auvrynt.png',
-
-  // Fantasy Clipboard Assets
-  '/assets/clipboard/clipboard-board.png',
   '/assets/clipboard/bottom-paper.png',
   '/assets/clipboard/middle-paper.png',
-  '/assets/clipboard/front-paper.png',
   '/assets/clipboard/transparent-photo-frame.png',
   '/assets/clipboard/small-note.png',
-  '/assets/clipboard/clipboard-clip.png',
-
-  // WebGL 2 Shaders & Noise Textures
-  mudNormalUrl,
-  texNoiseUrl,
 ];
 
 // Pin decoded images in memory so the browser compositor never evicts bitmaps during transitions
 const pinnedDecodedImages: HTMLImageElement[] = [];
 
-const preloadImage = (url: string): Promise<void> =>
+const preloadImage = (url: string, timeoutMs = 4000): Promise<void> =>
   new Promise<void>((resolve) => {
     const img = new Image();
     img.decoding = 'async';
-    const onDone = () => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
       pinnedDecodedImages.push(img);
+      resolve();
+    };
+    img.onload = () => {
       if (img.decode) {
-        img.decode().then(() => resolve()).catch(() => resolve());
+        img.decode().then(finish).catch(finish);
       } else {
-        resolve();
+        finish();
       }
     };
-    img.onload = onDone;
-    img.onerror = () => resolve();
+    img.onerror = finish;
     img.src = url;
-    setTimeout(resolve, 8000);
+    setTimeout(finish, timeoutMs);
   });
 
 const preloadFonts = (): Promise<void> => {
   if (typeof document === 'undefined' || !document.fonts) return Promise.resolve();
   return Promise.all([
+    document.fonts.load('700 48px "Cinzel"'),
     document.fonts.load('600 48px "Sora"'),
     document.fonts.load('500 12px "IBM Plex Mono"'),
-    document.fonts.load('400 16px "Space Grotesk"'),
     document.fonts.ready,
   ])
     .then(() => undefined)
@@ -112,30 +110,28 @@ export default function App() {
   const [revealStarted, setRevealStarted] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
 
-  // Preload and pre-decode all assets ahead of time
+  // Preload critical assets ahead of time for fast loading, then preload remaining in background
   useEffect(() => {
     let cancelled = false;
     let completed = 0;
-    const total = ALL_AHEAD_OF_TIME_ASSETS.length + 1; // assets + fonts
+    const total = CRITICAL_PAGE1_ASSETS.length + 1; // critical assets + fonts
 
     const updateStatus = (currentPct: number, url?: string) => {
       if (cancelled) return;
-      if (currentPct < 25) {
+      if (currentPct < 30) {
         setLoadingStatus('INDEXING DOSSIER EVIDENCE...');
-      } else if (currentPct < 55) {
+      } else if (currentPct < 70) {
         const name = url ? url.split('/').pop()?.split('?')[0] : '';
         setLoadingStatus(`DECODING ARCHIVES // ${name || 'STATIONERY'}`);
-      } else if (currentPct < 85) {
-        setLoadingStatus('CALIBRATING SCRAPBOOK CASE BOARD...');
       } else if (currentPct < 100) {
-        setLoadingStatus('SYNCHRONIZING SYSTEM FONTS & SHADERS...');
+        setLoadingStatus('CALIBRATING SCRAPBOOK CASE BOARD...');
       } else {
         setLoadingStatus('CASE FILE READY // COMMENCING REVEAL');
       }
     };
 
-    const assetTasks = ALL_AHEAD_OF_TIME_ASSETS.map((url) =>
-      preloadImage(url).then(() => {
+    const criticalTasks = CRITICAL_PAGE1_ASSETS.map((url) =>
+      preloadImage(url, 3000).then(() => {
         if (!cancelled) {
           completed += 1;
           const pct = Math.min(100, Math.round((completed / total) * 100));
@@ -153,11 +149,31 @@ export default function App() {
       }
     });
 
-    Promise.all([...assetTasks, fontTask]).then(() => {
+    Promise.all([...criticalTasks, fontTask]).then(() => {
       if (!cancelled) {
         setLoadingProgress(100);
         setLoadingStatus('CASE FILE READY // COMMENCING REVEAL');
         setIsLoaded(true);
+
+        // Preload deferred assets smoothly in background
+        const backgroundLoad = () => {
+          let idx = 0;
+          const loadNext = () => {
+            if (idx >= DEFERRED_BACKGROUND_ASSETS.length) return;
+            const url = DEFERRED_BACKGROUND_ASSETS[idx++];
+            preloadImage(url, 5000).then(loadNext).catch(loadNext);
+          };
+          // Run 3 parallel background preload workers
+          loadNext();
+          loadNext();
+          loadNext();
+        };
+
+        if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(backgroundLoad);
+        } else {
+          setTimeout(backgroundLoad, 800);
+        }
       }
     });
 
