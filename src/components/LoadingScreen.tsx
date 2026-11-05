@@ -7,7 +7,6 @@ import {
 
 type LoadingScreenProps = {
   progress: number;
-  statusText?: string;
   isComplete: boolean;
   onRevealStart?: () => void;
   onComplete: () => void;
@@ -87,7 +86,6 @@ interface MeshItem {
 
 export const LoadingScreen = ({
   progress,
-  statusText,
   isComplete,
   onRevealStart,
   onComplete,
@@ -107,8 +105,6 @@ export const LoadingScreen = ({
   // Store props and callbacks in refs so rendering loops always read current values
   const progressRef = useRef(progress);
   progressRef.current = progress;
-  const statusTextRef = useRef(statusText);
-  statusTextRef.current = statusText;
   const isCompleteRef = useRef(isComplete);
   isCompleteRef.current = isComplete;
   const onCompleteRef = useRef(onComplete);
@@ -543,7 +539,7 @@ export const LoadingScreen = ({
         const a = E.out(clamp(loadingTime / 450));
         vrot = 0;
         pm = 0;
-        loading(displayProgress, a, 16 * (1 - a), loadingTime, statusTextRef.current);
+        loading(displayProgress, a, 16 * (1 - a), loadingTime);
       } else {
         const ts = suctionTime;
         if (ph === 'SUCTION') {

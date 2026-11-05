@@ -134,9 +134,7 @@ const preloadFonts = (): Promise<void> => {
 };
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<1 | 2>(1);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingStatus, setLoadingStatus] = useState('INDEXING EVIDENCE REPOSITORY...');
   const [isLoaded, setIsLoaded] = useState(false);
   const [revealStarted, setRevealStarted] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
@@ -148,21 +146,6 @@ export default function App() {
     const total = ALL_PORTFOLIO_ASSETS.length + 1; // all assets + fonts
     let nextIndex = 0;
 
-    const updateStatus = (currentPct: number, url?: string) => {
-      if (cancelled) return;
-      if (currentPct < 25) {
-        setLoadingStatus('INDEXING DOSSIER EVIDENCE...');
-      } else if (currentPct < 60) {
-        const name = url ? url.split('/').pop()?.split('?')[0] : '';
-        setLoadingStatus(`DECODING ARCHIVES // ${name || 'STATIONERY'}`);
-      } else if (currentPct < 90) {
-        setLoadingStatus('CALIBRATING SCRAPBOOK CASE BOARD...');
-      } else if (currentPct < 100) {
-        setLoadingStatus('SYNCHRONIZING SYSTEM FONTS & SHADERS...');
-      } else {
-        setLoadingStatus('CASE FILE READY // COMMENCING REVEAL');
-      }
-    };
 
     // Run 6 concurrent workers to download and decode images in rapid order
     const CONCURRENCY = 6;
@@ -175,7 +158,6 @@ export default function App() {
         completed += 1;
         const pct = Math.min(100, Math.round((completed / total) * 100));
         setLoadingProgress(pct);
-        updateStatus(pct, currentUrl);
       }
     };
 
@@ -192,7 +174,6 @@ export default function App() {
     Promise.all([...workers, fontTask]).then(() => {
       if (!cancelled) {
         setLoadingProgress(100);
-        setLoadingStatus('CASE FILE READY // COMMENCING REVEAL');
         setIsLoaded(true);
       }
     });
@@ -216,7 +197,6 @@ export default function App() {
       {showLoading && (
         <LoadingScreen
           progress={loadingProgress}
-          statusText={loadingStatus}
           isComplete={isLoaded}
           onRevealStart={handleRevealStart}
           onComplete={handleLoadingComplete}
@@ -234,10 +214,7 @@ export default function App() {
       </div>
 
       {/* Section Scroll Transitions (Page 1 <-> Page 2 Detective Scrapbook Board) */}
-      <SectionScrollTransition
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-      />
+      <SectionScrollTransition />
     </main>
   );
 }
