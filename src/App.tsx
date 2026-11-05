@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { VintageStationery } from './components/VintageStationery';
-import { MobilePortfolioView } from './components/MobilePortfolioView';
 import { LoadingScreen } from './components/LoadingScreen';
 import { SectionScrollTransition } from './components/SectionScrollTransition';
 import mudNormalUrl from './assets/images/mud_normal.jpg';
@@ -204,13 +203,8 @@ export default function App() {
         />
       )}
 
-      {/* Mobile-Native Detective Portfolio View (< 768px) */}
-      <div className="block md:hidden w-full h-full">
-        <MobilePortfolioView />
-      </div>
-
-      {/* Desktop Cinematic Stationery Desk View (>= 768px) */}
-      <div id="home" className="hidden md:block w-full h-full">
+      {/* Primary Scene: Home (Page 1 folder + scattered papers / assembled dossier spread) */}
+      <div id="home" className="w-full h-full">
         <div className="home-section w-full h-full flex items-center justify-center p-2 sm:p-4">
           <VintageStationery
             className="w-full h-full max-w-[1376px] max-h-[768px]"
@@ -219,10 +213,8 @@ export default function App() {
         </div>
       </div>
 
-      {/* Section Scroll Transitions (Desktop Page 1 <-> Page 2 Detective Scrapbook Board) */}
-      <div className="hidden md:block">
-        <SectionScrollTransition />
-      </div>
+      {/* Section Scroll Transitions (Page 1 <-> Page 2 Detective Scrapbook Board) */}
+      <SectionScrollTransition />
     </main>
   );
 }
