@@ -70,7 +70,7 @@ export const VintageContactDesk: React.FC<VintageContactDeskProps> = ({
       {/* Return Bookmark Tab in Top Left - clipped at screen edge with slide-in popup animation */}
       <nav
         aria-label="Return Navigation Bookmark"
-        className={`fixed top-6 sm:top-8 md:top-10 left-0 z-50 pointer-events-auto ${
+        className={`hidden md:block fixed top-6 sm:top-8 md:top-10 left-0 z-50 pointer-events-auto ${
           active && !isTransitioning ? 'bookmark-slide-popup' : 'opacity-0 -translate-x-full pointer-events-none'
         }`}
       >

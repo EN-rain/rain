@@ -228,6 +228,150 @@ export const VintageStationery: React.FC<VintageStationeryProps> = ({
     }
   }, [journalBusy, journalVisible, move, onStateChange, playJournalClip]);
 
+  // Section Navigation Order: 0: 'home', 1: 'about', 2: 'works', 3: 'contact'
+  const currentSectionIndex =
+    page === 2 ? 3 : showWorks ? 2 : showPageOneHalf ? 1 : 0;
+
+  const navigateNext = useCallback(() => {
+        if (isTransitioning || journalBusy || state === 'journal-open' || state === 'journal-opening') return;
+    if (page === 2) return;
+    if (showWorks) {
+      handleSelectBookmark('contact');
+    } else if (showPageOneHalf) {
+      handleSelectBookmark('works');
+    } else {
+      handleSelectBookmark('about');
+    }
+  }, [handleSelectBookmark, isTransitioning, journalBusy, page, showPageOneHalf, showWorks, state]);
+
+  const navigatePrev = useCallback(() => {
+    if (isTransitioning || journalBusy || state === 'journal-open' || state === 'journal-opening') return;
+    if (page === 2) {
+      handleReturnSection('works');
+    } else if (showWorks) {
+      handleSelectBookmark('about');
+    } else if (showPageOneHalf) {
+      handleSelectBookmark('home');
+    }
+  }, [handleReturnSection, handleSelectBookmark, isTransitioning, journalBusy, page, showPageOneHalf, showWorks, state]);
+
+  // Touch Swipe, Pointer Drag, Mouse Wheel, and Keyboard Section Scroll Navigator (Mobile + Responsive)
+  useEffect(() => {
+    let startY = 0;
+    let startX = 0;
+    let startTime = 0;
+    let isTracking = false;
+    let lastWheelTime = 0;
+
+    const handleGestureStart = (clientX: number, clientY: number) => {
+      startY = clientY;
+      startX = clientX;
+      startTime = Date.now();
+      isTracking = true;
+    };
+
+    const handleGestureEnd = (clientX: number, clientY: number, target: EventTarget | null) => {
+      if (!isTracking) return;
+      isTracking = false;
+
+      const deltaY = clientY - startY;
+      const deltaX = clientX - startX;
+      const elapsed = Date.now() - startTime;
+
+      // Vertical threshold: swipe >= 32px and more vertical than horizontal
+      if (Math.abs(deltaY) < 32 || Math.abs(deltaY) < Math.abs(deltaX) * 1.1) return;
+      if (elapsed > 1600) return;
+
+      const el = target as HTMLElement | null;
+      const scrollable = el?.closest('.overflow-y-auto, .overflow-y-scroll');
+      if (scrollable) {
+        const canScrollDown = scrollable.scrollTop + scrollable.clientHeight < scrollable.scrollHeight - 6;
+        const canScrollUp = scrollable.scrollTop > 6;
+        if (deltaY < 0 && canScrollDown) return;
+        if (deltaY > 0 && canScrollUp) return;
+      }
+
+      if (deltaY < 0) {
+        navigateNext();
+      } else {
+        navigatePrev();
+      }
+    };
+
+    // Touch events for mobile phones and tablets
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        handleGestureStart(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.changedTouches.length > 0) {
+        handleGestureEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
+      }
+    };
+
+    // Pointer events for desktop and hybrid devices
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      handleGestureStart(e.clientX, e.clientY);
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      handleGestureEnd(e.clientX, e.clientY, e.target);
+    };
+
+    // Mouse Wheel / Trackpad events
+    const onWheel = (e: WheelEvent) => {
+      const el = e.target as HTMLElement | null;
+      const scrollable = el?.closest('.overflow-y-auto, .overflow-y-scroll');
+      if (scrollable) {
+        const canScrollDown = scrollable.scrollTop + scrollable.clientHeight < scrollable.scrollHeight - 6;
+        const canScrollUp = scrollable.scrollTop > 6;
+        if (e.deltaY > 0 && canScrollDown) return;
+        if (e.deltaY < 0 && canScrollUp) return;
+      }
+
+      if (Math.abs(e.deltaY) < 20) return;
+      const now = Date.now();
+      if (now - lastWheelTime < 650) return;
+
+      if (e.deltaY > 0) {
+        lastWheelTime = now;
+        navigateNext();
+      } else if (e.deltaY < 0) {
+        lastWheelTime = now;
+        navigatePrev();
+      }
+    };
+
+    // Keyboard navigation (ArrowDown / ArrowUp / PageDown / PageUp)
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        navigateNext();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        navigatePrev();
+      }
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    window.addEventListener('pointerup', onPointerUp, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [navigateNext, navigatePrev]);
+
   const isPage1Visible = page === 1;
   const isPage2Visible = page === 2;
   const currentActiveBookmark =
