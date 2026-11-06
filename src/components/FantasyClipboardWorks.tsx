@@ -240,12 +240,13 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
     }
   }, []);
 
-  // Animate the PROJECTS title: left-aligned when folder is active, centered when folder is inactive
+  // Animate the PROJECTS title: left-aligned when folder is active on desktop, centered on mobile or when folder is inactive
   useEffect(() => {
     const titleEl = projectsTitleRef.current;
     if (!titleEl) return;
 
-    const shouldAlignLeft = isFolderOpen && effectiveAssembled;
+    const isMobile = isMobileScreen || (typeof window !== 'undefined' && window.innerWidth < 768);
+    const shouldAlignLeft = !isMobile && isFolderOpen && effectiveAssembled;
     gsap.to(titleEl, {
       left: shouldAlignLeft ? '0%' : '50%',
       xPercent: shouldAlignLeft ? 0 : -50,
@@ -254,7 +255,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
       force3D: true,
       overwrite: 'auto',
     });
-  }, [isFolderOpen, effectiveAssembled]);
+  }, [isFolderOpen, effectiveAssembled, isMobileScreen]);
 
   // GSAP slide-in / center-expand / slide-out animation for the dossier folder
   useEffect(() => {
@@ -341,17 +342,25 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
             filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.55))',
           }}
         >
+          {/* Desktop landscape clipboard board */}
           <img
             alt="Clipboard wooden board"
             draggable={false}
             src="/assets/clipboard/clipboard-board.png"
-            className="absolute max-w-none select-none pointer-events-none"
+            className="hidden md:block absolute max-w-none select-none pointer-events-none"
             style={{
               width: '108.6137%',
               height: '111.9540%',
               left: '-4.3069%',
               top: '-2.9885%',
             }}
+          />
+          {/* Mobile portrait expanded clipboard board (768x1376) */}
+          <img
+            alt="Clipboard wooden board mobile"
+            draggable={false}
+            src="/assets/clipboard/clipboard-board-mobile.png"
+            className="block md:hidden clipboard-board-mobile-img select-none pointer-events-none"
           />
         </div>
 
@@ -783,7 +792,7 @@ export const FantasyClipboardWorks: React.FC<FantasyClipboardWorksProps> = ({
         <div
           ref={folderRef}
           aria-hidden={!isFolderOpen}
-          className="absolute select-none will-change-transform"
+          className="clipboard-dossier-folder absolute select-none will-change-transform"
           style={{
             left: '50%',
             top: '2.5%',

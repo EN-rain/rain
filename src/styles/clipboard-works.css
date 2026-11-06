@@ -161,28 +161,127 @@
 
 
 @media (max-width: 767px) {
+  /* Anchor .clipboard-works to full mobile viewport height (100dvh) so it fills the portrait phone screen */
+  .clipboard-works {
+    top: 50% !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 100dvh !important;
+    transform: translateY(-50%) !important;
+  }
+
+  /* Hide the slide-in dossier folder on mobile for now */
+  .clipboard-dossier-folder {
+    display: none !important;
+  }
+
+  /* 1. Expanded Portrait Clipboard Board (clipboard-board-mobile.png, 768x1376) — centered on screen without distortion */
   .clipboard-layer-board {
-    left: 4% !important;
-    top: 3% !important;
-    width: 92% !important;
-    height: 94% !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    clip-path: none !important;
+    z-index: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
+
+  .clipboard-layer-board > .clipboard-board-mobile-img {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: max(96vw, calc(96dvh * 768 / 1376)) !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    aspect-ratio: 768 / 1376 !important;
+    object-fit: contain !important;
+    clip-path: none !important;
+    transform: none !important;
+  }
+
+  /* 2. Bottom Paper (1254x1254) centered on portrait board */
   .clipboard-layer-bottom-paper {
-    left: 6% !important;
-    top: 5% !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    top: 8% !important;
     width: 88% !important;
-    height: 88% !important;
+    height: auto !important;
+    aspect-ratio: 1254 / 1254 !important;
   }
+
+  /* 3. Middle Paper (1254x1254) centered on portrait board */
   .clipboard-layer-middle-paper {
-    left: 7% !important;
-    top: 6% !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    top: 7.5% !important;
     width: 86% !important;
-    height: 86% !important;
+    height: auto !important;
+    aspect-ratio: 1254 / 1254 !important;
   }
+
+  /* 4. Front Paper (1254x1254) centered on portrait board */
   .clipboard-layer-front-paper {
-    left: 8% !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     top: 7% !important;
     width: 84% !important;
-    height: 84% !important;
+    height: auto !important;
+    aspect-ratio: 1254 / 1254 !important;
+  }
+
+  /* 5. Photo Frame (1306x1205) positioned on bottom-left of portrait board */
+  .clipboard-layer-photo-frame {
+    position: absolute !important;
+    left: 6% !important;
+    top: auto !important;
+    bottom: 6% !important;
+    width: 40% !important;
+    height: auto !important;
+    aspect-ratio: 1306 / 1205 !important;
+  }
+
+  /* 6. Small Tech Stack Note (1086x1448) positioned on bottom-right of portrait board */
+  .clipboard-layer-small-note {
+    position: absolute !important;
+    left: auto !important;
+    right: 6% !important;
+    top: auto !important;
+    bottom: 4% !important;
+    width: 44% !important;
+    height: auto !important;
+    aspect-ratio: 1086 / 1448 !important;
+  }
+
+  /* 7. Metal Clip (1774x887) centered at the top of the portrait board */
+  .clipboard-layer-clip {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    top: 1% !important;
+    width: 48% !important;
+    height: auto !important;
+    aspect-ratio: 1774 / 887 !important;
+  }
+
+  .clipboard-works[data-settled="true"] .clipboard-idle-float-1,
+  .clipboard-works[data-settled="true"] .clipboard-idle-float-2,
+  .clipboard-works[data-settled="true"] .clipboard-idle-float-3,
+  .clipboard-works[data-settled="true"] .clipboard-idle-float-4 {
+    animation: none !important;
   }
 }

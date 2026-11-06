@@ -118,17 +118,17 @@ export function useStationeryMotion({
       }
       if (sheetTwoRef?.current) {
         gsap.set(sheetTwoRef.current, {
-          x: isHomeVis ? 20 : 0,
+          x: isHomeVis ? 10 : 0,
           y: isHomeVis ? -4 : 45,
-          rotation: isHomeVis ? 4.2 : 0,
+          rotation: isHomeVis ? 1.6 : 0,
           force3D: true,
         });
       }
       if (sheetThreeRef?.current) {
         gsap.set(sheetThreeRef.current, {
-          x: isHomeVis ? -24 : 0,
-          y: isHomeVis ? -6 : 65,
-          rotation: isHomeVis ? -4.8 : 0,
+          x: isHomeVis ? -12 : 0,
+          y: isHomeVis ? -8 : 65,
+          rotation: isHomeVis ? -2.0 : 0,
           force3D: true,
         });
       }
@@ -556,14 +556,14 @@ export function useStationeryMotion({
           if (sheetTwoRef?.current) {
             tl.to(
               sheetTwoRef.current,
-              { x: 20, y: -4, rotation: 4.2, duration: 0.54, ease: 'back.out(1.35)' },
+              { x: 10, y: -4, rotation: 1.6, duration: 0.54, ease: 'back.out(1.35)' },
               0.25
             );
           }
           if (sheetThreeRef?.current) {
             tl.to(
               sheetThreeRef.current,
-              { x: -24, y: -6, rotation: -4.8, duration: 0.56, ease: 'back.out(1.35)' },
+              { x: -12, y: -8, rotation: -2.0, duration: 0.56, ease: 'back.out(1.35)' },
               0.28
             );
           }
@@ -755,10 +755,10 @@ export function useStationeryMotion({
             tl.to(sheetOneRef.current, { x: 0, y: 0, rotation: 0, duration: 0.54, ease: 'back.out(1.3)' }, 0.08);
           }
           if (sheetTwoRef?.current) {
-            tl.to(sheetTwoRef.current, { x: 20, y: -4, rotation: 4.2, duration: 0.56, ease: 'back.out(1.35)' }, 0.12);
+            tl.to(sheetTwoRef.current, { x: 10, y: -4, rotation: 1.6, duration: 0.56, ease: 'back.out(1.35)' }, 0.12);
           }
           if (sheetThreeRef?.current) {
-            tl.to(sheetThreeRef.current, { x: -24, y: -6, rotation: -4.8, duration: 0.58, ease: 'back.out(1.35)' }, 0.16);
+            tl.to(sheetThreeRef.current, { x: -12, y: -8, rotation: -2.0, duration: 0.58, ease: 'back.out(1.35)' }, 0.16);
           }
           if (photoBundleRef.current) {
             tl.to(photoBundleRef.current, { xPercent: 0, yPercent: 0, duration: 0.56, ease: 'power3.out' }, 0.04);

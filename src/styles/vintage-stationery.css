@@ -161,3 +161,11 @@ body.folding-plane-active .idle-paper-1,
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+@media (max-width: 767px) {
+  .scene[data-state="visible"] .idle-paper-1,
+  .scene[data-state="visible"] .idle-paper-2,
+  .scene[data-state="visible"] .idle-paper-3 {
+    animation: none !important;
+  }
+}

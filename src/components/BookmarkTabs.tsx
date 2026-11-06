@@ -61,10 +61,14 @@ export const BookmarkTabs: React.FC<BookmarkTabsProps> = ({
     }
   };
 
+  const isHome = activeBookmark === 'home' && !isSubpage;
+
   return (
     <nav
       aria-label="Portfolio Navigation Bookmarks"
-      className="hidden md:flex absolute left-0 top-[48%] -translate-y-1/2 z-[25] sm:z-[15] flex-col -space-y-[15px] xs:-space-y-[18px] sm:-space-y-[22px] md:-space-y-[25px] lg:-space-y-[28px] pointer-events-auto"
+      className={`hidden md:flex absolute left-0 ${
+        isHome ? 'top-[36%]' : 'top-[48%]'
+      } -translate-y-1/2 z-[25] sm:z-[15] flex-col -space-y-[15px] xs:-space-y-[18px] sm:-space-y-[22px] md:-space-y-[25px] lg:-space-y-[28px] pointer-events-auto transition-[top] duration-300`}
     >
       {TABS.map((tab, idx) => {
         const ref = getRef(idx);

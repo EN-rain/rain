@@ -151,16 +151,119 @@
 }
 
 @media (max-width: 767px) {
-  .page-half-backing {
-    left: 2% !important;
-    top: 3% !important;
-    width: 96% !important;
-    height: 92% !important;
+
+  /* Anchor .page-half to full mobile viewport height (96dvh) so 0%..100% maps to top..bottom of screen */
+  .page-half {
+    top: 50% !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 96dvh !important;
+    transform: translateY(-50%) !important;
   }
+
+  .page-half-img {
+    object-fit: contain !important;
+  }
+
+  /* 1. Top Asset (02-spread.png, 1672x941) — wide enough across Mobile S, M, L, centered horizontally, underneath 01-backing */
   .page-half-spread {
-    left: 3% !important;
-    top: 4% !important;
-    width: 94% !important;
-    height: 90% !important;
+    position: absolute !important;
+    top: auto !important;
+    bottom: 41% !important;
+    height: auto !important;
+    width: max(106%, 440px) !important;
+    aspect-ratio: 1672 / 941 !important;
+    left: 50% !important;
+    right: auto !important;
+    margin-left: calc(max(106%, 440px) / -2) !important;
+    margin-right: 0 !important;
+    z-index: 1 !important;
+  }
+
+  /* 2. Bottom Asset (01-backing.png, 1536x1024) — DESC container at the bottom, ON TOP of 02-spread, hero image, and 06-paper */
+  .page-half-backing {
+    position: absolute !important;
+    top: 41% !important;
+    bottom: auto !important;
+    height: auto !important;
+    width: max(98%, 415px) !important;
+    aspect-ratio: 1536 / 1024 !important;
+    left: 50% !important;
+    right: auto !important;
+    margin-left: calc(max(98%, 415px) / -2) !important;
+    margin-right: 0 !important;
+    z-index: 5 !important;
+  }
+
+  /* Straighten the built-in -4.37deg slant of 01-backing.png on mobile only */
+  .page-half-backing .page-half-img {
+    transform: rotate(4.37deg) !important;
+  }
+
+  .page-half-backing .page-half-backing-desc {
+    left: 16% !important;
+    right: 12% !important;
+    top: 17% !important;
+    bottom: 8% !important;
+    transform: none !important;
+  }
+
+  /* 3. Dark Backing Square (888x888) tucked behind Top-Left Picture Card */
+  .page-half-black-card {
+    position: absolute !important;
+    top: auto !important;
+    bottom: 49% !important;
+    height: 22% !important;
+    width: auto !important;
+    aspect-ratio: 888 / 888 !important;
+    right: 45% !important;
+    left: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    z-index: 2 !important;
+  }
+
+  /* 4. TOP ROW LEFT: Picture Card (03-large-card.png, 682x1024) — anchored from center (`right: 50%`) so it NEVER overlaps 06-paper on Mobile S/M/L */
+  .page-half-large-card {
+    position: absolute !important;
+    top: auto !important;
+    bottom: 48% !important;
+    height: 44% !important;
+    width: auto !important;
+    max-width: none !important;
+    aspect-ratio: 682 / 1024 !important;
+    right: 49% !important;
+    left: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    z-index: 3 !important;
+  }
+
+  /* 5. TOP ROW RIGHT: Parchment Sheet (06-paper.png, 1086x1448) — anchored from center (`left: 50%`) so it NEVER overlaps Picture Card on Mobile S/M/L */
+  .page-half-paper {
+    position: absolute !important;
+    top: auto !important;
+    bottom: 40% !important;
+    height: 44% !important;
+    width: auto !important;
+    max-width: none !important;
+    aspect-ratio: 1086 / 1448 !important;
+    left: 48% !important;
+    right: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    z-index: 4 !important;
+  }
+
+  .page-half-paper .page-half-img {
+    display: block !important;
+  }
+
+  /* Disable idle animations on mobile only */
+  .page-half[data-settled="true"] .page-half-idle-paper,
+  .page-half[data-settled="true"] .page-half-idle-large-card,
+  .page-half[data-settled="true"] .page-half-idle-black-card {
+    animation: none !important;
   }
 }
